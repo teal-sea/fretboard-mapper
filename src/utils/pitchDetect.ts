@@ -21,10 +21,18 @@ const MIN_FREQ = 40
 const MAX_FREQ = 4500
 
 // Below this RMS the buffer is silence/room noise, not a note.
-const RMS_GATE = 0.008
+// This is the FLOOR — callers raise it after calibrating against ambient
+// bleed (e.g. the app's own drone coming back through the speakers).
+export const BASE_RMS_GATE = 0.008
 // Below this clarity the signal isn't periodic enough to trust (strums,
 // percussive transients, the neighbour's dog).
 const CLARITY_GATE = 0.8
+
+export function measureRms(buf: Float32Array): number {
+  let sumSq = 0
+  for (let i = 0; i < buf.length; i++) sumSq += buf[i] * buf[i]
+  return Math.sqrt(sumSq / buf.length)
+}
 
 export function freqToMidi(freq: number): { midi: number; cents: number } {
   const midiFloat = 69 + 12 * Math.log2(freq / 440)
@@ -32,14 +40,16 @@ export function freqToMidi(freq: number): { midi: number; cents: number } {
   return { midi, cents: (midiFloat - midi) * 100 }
 }
 
-export function detectPitch(buf: Float32Array, sampleRate: number): PitchResult | null {
+export function detectPitch(
+  buf: Float32Array,
+  sampleRate: number,
+  minRms: number = BASE_RMS_GATE
+): PitchResult | null {
   const n = buf.length
 
   // ─── Gate on level ───
-  let sumSq = 0
-  for (let i = 0; i < n; i++) sumSq += buf[i] * buf[i]
-  const rms = Math.sqrt(sumSq / n)
-  if (rms < RMS_GATE) return null
+  const rms = measureRms(buf)
+  if (rms < minRms) return null
 
   const tauMin = Math.max(2, Math.floor(sampleRate / MAX_FREQ))
   const tauMax = Math.min(n - 2, Math.ceil(sampleRate / MIN_FREQ))

@@ -116,9 +116,16 @@ producing that pitch (white = in scale, red = off the map). In flow mode, landin
 the concept's focus interval lights the badge — **confirmation, not judgment**:
 no scores, no misses, no streaks.
 
-Known physics: with the drone on speakers the mic hears the drone. The Listen
-button recommends headphones; if this ever needs solving properly, the app knows
-exactly which frequencies the drone emits and can notch them out.
+**Drone bleed:** with the drone on speakers the mic hears the drone — and the
+drone's root+fifth+sub stack is quasi-periodic, so without countermeasures the
+detector reports the drone's own root (tested: `pitchDetect.test.ts` asserts
+this failure exists). The fix is **ambient calibration**: on `startMic()` and
+~3s after the drone toggles, `recalibrateMic()` samples the ambient RMS for
+~0.5s (median of 8 windows) and raises the detection gate to 2.5× that floor.
+Bleed stays under the gate; an instrument near the mic punches through (also
+tested, guitar and whistle over synthesized bleed). Headphones remain the
+zero-bleed path and the UI recommends them. Escalation if ever needed: notch
+filters at the drone's exact oscillator frequencies, which the engine knows.
 
 ## Conventions for new sounds
 

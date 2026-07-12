@@ -13,7 +13,7 @@ import { DEFAULT_INTERVAL_COLORS, ALL_INTERVALS } from './utils/defaultColors'
 import Fretboard from './components/Fretboard'
 import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome, startDrone, stopDrone } from './utils/audioEngine'
 import { CONCEPTS, getNextConcept, markSeen, type Concept } from './utils/concepts'
-import { startMic, stopMic, readPitch } from './utils/micInput'
+import { startMic, stopMic, readPitch, recalibrateMic } from './utils/micInput'
 import { intervalSemitones } from './utils/musicTheory'
 
 // ─── Harmony Map row definitions ────────────────────────────
@@ -546,6 +546,14 @@ export default function App() {
     return () => clearInterval(timer)
   }, [listening])
 
+  // The soundscape changed — relearn the ambient floor. Delayed so the
+  // drone's slow bloom (or fade) has mostly settled before we measure it.
+  useEffect(() => {
+    if (!listening) return
+    const t = setTimeout(() => recalibrateMic(), 3000)
+    return () => clearTimeout(t)
+  }, [droneOn, listening])
+
   // Did you find the note the concept told you to listen for?
   const focusPc = useMemo(() => {
     if (!currentConcept) return null
@@ -669,6 +677,21 @@ export default function App() {
             <span className="drone-dot" />
             {droneOn ? 'Drone' : 'Drone'}
           </button>
+          <button
+            className={`drone-btn ${listening ? 'active' : ''}`}
+            onClick={toggleListen}
+            title="Hear yourself on the neck — guitar, whistle, hum. Headphones recommended while the drone plays."
+          >
+            <span className="drone-dot" />
+            {listening ? 'Listening' : 'Listen'}
+          </button>
+          {listening && (
+            <span className="heard-readout">
+              {heardMidi !== null
+                ? <>{noteName(heardMidi % 12, flats)}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
+                : '···'}
+            </span>
+          )}
         </div>
 
         {/* Chord tier selector + diatonic chord buttons */}
