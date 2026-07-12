@@ -1621,3 +1621,67 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   0%, 100% { opacity: 0.35; transform: scale(0.85); }
   50%      { opacity: 1;    transform: scale(1.15); }
 }
+
+/* ─── Listening: live pitch feedback ────────────────────────── */
+
+/* Rings on the neck where the heard note lives */
+.heard-note .heard-ring {
+  animation: heard-pulse 0.9s ease-in-out infinite;
+}
+.heard-note .heard-ring-outer {
+  animation: heard-pulse 0.9s ease-in-out infinite reverse;
+}
+@keyframes heard-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+/* Live note readout next to the Listen button */
+.heard-readout {
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 44px;
+  justify-content: center;
+  padding: 7px 10px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text);
+  transition: all var(--transition);
+}
+.heard-readout sub {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-left: 1px;
+}
+.heard-readout.focus-hit {
+  border-color: var(--accent);
+  color: var(--accent-2);
+  box-shadow: 0 0 14px var(--accent-glow);
+}
+
+/* The focus badge reacts when your hands find the note */
+.concept-focus b {
+  transition: all var(--transition);
+}
+.concept-focus b.hit {
+  box-shadow: 0 0 16px var(--accent-glow), 0 0 4px var(--accent);
+  animation: focus-hit-pulse 0.8s ease-in-out infinite;
+}
+.concept-focus b.found:not(.hit) {
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+.concept-focus .focus-check {
+  margin-left: 6px;
+  color: var(--accent-2);
+  font-weight: 800;
+}
+@keyframes focus-hit-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}

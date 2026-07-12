@@ -95,6 +95,31 @@ graphs are independent).
   whole scale, pass a chord's pitch classes as the pool. Keep the pedal on the
   key root so it still grounds.
 
+## 4 · Listening — `micInput.ts` + `pitchDetect.ts`  *(the feedback loop)*
+
+The app can hear the player and answer on the neck. Two layers, deliberately split:
+
+- **`micInput.ts`** — the shared input pipe. `startMic()` (music-appropriate
+  constraints: echo cancellation / noise suppression / auto-gain all **off**),
+  `stopMic()`, `readPitch()`. Captures into an `AnalyserNode` (fftSize 4096) on
+  the shared context; never routed to the speakers. Future detectors (e.g. an
+  onset detector for rhythm feedback) consume this same stream.
+- **`pitchDetect.ts`** — pure DSP, no Web Audio, fully unit-tested with
+  synthesized waveforms. McLeod Pitch Method (NSDF autocorrelation, first-peak
+  rule, parabolic interpolation). Source-agnostic: guitar, bass, whistling,
+  humming — anything **monophonic and pitched** (40 Hz–4.5 kHz). Percussive
+  input has no pitch and correctly returns `null`.
+
+`App.tsx` polls `readPitch()` ~20×/s while `listening`, debounces to note-level
+changes, and passes `heardMidi` to `<Fretboard/>`, which rings every location
+producing that pitch (white = in scale, red = off the map). In flow mode, landing
+the concept's focus interval lights the badge — **confirmation, not judgment**:
+no scores, no misses, no streaks.
+
+Known physics: with the drone on speakers the mic hears the drone. The Listen
+button recommends headphones; if this ever needs solving properly, the app knows
+exactly which frequencies the drone emits and can notch them out.
+
 ## Conventions for new sounds
 
 1. Get the context via `getCtx()`; never `new AudioContext()` elsewhere.

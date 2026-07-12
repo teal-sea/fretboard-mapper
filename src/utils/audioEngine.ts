@@ -7,7 +7,7 @@ let ctx: AudioContext | null = null
 let reverbNode: ConvolverNode | null = null
 let masterGain: GainNode | null = null
 
-function getCtx(): AudioContext {
+export function getCtx(): AudioContext {
   if (!ctx) {
     ctx = new AudioContext()
     masterGain = ctx.createGain()
