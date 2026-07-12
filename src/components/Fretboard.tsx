@@ -25,6 +25,10 @@ interface Props {
   // Live listening — the exact MIDI note currently heard from the mic.
   // Every fretboard location producing that pitch gets a "heard" ring.
   heardMidi?: number | null
+  // Flow mode — the interval you're hunting. It glows; everything else recedes,
+  // so the neck reads as one instruction instead of a wall of colour.
+  focusInterval?: string | null
+  focusColor?: string
 }
 
 // Real guitar scale lengths in inches → relative units
@@ -62,6 +66,8 @@ export default function Fretboard({
   highlightedPositions = null,
   nextChordToneNotes = null,
   heardMidi = null,
+  focusInterval = null,
+  focusColor = '#5eead4',
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState(900)
@@ -410,6 +416,39 @@ export default function Fretboard({
                     </g>
                   )
                 }
+              }
+
+              // ─── Focus Mode (Flow) — one instruction, not a wall of colour ───
+              if (focusInterval) {
+                const isTarget = fn.intervalName === focusInterval
+                const isRootNote = fn.isRoot
+                const r = isTarget ? baseR : baseR * 0.86
+                const fill = isTarget ? focusColor : '#20252c'
+                const label = fn.intervalName
+
+                return (
+                  <g key={`n${si}-${fn.fret}`} className={`note-group ${inPos ? '' : 'ghosted'}`}>
+                    {isTarget && inPos && (
+                      <circle cx={cx} cy={y} r={r + 8} fill={focusColor} opacity={0.16} />
+                    )}
+                    <circle cx={cx} cy={y} r={r} fill={fill}
+                      stroke={isRootNote && !isTarget ? 'rgba(255,255,255,0.85)' : 'none'}
+                      strokeWidth={isRootNote && !isTarget ? 1.6 : 0} />
+                    {inPos && (
+                      <text x={cx} y={y} textAnchor="middle" dominantBaseline="central"
+                        className="interval-label"
+                        style={{
+                          fill: isTarget ? '#06312b' : isRootNote ? '#e9ebee' : '#79818c',
+                          fontWeight: isTarget ? 800 : 600,
+                          ...(showLeftHanded
+                            ? { transform: 'scaleX(-1)', transformOrigin: `${cx}px ${y}px` }
+                            : {}),
+                        }}>
+                        {label}
+                      </text>
+                    )}
+                  </g>
+                )
               }
 
               // ─── Normal Mode (no overlay) ───

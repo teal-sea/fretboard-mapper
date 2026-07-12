@@ -42,6 +42,7 @@ export interface FretNote {
 }
 
 export type ViewMode = 'chords' | 'scales'
+export type AppMode = 'study' | 'flow'
 
 export interface AppState {
   // Key selection (top level)
@@ -74,9 +75,14 @@ export interface AppState {
   // Audio
   padLatched: boolean
 
-  // Flow mode — the session engine (concept → shape → drone → hands)
-  flowMode: boolean
+  // Two first-class modes sharing one shell:
+  //   'study' — the full fretboard mapper: whole neck, any key, chords over
+  //             scales, arpeggios, positions. Nothing hidden.
+  //   'flow'  — the session engine: one idea, the shape, the drone, listening.
+  appMode: AppMode
   conceptId: string | null
+  showTheory: boolean
+  onboarded: boolean
 
   advancedMode: boolean
   activeTab: 'explore' | 'technique'

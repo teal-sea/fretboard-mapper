@@ -15,6 +15,8 @@ import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome,
 import { CONCEPTS, getNextConcept, markSeen, type Concept } from './utils/concepts'
 import { startMic, stopMic, readPitch, recalibrateMic } from './utils/micInput'
 import { intervalSemitones } from './utils/musicTheory'
+import { getScaleInsight, getChordInsight, chordsInScale } from './utils/theory'
+import { loadSeen } from './utils/concepts'
 
 // ─── Harmony Map row definitions ────────────────────────────
 const HARMONY_ROWS = [
@@ -95,8 +97,10 @@ const initialState: AppState = {
   guitarModel: 'strat',
   zoomToPosition: false,
   padLatched: false,
-  flowMode: false,
+  appMode: 'study',
   conceptId: null,
+  showTheory: true,
+  onboarded: false,
   advancedMode: false,
   activeTab: 'explore',
   techniqueMode: '3nps',
@@ -401,6 +405,8 @@ export default function App() {
   const [listening, setListening] = useState(false)
   const [heardMidi, setHeardMidi] = useState<number | null>(null)
   const [focusFound, setFocusFound] = useState(false)
+  const [justLanded, setJustLanded] = useState(false)
+  const [soundsOwned, setSoundsOwned] = useState(() => loadSeen().length)
 
   const startProgression = useCallback(() => {
     if (progressionTimerRef.current) clearInterval(progressionTimerRef.current)
@@ -469,7 +475,7 @@ export default function App() {
 
   const applyConcept = useCallback((c: Concept) => {
     up({
-      flowMode: true,
+      appMode: 'flow',
       conceptId: c.id,
       keyRoot: c.root,
       keyQuality: PARENT_KEY[c.mode] ?? c.mode,
@@ -489,6 +495,7 @@ export default function App() {
     })
     markSeen(c.id)
     setFocusFound(false) // new idea, new ear-hunt
+    setJustLanded(false)
     setDroneOn(true) // the effect above starts/retunes the drone in the new key
   }, [up])
 
@@ -497,7 +504,14 @@ export default function App() {
     () => applyConcept(getNextConcept(state.conceptId)),
     [applyConcept, state.conceptId]
   )
-  const exitFlow = useCallback(() => up({ flowMode: false }), [up])
+
+  // Switching modes never destroys your work — Study keeps whatever's on the
+  // neck; Flow picks up (or starts) a session.
+  const goStudy = useCallback(() => up({ appMode: 'study' }), [up])
+  const goFlow = useCallback(() => {
+    if (state.conceptId) up({ appMode: 'flow' })
+    else startSession()
+  }, [state.conceptId, up, startSession])
 
   const shiftPosition = useCallback(() => {
     const n = scalePositions.length
@@ -564,9 +578,40 @@ export default function App() {
 
   const hearingFocus = heardMidi !== null && focusPc !== null && heardMidi % 12 === focusPc
 
+  // ─── The reward. You didn't score a point — you now OWN a sound. ───
   useEffect(() => {
-    if (hearingFocus) setFocusFound(true)
-  }, [hearingFocus])
+    if (!hearingFocus || focusFound) return
+    setFocusFound(true)
+    setJustLanded(true)
+    setSoundsOwned(n => n + 1)
+    const t = setTimeout(() => setJustLanded(false), 900)
+    return () => clearTimeout(t)
+  }, [hearingFocus, focusFound])
+
+  // ─── The theory layer: why what you're looking at works ───
+  const insight = useMemo(() => {
+    if (state.viewMode === 'chords' && state.selectedChordRoot && state.selectedChordKey) {
+      const dc = diatonicChords
+        .flat()
+        .find(c => c.root === state.selectedChordRoot && c.chordKey === state.selectedChordKey)
+      if (dc) return getChordInsight(state.keyRoot, state.keyQuality, dc, primaryChords[0] ?? null)
+    }
+    const sKey = state.selectedScaleKey || state.keyQuality
+    const sRoot = state.selectedScaleRoot || state.keyRoot
+    return getScaleInsight(sRoot, sKey)
+  }, [
+    state.viewMode, state.selectedChordRoot, state.selectedChordKey,
+    state.selectedScaleKey, state.selectedScaleRoot, state.keyRoot, state.keyQuality,
+    diatonicChords, primaryChords,
+  ])
+
+  const playableChords = useMemo(
+    () => chordsInScale(
+      state.selectedScaleRoot || state.keyRoot,
+      state.selectedScaleKey || state.keyQuality
+    ),
+    [state.selectedScaleRoot, state.keyRoot, state.selectedScaleKey, state.keyQuality]
+  )
 
   useEffect(() => {
     if (state.progressionPlaying && progressionTimerRef.current) {
@@ -588,22 +633,73 @@ export default function App() {
     })
   }, [])
 
+  const isFlow = state.appMode === 'flow'
+
+  // The actual note behind the interval — nobody new knows what "the 6" is
+  // until you tell them it's F♯.
+  const focusNoteName = useMemo(() => {
+    if (!currentConcept || focusPc === null) return null
+    return noteName(focusPc, useFlats(currentConcept.root))
+  }, [currentConcept, focusPc])
+
   // ─── Render ───
   return (
-    <div className={`app ${state.theme}${state.colorTheme !== 'obsidian' ? ' ' + state.colorTheme : ''}`}>
-      {/* Ambient glow */}
-      <div
-        className="ambient-glow"
-        style={{ '--glow-color': `hsla(${rootHue}, 50%, 35%, 0.05)` } as React.CSSProperties}
-      />
+    <div className={`app ${state.theme}${state.colorTheme !== 'obsidian' ? ' ' + state.colorTheme : ''} mode-${state.appMode}`}>
+      {!isFlow && (
+        <div
+          className="ambient-glow"
+          style={{ '--glow-color': `hsla(${rootHue}, 50%, 35%, 0.05)` } as React.CSSProperties}
+        />
+      )}
 
-      {/* Context bar */}
-      <header className="context-bar">
-        <div className="context-brand">
-          <span className="context-logo">FM</span>
-          <span className="context-title">Fretboard Mapper</span>
+      {/* ─── First run: what is this, and where do I start? ─── */}
+      {!state.onboarded && (
+        <div className="intro-veil">
+          <div className="intro">
+            <p className="intro-eyebrow">Fretboard Mapper</p>
+            <h1 className="intro-title">See the neck. <em>Then hear it.</em></h1>
+            <p className="intro-sub">
+              Two ways in. Study the fretboard in as much depth as you want, or drop
+              straight into a session and play. Switch between them any time.
+            </p>
+            <div className="intro-modes">
+              <button className="intro-mode" onClick={() => up({ onboarded: true, appMode: 'study' })}>
+                <span className="intro-mode-name">Study the neck</span>
+                <span className="intro-mode-desc">
+                  Any key, any scale, chords laid over scales, arpeggios and positions —
+                  the whole fretboard at once, with the theory that explains it.
+                </span>
+              </button>
+              <button className="intro-mode" onClick={() => { up({ onboarded: true }); startSession() }}>
+                <span className="intro-mode-name">Start a session</span>
+                <span className="intro-mode-desc">
+                  One idea. The shape already on the neck, a drone already in key.
+                  It listens while you play and tells you when you land it.
+                </span>
+              </button>
+            </div>
+            <button className="intro-skip" onClick={() => up({ onboarded: true })}>Skip</button>
+          </div>
         </div>
-        <div className="context-actions">
+      )}
+
+      {/* ─── The shell: one switch between two first-class modes ─── */}
+      <header className="shell-header">
+        <div className="shell-brand">
+          <span className="shell-logo">FM</span>
+          <span className="shell-name">Fretboard Mapper</span>
+        </div>
+
+        <div className="mode-switch">
+          <button className={`mode-btn ${!isFlow ? 'active' : ''}`} onClick={goStudy}>
+            Study
+          </button>
+          <button className={`mode-btn ${isFlow ? 'active' : ''}`} onClick={goFlow}>
+            Flow
+          </button>
+        </div>
+
+        <div className="shell-actions">
           <button className="icon-btn" onClick={() => setSettingsOpen(true)} title="Settings">
             &#9881;
           </button>
@@ -617,50 +713,112 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main stage */}
-      <main className="main-stage">
-        {/* Flow: the front door. One idea, the shape, the drone. Zero config. */}
-        {!state.flowMode && (
-          <button className="start-session" onClick={startSession}>
-            <span className="start-session-main">{'▶'}&nbsp; Start Session</span>
-            <span className="start-session-sub">
-              one idea {'·'} the shape on the neck {'·'} drone already in key
-            </span>
-          </button>
-        )}
+      {/* ═════════ FLOW — one idea, the shape, the drone, listening ═════════ */}
+      {isFlow && currentConcept && (
+        <main className={`flow-stage ${justLanded ? 'landed' : ''}`}>
+          <div className="flow-aura" />
 
-        {state.flowMode && currentConcept && (
-          <div className="concept-card">
-            <div className="concept-head">
-              <span className="concept-title">{currentConcept.title}</span>
-              <span className="concept-focus">
-                listen for the{' '}
-                <b className={`${hearingFocus ? 'hit' : ''} ${focusFound ? 'found' : ''}`}>
-                  {currentConcept.focus}
-                </b>
-                {focusFound && <span className="focus-check" title="you found it">{'✓'}</span>}
+          <div className={`flow-owned ${justLanded ? 'gained' : ''}`}>
+            <span className="flow-owned-n">{soundsOwned}</span>
+            <span>sounds you own</span>
+          </div>
+
+          <header className="flow-idea">
+            <p className="flow-key">
+              {currentConcept.title}
+              {currentConcept.position ? ` · position ${currentConcept.position}` : ' · whole neck'}
+            </p>
+            <h2 className="flow-hook">{currentConcept.hook}</h2>
+            <p className="flow-listen">{currentConcept.listenFor}</p>
+            <div className={`flow-target ${focusFound ? 'found' : ''}`}>
+              <b>{currentConcept.focus}</b>
+              <span>
+                {focusFound
+                  ? `That's it — that's the sound of ${currentConcept.title}`
+                  : `Your note: ${focusNoteName ?? currentConcept.focus} — the glowing ones`}
               </span>
             </div>
-            <div className="concept-hook">{currentConcept.hook}</div>
-            <p className="concept-listen">{currentConcept.listenFor}</p>
-          </div>
-        )}
+          </header>
 
-        {!state.flowMode && (
-        <>
-        {/* Key + Scale selector */}
-        <div className="control-strip">
-          <div className="key-selector">
-            <span className="key-label">Key</span>
-            <select className="key-select" value={state.keyRoot}
-              onChange={e => up({ keyRoot: e.target.value, selectedScaleRoot: e.target.value, selectedScaleKey: state.keyQuality })}>
-              {NOTE_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-            <select className="key-select" value={state.keyQuality}
-              onChange={e => up({ keyQuality: e.target.value, selectedScaleKey: e.target.value })}>
-              {KEY_QUALITIES.map(q => <option key={q.key} value={q.key}>{q.label}</option>)}
-            </select>
+          <div className="flow-neck">
+            <Fretboard
+              board={board}
+              displayMode="intervals"
+              inlayStyle={state.inlayStyle}
+              intervalColors={state.intervalColors}
+              highlightRoot={state.highlightRoot}
+              showLeftHanded={state.showLeftHanded}
+              posRange={activePosRange}
+              numFrets={state.numFrets}
+              fretRange={state.fretRange}
+              tuningLabels={tuning.labels}
+              highlightedPositions={state.activeTab === 'technique' ? highlightedPosSet : null}
+              guitarModel={state.guitarModel}
+              zoomToPosition={state.scalePosition !== null}
+              heardMidi={listening ? heardMidi : null}
+              focusInterval={state.activeTab === 'technique' ? null : currentConcept.focus}
+            />
           </div>
+
+          <div className="flow-legend">
+            <span><i className="flow-sw target" /> your note</span>
+            <span><i className="flow-sw root" /> home ({currentConcept.root})</span>
+            <span><i className="flow-sw scale" /> also in key</span>
+            <span><i className="flow-sw heard" /> what it hears you play</span>
+          </div>
+
+          <footer className="flow-controls">
+            <button className={`flow-ctl primary ${focusFound ? 'beckon' : ''}`} onClick={nextConcept}>
+              {focusFound ? 'Next sound' : 'Next idea'} {'→'}
+            </button>
+            <button className="flow-ctl" onClick={shiftPosition}>Shift position</button>
+            <button className={`flow-ctl ${droneOn ? 'on' : ''}`} onClick={toggleDrone}>
+              <span className="flow-pip" />{droneOn ? 'Drone on' : 'Drone'}
+            </button>
+            <button
+              className={`flow-ctl ${listening ? 'on' : ''}`}
+              onClick={toggleListen}
+              title="Hear yourself on the neck — guitar, whistle, hum. Headphones recommended while the drone plays."
+            >
+              <span className="flow-pip" />{listening ? 'Listening' : 'Listen'}
+            </button>
+            {listening && (
+              <span className={`flow-readout ${hearingFocus ? 'hit' : ''}`}>
+                {heardMidi !== null
+                  ? <>{noteName(heardMidi % 12, flats)}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
+                  : '···'}
+              </span>
+            )}
+          </footer>
+
+          {!listening && (
+            <p className="flow-coach">
+              <span className="flow-pip" />
+              Turn on <b>&nbsp;Listen&nbsp;</b> and play anything — a note, a whistle, a hum.
+              The neck shows you what it heard.
+            </p>
+          )}
+        </main>
+      )}
+
+      {/* ═════════ STUDY — the full mapper. Nothing hidden. ═════════ */}
+      {!isFlow && (
+      <main className="study-stage">
+        {/* One toolbar instead of four stacked strips */}
+        <div className="study-bar">
+          <span className="study-bar-label">Key</span>
+          <select className="key-select" value={state.keyRoot}
+            onChange={e => up({ keyRoot: e.target.value, selectedScaleRoot: e.target.value, selectedScaleKey: state.keyQuality })}>
+            {NOTE_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+          <select className="key-select" value={state.keyQuality}
+            onChange={e => up({ keyQuality: e.target.value, selectedScaleKey: e.target.value })}>
+            {KEY_QUALITIES.map(q => <option key={q.key} value={q.key}>{q.label}</option>)}
+          </select>
+
+          <span className="study-bar-sep" />
+
+          <span className="study-bar-label">Scale</span>
           <select className="type-select" value={state.selectedScaleKey || state.keyQuality}
             onChange={e => up({ selectedScaleKey: e.target.value, selectedScaleRoot: state.keyRoot, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })}>
             {Object.entries(scalesByCategory).map(([cat, scales]) => (
@@ -669,21 +827,22 @@ export default function App() {
               </optgroup>
             ))}
           </select>
+
+          <span className="study-bar-sep" />
+
           <button
             className={`drone-btn ${droneOn ? 'active' : ''}`}
             onClick={toggleDrone}
-            title="Evolving ambient drone in the current key — press play, then improvise over it"
+            title="Evolving ambient drone in the current key — improvise over it"
           >
-            <span className="drone-dot" />
-            {droneOn ? 'Drone' : 'Drone'}
+            <span className="drone-dot" />Drone
           </button>
           <button
             className={`drone-btn ${listening ? 'active' : ''}`}
             onClick={toggleListen}
-            title="Hear yourself on the neck — guitar, whistle, hum. Headphones recommended while the drone plays."
+            title="Hear yourself on the neck — guitar, whistle, hum"
           >
-            <span className="drone-dot" />
-            {listening ? 'Listening' : 'Listen'}
+            <span className="drone-dot" />{listening ? 'Listening' : 'Listen'}
           </button>
           {listening && (
             <span className="heard-readout">
@@ -739,22 +898,44 @@ export default function App() {
           })}
         </div>
 
-        {/* Hero */}
-        <div className="hero">
-          <h1 className="hero-label">{activeLabel}</h1>
-          <div className="hero-formula">
+        {/* Title + formula */}
+        <div className="study-head">
+          <span className="study-title">{activeLabel}</span>
+          <span className="study-formula">
             {state.activeTab === 'technique' ? (() => {
-              if (state.techniqueMode === '3nps') return `3NPS Pattern ${state.selectedPattern + 1} \u00B7 ${formulaStr}`
+              if (state.techniqueMode === '3nps') return `3NPS Pattern ${state.selectedPattern + 1} · ${formulaStr}`
               const dc = diatonicChords[state.selectedPattern]?.[0]
               return dc ? `${dc.fullName} ${state.techniqueMode === 'tapping' ? 'Tapping' : 'Sweep'} Arpeggio` : formulaStr
-            })() : chordFormula ? `${chordFormula}  \u00B7  ${formulaStr}` : formulaStr}
-          </div>
+            })() : chordFormula ? `${chordFormula}  ·  ${formulaStr}` : formulaStr}
+          </span>
         </div>
 
-        </>
+        {/* ─── The theory layer: why what you're looking at actually works ─── */}
+        {state.showTheory && insight && (
+          <div className="theory-card">
+            <div className="theory-eyebrow">
+              <span>{insight.eyebrow}</span>
+              {insight.focus && <span>{'·'} the {insight.focus}</span>}
+              <button className="theory-toggle" onClick={() => up({ showTheory: false })}>hide</button>
+            </div>
+            <div className="theory-title">{insight.title}</div>
+            <p className="theory-body">
+              {insight.body}
+              {state.viewMode !== 'chords' && playableChords > 0 && (
+                <>{' '}There are <b>{playableChords}</b> chords that fit entirely inside this scale.
+                Every one of them is a place you can land.</>
+              )}
+            </p>
+          </div>
+        )}
+        {!state.showTheory && (
+          <button className="theory-toggle" style={{ margin: '0 auto' }}
+            onClick={() => up({ showTheory: true })}>
+            + show the theory
+          </button>
         )}
 
-        {/* Note legend — kept in flow mode: it's how you FIND the focus interval */}
+        {/* Note legend */}
         <div className="note-legend">
           {activeIntervals.map(i => {
             const semis = i % 12
@@ -774,8 +955,6 @@ export default function App() {
           })}
         </div>
 
-        {!state.flowMode && (
-        <>
         {/* Display mode toggle — note names / intervals / both */}
         <div className="display-mode-bar">
           <button
@@ -822,9 +1001,6 @@ export default function App() {
           )
         })()}
 
-        </>
-        )}
-
         {/* Fretboard */}
         <Fretboard
           board={board}
@@ -846,31 +1022,7 @@ export default function App() {
           heardMidi={listening ? heardMidi : null}
         />
 
-        {/* Flow controls — the only buttons that exist during a session */}
-        {state.flowMode && (
-          <div className="flow-controls">
-            <button className="flow-btn primary" onClick={nextConcept}>Next idea {'→'}</button>
-            <button className="flow-btn" onClick={shiftPosition}>Shift position</button>
-            <button className={`flow-btn ${droneOn ? 'on' : ''}`} onClick={toggleDrone}>
-              <span className="flow-dot" />{droneOn ? 'Drone on' : 'Drone off'}
-            </button>
-            <button className={`flow-btn ${listening ? 'on' : ''}`} onClick={toggleListen}
-              title="Hear yourself on the neck — guitar, whistle, hum. Headphones recommended while the drone plays.">
-              <span className="flow-dot" />{listening ? 'Listening' : 'Listen'}
-            </button>
-            {listening && (
-              <span className={`heard-readout ${hearingFocus ? 'focus-hit' : ''}`}>
-                {heardMidi !== null
-                  ? <>{noteName(heardMidi % 12, flats)}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
-                  : '···'}
-              </span>
-            )}
-            <button className="flow-btn ghost" onClick={exitFlow}>Explore {'↗'}</button>
-          </div>
-        )}
 
-        {!state.flowMode && (
-        <>
         {/* Position bar + More toggle */}
         <div className="bottom-strip">
           <div className="position-bar">
@@ -895,11 +1047,8 @@ export default function App() {
           </button>
         </div>
 
-        </>
-        )}
-
         {/* Expanded sections */}
-        {state.advancedMode && !state.flowMode && (
+        {state.advancedMode && (
           <div className="advanced-panel">
             <CollapsibleSection title="PRACTICE" variant="panel">
               <div className="progression-header">
@@ -1029,6 +1178,7 @@ export default function App() {
         )}
 
       </main>
+      )}
 
       {/* Settings Drawer */}
       <div className={`settings-drawer ${settingsOpen ? 'open' : ''}`}>
