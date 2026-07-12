@@ -371,3 +371,217 @@ export function stopMetronome(): void {
 export function isMetronomeRunning(): boolean {
   return metronomeTimer !== null
 }
+
+// ─── Generative Evolving Drone ──────────────────────────────────────
+// A self-evolving modal drone. A fixed root+fifth+sub pedal anchors the
+// tonal center while a few upper voices slowly glide between scale tones,
+// so the texture drifts and never quite repeats (Eno / Marconi Union feel).
+// Infinite until stopped. Reuses the pad's reverb + master routing.
+
+type Layer = { ratio: number; type: OscillatorType; gain: number }
+
+interface DriftVoice {
+  oscs: { osc: OscillatorNode; ratio: number }[]
+  pool: number[]   // candidate MIDI notes this voice may occupy (scale tones in its register)
+  baseMidi: number // current center note
+}
+
+interface ActiveDrone {
+  nodes: AudioNode[]
+  oscillators: OscillatorNode[]
+  envelope: GainNode
+  scheduler: ReturnType<typeof setInterval>
+}
+
+let currentDrone: ActiveDrone | null = null
+
+// Start a modal drone rooted at pitch-class `rootPc` (0=C..11=B) using the
+// given scale intervals (semitone offsets from the root, e.g. [0,2,3,5,7,9,10]).
+export function startDrone(rootPc: number, scaleIntervals: number[]): void {
+  stopDrone()
+
+  const audioCtx = getCtx()
+  if (!masterGain || scaleIntervals.length === 0) return
+  const now = audioCtx.currentTime
+
+  const pc = ((rootPc % 12) + 12) % 12
+  const pcs = new Set(scaleIntervals.map(i => (((pc + i) % 12) + 12) % 12))
+
+  const nodes: AudioNode[] = []
+  const oscillators: OscillatorNode[] = []
+
+  // ─── Master drone envelope — slow bloom, hold indefinitely ───
+  const envelope = audioCtx.createGain()
+  envelope.gain.setValueAtTime(0, now)
+  envelope.gain.linearRampToValueAtTime(0.6, now + 5)
+  nodes.push(envelope)
+
+  // ─── Shared tone-shaping: hiPass → breathing lowpass → saturation → envelope → master ───
+  const hiPass = audioCtx.createBiquadFilter()
+  hiPass.type = 'highpass'
+  hiPass.frequency.value = 60
+  hiPass.Q.value = 0.5
+  nodes.push(hiPass)
+
+  const filter = audioCtx.createBiquadFilter()
+  filter.type = 'lowpass'
+  filter.Q.value = 0.6
+  filter.frequency.setValueAtTime(500, now)
+  filter.frequency.linearRampToValueAtTime(2200, now + 8)
+  nodes.push(filter)
+
+  const shaper = audioCtx.createWaveShaper()
+  shaper.curve = makeSaturationCurve(0.7)
+  shaper.oversample = '2x'
+  nodes.push(shaper)
+
+  hiPass.connect(filter)
+  filter.connect(shaper)
+  shaper.connect(envelope)
+  envelope.connect(masterGain)
+
+  // Very slow breathing LFO on the cutoff
+  const lfo = audioCtx.createOscillator()
+  lfo.type = 'sine'
+  lfo.frequency.value = 0.05
+  const lfoGain = audioCtx.createGain()
+  lfoGain.gain.value = 500
+  lfo.connect(lfoGain)
+  lfoGain.connect(filter.frequency)
+  oscillators.push(lfo)
+  nodes.push(lfoGain)
+
+  // Build a small oscillator stack on a base note; returns glide handles.
+  const makeVoice = (baseMidi: number, level: number, pan: number, layers: Layer[]) => {
+    const panner = audioCtx.createStereoPanner()
+    panner.pan.value = pan
+    nodes.push(panner)
+
+    const voiceGain = audioCtx.createGain()
+    voiceGain.gain.value = level
+    nodes.push(voiceGain)
+
+    const baseFreq = midiToFreq(baseMidi)
+    const handles: { osc: OscillatorNode; ratio: number }[] = []
+    for (const L of layers) {
+      const osc = audioCtx.createOscillator()
+      osc.type = L.type
+      osc.frequency.setValueAtTime(baseFreq * L.ratio, now)
+      const g = audioCtx.createGain()
+      g.gain.value = L.gain
+      osc.connect(g)
+      g.connect(voiceGain)
+      nodes.push(g)
+      oscillators.push(osc)
+      handles.push({ osc, ratio: L.ratio })
+    }
+    voiceGain.connect(panner)
+    panner.connect(hiPass)
+    return handles
+  }
+
+  // ─── Pedal (anchor): root + fifth + sub, never moves ───
+  const pedalRoot = 36 + pc // C2..B2
+  makeVoice(pedalRoot, 0.28, 0, [
+    { ratio: 1,      type: 'sine', gain: 0.5 },
+    { ratio: 1.0035, type: 'sine', gain: 0.35 },
+    { ratio: 0.9965, type: 'sine', gain: 0.35 },
+    { ratio: 0.5,    type: 'sine', gain: 0.4 }, // sub octave
+  ])
+  makeVoice(pedalRoot + 7, 0.14, -0.15, [
+    { ratio: 1,     type: 'sine', gain: 0.5 },
+    { ratio: 1.004, type: 'sine', gain: 0.3 },
+  ])
+
+  // ─── Drifting upper voices ───
+  const driftLayers: Layer[] = [
+    { ratio: 1,     type: 'sine',     gain: 0.4 },
+    { ratio: 1.004, type: 'sine',     gain: 0.28 },
+    { ratio: 0.996, type: 'sine',     gain: 0.28 },
+    { ratio: 1.007, type: 'triangle', gain: 0.1 },
+  ]
+  const buildPool = (center: number, span: number): number[] => {
+    const pool: number[] = []
+    for (let m = center - span; m <= center + span; m++) {
+      if (pcs.has(((m % 12) + 12) % 12)) pool.push(m)
+    }
+    return pool.length ? pool : [center]
+  }
+  const driftVoices: DriftVoice[] = []
+  const registers = [
+    { center: 55, pan: -0.4,  level: 0.13 }, // G3 area
+    { center: 60, pan: 0.15,  level: 0.12 }, // C4 area
+    { center: 64, pan: 0.45,  level: 0.1 },  // E4 area
+  ]
+  for (const r of registers) {
+    const pool = buildPool(r.center, 4)
+    const startMidi = pool[Math.floor(pool.length / 2)]
+    const oscs = makeVoice(startMidi, r.level, r.pan, driftLayers)
+    driftVoices.push({ oscs, pool, baseMidi: startMidi })
+  }
+
+  // Slow amplitude tremolo for life
+  const trem = audioCtx.createOscillator()
+  trem.type = 'sine'
+  trem.frequency.value = 0.08
+  const tremGain = audioCtx.createGain()
+  tremGain.gain.value = 0.06
+  trem.connect(tremGain)
+  tremGain.connect(envelope.gain)
+  oscillators.push(trem)
+  nodes.push(tremGain)
+
+  // Start everything exactly once
+  oscillators.forEach(o => { try { o.start(now) } catch {} })
+
+  // ─── Drift scheduler: nudge one voice to a neighbouring scale tone ───
+  const glide = (voice: DriftVoice) => {
+    if (voice.pool.length < 2) return
+    const curIdx = voice.pool.indexOf(voice.baseMidi)
+    let step = Math.random() < 0.5 ? -1 : 1
+    if (Math.random() < 0.3) step *= 2 // occasional wider leap
+    let ni = curIdx + step
+    if (ni < 0 || ni >= voice.pool.length) ni = curIdx - step // reflect at edges
+    ni = Math.max(0, Math.min(voice.pool.length - 1, ni))
+    const target = voice.pool[ni]
+    if (target === voice.baseMidi) return
+    voice.baseMidi = target
+
+    const t = audioCtx.currentTime
+    const glideTime = 3 + Math.random() * 2
+    const targetFreq = midiToFreq(target)
+    for (const { osc, ratio } of voice.oscs) {
+      osc.frequency.cancelScheduledValues(t)
+      osc.frequency.setValueAtTime(osc.frequency.value, t)
+      osc.frequency.exponentialRampToValueAtTime(targetFreq * ratio, t + glideTime)
+    }
+  }
+
+  const scheduler = setInterval(() => {
+    const v = driftVoices[Math.floor(Math.random() * driftVoices.length)]
+    glide(v)
+  }, 7000)
+
+  currentDrone = { nodes, oscillators, envelope, scheduler }
+}
+
+export function stopDrone(): void {
+  if (!currentDrone || !ctx) return
+  const now = ctx.currentTime
+  const drone = currentDrone
+  currentDrone = null
+
+  clearInterval(drone.scheduler)
+  drone.envelope.gain.cancelScheduledValues(now)
+  drone.envelope.gain.setValueAtTime(drone.envelope.gain.value, now)
+  drone.envelope.gain.linearRampToValueAtTime(0, now + 2.5)
+
+  setTimeout(() => {
+    drone.oscillators.forEach(o => { try { o.stop() } catch {}; try { o.disconnect() } catch {} })
+    drone.nodes.forEach(n => { try { n.disconnect() } catch {} })
+  }, 2700)
+}
+
+export function isDroneRunning(): boolean {
+  return currentDrone !== null
+}

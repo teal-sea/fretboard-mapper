@@ -11,7 +11,7 @@ import {
 import type { DiatonicChord, FretPosition } from './utils/musicTheory'
 import { DEFAULT_INTERVAL_COLORS, ALL_INTERVALS } from './utils/defaultColors'
 import Fretboard from './components/Fretboard'
-import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome } from './utils/audioEngine'
+import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome, startDrone, stopDrone } from './utils/audioEngine'
 
 // ─── Harmony Map row definitions ────────────────────────────
 const HARMONY_ROWS = [
@@ -379,6 +379,7 @@ export default function App() {
   }, [diatonicChords])
 
   const [metronomeOn, setMetronomeOn] = useState(false)
+  const [droneOn, setDroneOn] = useState(false)
 
   const startProgression = useCallback(() => {
     if (progressionTimerRef.current) clearInterval(progressionTimerRef.current)
@@ -415,8 +416,26 @@ export default function App() {
     return () => {
       if (progressionTimerRef.current) clearInterval(progressionTimerRef.current)
       stopMetronome()
+      stopDrone()
     }
   }, [])
+
+  // ─── Ambient drone ───
+  const toggleDrone = useCallback(() => {
+    if (droneOn) {
+      stopDrone()
+      setDroneOn(false)
+    } else {
+      startDrone(noteIndex(state.keyRoot), SCALES[state.keyQuality]?.intervals || [])
+      setDroneOn(true)
+    }
+  }, [droneOn, state.keyRoot, state.keyQuality])
+
+  // Retune the drone in place when the key or mode changes while it's playing
+  useEffect(() => {
+    if (droneOn) startDrone(noteIndex(state.keyRoot), SCALES[state.keyQuality]?.intervals || [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.keyRoot, state.keyQuality])
 
   useEffect(() => {
     if (state.progressionPlaying && progressionTimerRef.current) {
@@ -490,6 +509,14 @@ export default function App() {
               </optgroup>
             ))}
           </select>
+          <button
+            className={`drone-btn ${droneOn ? 'active' : ''}`}
+            onClick={toggleDrone}
+            title="Evolving ambient drone in the current key — press play, then improvise over it"
+          >
+            <span className="drone-dot" />
+            {droneOn ? 'Drone' : 'Drone'}
+          </button>
         </div>
 
         {/* Chord tier selector + diatonic chord buttons */}

@@ -1442,3 +1442,43 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   .hero-label { font-size: 18px; }
   .hero-formula { font-size: 11px; }
 }
+
+/* Ambient drone toggle */
+.drone-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  letter-spacing: 0.03em;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.drone-btn:hover { color: var(--text); border-color: var(--accent); }
+.drone-btn .drone-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--text-3, #666);
+  transition: background var(--transition);
+}
+.drone-btn.active {
+  color: #000;
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+.drone-btn.active .drone-dot {
+  background: #000;
+  animation: drone-pulse 2.4s ease-in-out infinite;
+}
+@keyframes drone-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50%      { opacity: 1;    transform: scale(1.15); }
+}
