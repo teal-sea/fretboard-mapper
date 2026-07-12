@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { detectPitch, freqToMidi } from './pitchDetect'
+import { detectPitch, freqToMidi, measureRms } from './pitchDetect'
 import { intervalSemitones, intervalName } from './musicTheory'
 
 const SR = 44100
@@ -90,6 +90,66 @@ describe('detectPitch', () => {
 
   it('reports clarity near 1 for a pure tone', () => {
     expect(detectPitch(sine(220), SR)!.clarity).toBeGreaterThan(0.95)
+  })
+})
+
+// The app's own drone bleeding back through the speakers: root + fifth + sub
+// + detuned layers, exactly the stack startDrone builds. Quasi-periodic, so
+// only the calibrated level gate keeps it out — clarity alone won't.
+function droneBleed(rootFreq: number, amp: number): Float32Array {
+  const buf = new Float32Array(N)
+  for (let i = 0; i < N; i++) {
+    const t = i / SR
+    buf[i] = amp * (
+      1.0 * Math.sin(2 * Math.PI * rootFreq * t) +
+      0.7 * Math.sin(2 * Math.PI * rootFreq * 1.0035 * t + 0.5) +
+      0.6 * Math.sin(2 * Math.PI * rootFreq * 1.5 * t + 1.1) +
+      0.8 * Math.sin(2 * Math.PI * rootFreq * 0.5 * t + 2.0)
+    ) / 3.1
+  }
+  return buf
+}
+
+function mix(a: Float32Array, b: Float32Array): Float32Array {
+  const out = new Float32Array(N)
+  for (let i = 0; i < N; i++) out[i] = a[i] + b[i]
+  return out
+}
+
+describe('drone bleed (ambient calibration)', () => {
+  // A drone in A: bleed level as heard by a mic across the room
+  const bleed = droneBleed(110, 0.05)
+  // A gate calibrated the way micInput does it: 2.5× the ambient RMS
+  const calibratedGate = measureRms(bleed) * 2.5
+
+  it('the drone alone IS detected without calibration — the problem is real', () => {
+    expect(detectPitch(bleed, SR)).not.toBeNull()
+  })
+
+  it('the calibrated gate silences drone-only bleed', () => {
+    expect(detectPitch(bleed, SR, calibratedGate)).toBeNull()
+  })
+
+  it('a guitar note punches through the same gate over the same bleed', () => {
+    const r = detectPitch(mix(guitarish(196, 0.4), bleed), SR, calibratedGate)
+    expect(r).not.toBeNull()
+    expect(r!.midi).toBe(55) // hears the G3, not the drone's A
+  })
+
+  it('whistling punches through too', () => {
+    const r = detectPitch(mix(sine(1568, 0.35), bleed), SR, calibratedGate)
+    expect(r).not.toBeNull()
+    expect(r!.midi).toBe(91)
+  })
+})
+
+describe('measureRms', () => {
+  it('reports amplitude/√2 for a sine', () => {
+    expect(measureRms(sine(220, 0.5))).toBeCloseTo(0.5 / Math.SQRT2, 2)
+  })
+
+  it('reports 0 for silence', () => {
+    expect(measureRms(new Float32Array(N))).toBe(0)
   })
 })
 
