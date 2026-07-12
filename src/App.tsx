@@ -12,6 +12,7 @@ import type { DiatonicChord, FretPosition } from './utils/musicTheory'
 import { DEFAULT_INTERVAL_COLORS, ALL_INTERVALS } from './utils/defaultColors'
 import Fretboard from './components/Fretboard'
 import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome, startDrone, stopDrone } from './utils/audioEngine'
+import { CONCEPTS, getNextConcept, markSeen, type Concept } from './utils/concepts'
 
 // ─── Harmony Map row definitions ────────────────────────────
 const HARMONY_ROWS = [
@@ -34,9 +35,22 @@ const ROOT_HUES: Record<string, number> = {
 const KEY_QUALITIES = [
   { key: 'ionian', label: 'Major' },
   { key: 'aeolian', label: 'Minor' },
+  { key: 'dorian', label: 'Dorian' },
+  { key: 'phrygian', label: 'Phrygian' },
+  { key: 'lydian', label: 'Lydian' },
+  { key: 'mixolydian', label: 'Mixolydian' },
+  { key: 'locrian', label: 'Locrian' },
   { key: 'harmonic_minor', label: 'Harm. Minor' },
   { key: 'melodic_minor', label: 'Mel. Minor' },
 ]
+
+// A concept's scale isn't always a viable KEY. Pentatonics/blues borrow a
+// 7-note parent so diatonic harmony + technique patterns stay coherent.
+const PARENT_KEY: Record<string, string> = {
+  minor_penta: 'aeolian',
+  blues: 'aeolian',
+  major_penta: 'ionian',
+}
 
 const MINOR_QUALITIES = new Set(['aeolian', 'harmonic_minor', 'melodic_minor', 'dorian', 'phrygian'])
 
@@ -79,6 +93,8 @@ const initialState: AppState = {
   guitarModel: 'strat',
   zoomToPosition: false,
   padLatched: false,
+  flowMode: false,
+  conceptId: null,
   advancedMode: false,
   activeTab: 'explore',
   techniqueMode: '3nps',
@@ -421,21 +437,67 @@ export default function App() {
   }, [])
 
   // ─── Ambient drone ───
-  const toggleDrone = useCallback(() => {
-    if (droneOn) {
-      stopDrone()
-      setDroneOn(false)
-    } else {
-      startDrone(noteIndex(state.keyRoot), SCALES[state.keyQuality]?.intervals || [])
-      setDroneOn(true)
-    }
-  }, [droneOn, state.keyRoot, state.keyQuality])
+  // The drone always follows whatever the neck is currently showing, so a
+  // concept can retune it just by writing state.
+  const droneTuning = useMemo(() => ({
+    root: state.activeTab === 'technique' ? state.keyRoot : (state.selectedScaleRoot || state.keyRoot),
+    scaleKey: state.activeTab === 'technique' ? state.keyQuality : (state.selectedScaleKey || state.keyQuality),
+  }), [state.activeTab, state.keyRoot, state.keyQuality, state.selectedScaleRoot, state.selectedScaleKey])
 
-  // Retune the drone in place when the key or mode changes while it's playing
+  const toggleDrone = useCallback(() => setDroneOn(d => !d), [])
+
   useEffect(() => {
-    if (droneOn) startDrone(noteIndex(state.keyRoot), SCALES[state.keyQuality]?.intervals || [])
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.keyRoot, state.keyQuality])
+    if (droneOn) {
+      startDrone(noteIndex(droneTuning.root), SCALES[droneTuning.scaleKey]?.intervals || [])
+    } else {
+      stopDrone()
+    }
+  }, [droneOn, droneTuning])
+
+  // ─── Flow mode: the session engine ───
+  // concept → shape on the neck → drone in key → hands. One click, zero config.
+  const currentConcept = useMemo(
+    () => CONCEPTS.find(c => c.id === state.conceptId) || null,
+    [state.conceptId]
+  )
+
+  const applyConcept = useCallback((c: Concept) => {
+    up({
+      flowMode: true,
+      conceptId: c.id,
+      keyRoot: c.root,
+      keyQuality: PARENT_KEY[c.mode] ?? c.mode,
+      selectedScaleRoot: c.root,
+      selectedScaleKey: c.mode,
+      viewMode: 'scales',
+      selectedChordRoot: null,
+      selectedChordKey: null,
+      scalePosition: c.position,
+      zoomToPosition: false,
+      fretRange: null,
+      activeTab: c.technique ? 'technique' : 'explore',
+      techniqueMode: c.technique ?? '3nps',
+      selectedPattern: c.patternIndex ?? 0,
+      showNoteNames: true,
+      showIntervals: true,
+    })
+    markSeen(c.id)
+    setDroneOn(true) // the effect above starts/retunes the drone in the new key
+  }, [up])
+
+  const startSession = useCallback(() => applyConcept(getNextConcept(null)), [applyConcept])
+  const nextConcept = useCallback(
+    () => applyConcept(getNextConcept(state.conceptId)),
+    [applyConcept, state.conceptId]
+  )
+  const exitFlow = useCallback(() => up({ flowMode: false }), [up])
+
+  const shiftPosition = useCallback(() => {
+    const n = scalePositions.length
+    if (n === 0) return
+    const cur = state.scalePosition ?? 0
+    up({ scalePosition: cur >= n ? 1 : cur + 1 })
+  }, [scalePositions.length, state.scalePosition, up])
 
   useEffect(() => {
     if (state.progressionPlaying && progressionTimerRef.current) {
@@ -488,7 +550,32 @@ export default function App() {
 
       {/* Main stage */}
       <main className="main-stage">
-        {/* Key + Scale selector — always visible */}
+        {/* Flow: the front door. One idea, the shape, the drone. Zero config. */}
+        {!state.flowMode && (
+          <button className="start-session" onClick={startSession}>
+            <span className="start-session-main">{'▶'}&nbsp; Start Session</span>
+            <span className="start-session-sub">
+              one idea {'·'} the shape on the neck {'·'} drone already in key
+            </span>
+          </button>
+        )}
+
+        {state.flowMode && currentConcept && (
+          <div className="concept-card">
+            <div className="concept-head">
+              <span className="concept-title">{currentConcept.title}</span>
+              <span className="concept-focus">
+                listen for the <b>{currentConcept.focus}</b>
+              </span>
+            </div>
+            <div className="concept-hook">{currentConcept.hook}</div>
+            <p className="concept-listen">{currentConcept.listenFor}</p>
+          </div>
+        )}
+
+        {!state.flowMode && (
+        <>
+        {/* Key + Scale selector */}
         <div className="control-strip">
           <div className="key-selector">
             <span className="key-label">Key</span>
@@ -576,7 +663,10 @@ export default function App() {
           </div>
         </div>
 
-        {/* Note legend */}
+        </>
+        )}
+
+        {/* Note legend — kept in flow mode: it's how you FIND the focus interval */}
         <div className="note-legend">
           {activeIntervals.map(i => {
             const semis = i % 12
@@ -596,6 +686,8 @@ export default function App() {
           })}
         </div>
 
+        {!state.flowMode && (
+        <>
         {/* Display mode toggle — note names / intervals / both */}
         <div className="display-mode-bar">
           <button
@@ -642,6 +734,9 @@ export default function App() {
           )
         })()}
 
+        </>
+        )}
+
         {/* Fretboard */}
         <Fretboard
           board={board}
@@ -662,6 +757,20 @@ export default function App() {
           zoomToPosition={state.zoomToPosition && state.scalePosition !== null}
         />
 
+        {/* Flow controls — the only buttons that exist during a session */}
+        {state.flowMode && (
+          <div className="flow-controls">
+            <button className="flow-btn primary" onClick={nextConcept}>Next idea {'→'}</button>
+            <button className="flow-btn" onClick={shiftPosition}>Shift position</button>
+            <button className={`flow-btn ${droneOn ? 'on' : ''}`} onClick={toggleDrone}>
+              <span className="flow-dot" />{droneOn ? 'Drone on' : 'Drone off'}
+            </button>
+            <button className="flow-btn ghost" onClick={exitFlow}>Explore {'↗'}</button>
+          </div>
+        )}
+
+        {!state.flowMode && (
+        <>
         {/* Position bar + More toggle */}
         <div className="bottom-strip">
           <div className="position-bar">
@@ -686,8 +795,11 @@ export default function App() {
           </button>
         </div>
 
+        </>
+        )}
+
         {/* Expanded sections */}
-        {state.advancedMode && (
+        {state.advancedMode && !state.flowMode && (
           <div className="advanced-panel">
             <CollapsibleSection title="PRACTICE" variant="panel">
               <div className="progression-header">
