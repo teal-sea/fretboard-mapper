@@ -419,32 +419,40 @@ export default function Fretboard({
               }
 
               // ─── Focus Mode (Flow) — one instruction, not a wall of colour ───
+              // The target note ALWAYS glows. If the concept also has a shape to
+              // grab (an arpeggio), those positions get a white outline ON TOP —
+              // so the neck can never contradict "find the glowing ones".
               if (focusInterval) {
                 const isTarget = fn.intervalName === focusInterval
                 const isRootNote = fn.isRoot
+                const inShape = highlightedPositions?.has(`${si}-${fn.fret}`) ?? false
                 const r = isTarget ? baseR : baseR * 0.86
-                const fill = isTarget ? focusColor : '#20252c'
-                const label = fn.intervalName
+                const fill = isTarget ? focusColor : inShape ? '#2b313a' : '#20252c'
 
                 return (
                   <g key={`n${si}-${fn.fret}`} className={`note-group ${inPos ? '' : 'ghosted'}`}>
                     {isTarget && inPos && (
-                      <circle cx={cx} cy={y} r={r + 8} fill={focusColor} opacity={0.16} />
+                      <circle cx={cx} cy={y} r={r + 8} fill={focusColor} opacity={0.16}
+                        className="focus-halo" />
                     )}
                     <circle cx={cx} cy={y} r={r} fill={fill}
-                      stroke={isRootNote && !isTarget ? 'rgba(255,255,255,0.85)' : 'none'}
-                      strokeWidth={isRootNote && !isTarget ? 1.6 : 0} />
+                      stroke={
+                        inShape ? 'rgba(255,255,255,0.9)'
+                        : isRootNote ? 'rgba(255,255,255,0.55)'
+                        : 'none'
+                      }
+                      strokeWidth={inShape ? 2.2 : isRootNote ? 1.4 : 0} />
                     {inPos && (
                       <text x={cx} y={y} textAnchor="middle" dominantBaseline="central"
                         className="interval-label"
                         style={{
-                          fill: isTarget ? '#06312b' : isRootNote ? '#e9ebee' : '#79818c',
+                          fill: isTarget ? '#06312b' : (isRootNote || inShape) ? '#e9ebee' : '#79818c',
                           fontWeight: isTarget ? 800 : 600,
                           ...(showLeftHanded
                             ? { transform: 'scaleX(-1)', transformOrigin: `${cx}px ${y}px` }
                             : {}),
                         }}>
-                        {label}
+                        {fn.intervalName}
                       </text>
                     )}
                   </g>

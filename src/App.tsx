@@ -15,7 +15,7 @@ import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome,
 import { CONCEPTS, getNextConcept, markSeen, type Concept } from './utils/concepts'
 import { startMic, stopMic, readPitch, recalibrateMic } from './utils/micInput'
 import { intervalSemitones } from './utils/musicTheory'
-import { getScaleInsight, getChordInsight, chordsInScale } from './utils/theory'
+import { getScaleInsight, getChordInsight, chordsInScale, getObjective, PRIMER } from './utils/theory'
 import { loadSeen } from './utils/concepts'
 
 // ─── Harmony Map row definitions ────────────────────────────
@@ -634,6 +634,15 @@ export default function App() {
   }, [])
 
   const isFlow = state.appMode === 'flow'
+  const [primerOpen, setPrimerOpen] = useState(false)
+
+  // "A Dorian" — the name of the SOUND, not the exercise. The old copy read
+  // "the sound of A Dorian — tonic arpeggio", which is not a sound.
+  const soundName = useMemo(() => {
+    if (!currentConcept) return ''
+    const s = SCALES[currentConcept.mode]
+    return s ? `${currentConcept.root} ${s.name.replace(/\s*\(.*\)/, '')}` : currentConcept.title
+  }, [currentConcept])
 
   // The actual note behind the interval — nobody new knows what "the 6" is
   // until you tell them it's F♯.
@@ -641,6 +650,18 @@ export default function App() {
     if (!currentConcept || focusPc === null) return null
     return noteName(focusPc, useFlats(currentConcept.root))
   }, [currentConcept, focusPc])
+
+  // The objective, in words someone who's never heard the word "mode" can act on.
+  const objective = useMemo(() => {
+    if (!currentConcept || !focusNoteName) return ''
+    return getObjective({
+      root: currentConcept.root,
+      scaleKey: currentConcept.mode,
+      focusInterval: currentConcept.focus,
+      focusNote: focusNoteName,
+      hasShape: Boolean(currentConcept.technique),
+    })
+  }, [currentConcept, focusNoteName])
 
   // ─── Render ───
   return (
@@ -725,20 +746,39 @@ export default function App() {
 
           <header className="flow-idea">
             <p className="flow-key">
-              {currentConcept.title}
-              {currentConcept.position ? ` · position ${currentConcept.position}` : ' · whole neck'}
+              <span>{soundName}</span>
+              <button className="flow-help" onClick={() => setPrimerOpen(o => !o)}>
+                {primerOpen ? 'close' : 'what is this?'}
+              </button>
             </p>
+
+            {/* THE OBJECTIVE — plain English, before any jargon. */}
+            <p className="flow-objective">{objective}</p>
+
             <h2 className="flow-hook">{currentConcept.hook}</h2>
             <p className="flow-listen">{currentConcept.listenFor}</p>
+
             <div className={`flow-target ${focusFound ? 'found' : ''}`}>
               <b>{currentConcept.focus}</b>
               <span>
                 {focusFound
-                  ? `That's it — that's the sound of ${currentConcept.title}`
-                  : `Your note: ${focusNoteName ?? currentConcept.focus} — the glowing ones`}
+                  ? `You found it — that's the sound of ${soundName}`
+                  : `Find every ${focusNoteName ?? currentConcept.focus} — the glowing notes`}
               </span>
             </div>
           </header>
+
+          {/* The whole game explained, for anyone who's never seen this before */}
+          {primerOpen && (
+            <div className="primer">
+              {PRIMER.map(p => (
+                <div className="primer-item" key={p.q}>
+                  <div className="primer-q">{p.q}</div>
+                  <div className="primer-a">{p.a}</div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="flow-neck">
             <Fretboard
@@ -756,14 +796,20 @@ export default function App() {
               guitarModel={state.guitarModel}
               zoomToPosition={state.scalePosition !== null}
               heardMidi={listening ? heardMidi : null}
-              focusInterval={state.activeTab === 'technique' ? null : currentConcept.focus}
+              /* ALWAYS pass the focus. If a concept also has a shape, the shape
+                 is drawn as outlines on top — so the neck can never contradict
+                 "find the glowing ones". */
+              focusInterval={currentConcept.focus}
             />
           </div>
 
           <div className="flow-legend">
-            <span><i className="flow-sw target" /> your note</span>
+            <span><i className="flow-sw target" /> find these ({focusNoteName})</span>
             <span><i className="flow-sw root" /> home ({currentConcept.root})</span>
-            <span><i className="flow-sw scale" /> also in key</span>
+            <span><i className="flow-sw scale" /> safe to play</span>
+            {currentConcept.technique && (
+              <span><i className="flow-sw shape" /> the shape to sweep</span>
+            )}
             <span><i className="flow-sw heard" /> what it hears you play</span>
           </div>
 

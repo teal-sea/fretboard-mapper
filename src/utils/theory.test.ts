@@ -1,6 +1,83 @@
 import { describe, it, expect } from 'vitest'
-import { getScaleInsight, getChordInsight, chordsInScale, chordCoverage } from './theory'
-import { SCALES, getDiatonicChords, intervalName } from './musicTheory'
+import {
+  getScaleInsight, getChordInsight, chordsInScale, chordCoverage,
+  getObjective, plainScaleName, PRIMER,
+} from './theory'
+import { SCALES, getDiatonicChords, intervalName, noteIndex, getScaleNotes } from './musicTheory'
+import { CONCEPTS } from './concepts'
+import { intervalSemitones } from './musicTheory'
+
+// ─── The contradiction bug ───
+// The app told the user "find F#, the glowing ones" while rendering a neck
+// with no glowing F# on it. That is worse than useless — it's a lie. These
+// guarantee the instruction and the neck can never disagree.
+describe('the neck can never contradict the instruction', () => {
+  it('every concept\'s focus note is actually IN the scale being displayed', () => {
+    for (const c of CONCEPTS) {
+      const scale = SCALES[c.mode]
+      const semis = intervalSemitones(c.focus)
+      expect(semis, `${c.id}: focus "${c.focus}" is not a real interval`).not.toBeNull()
+
+      const focusPc = (noteIndex(c.root) + semis!) % 12
+      const scalePcs = getScaleNotes(c.root, scale)
+      expect(
+        scalePcs.has(focusPc),
+        `${c.id}: told to find the ${c.focus}, but that note isn't in ${c.root} ${c.mode}`
+      ).toBe(true)
+    }
+  })
+
+  it('every concept has a plain-English explanation of its scale', () => {
+    for (const c of CONCEPTS) {
+      expect(
+        plainScaleName(c.mode),
+        `${c.id}: no plain-English description for "${c.mode}" — a newcomer would be lost`
+      ).not.toBeNull()
+    }
+  })
+})
+
+describe('getObjective', () => {
+  it('states the note to find, in plain words, without assuming jargon', () => {
+    const o = getObjective({
+      root: 'A', scaleKey: 'dorian', focusInterval: '6', focusNote: 'F#', hasShape: false,
+    })
+    expect(o).toContain('F#')          // the actual note
+    expect(o).toContain('drone')       // why there's a sound
+    expect(o).toContain('minor')       // what dorian IS, in plain words
+    expect(o).not.toContain('undefined')
+  })
+
+  it('mentions the shape only when there is one', () => {
+    const withShape = getObjective({
+      root: 'A', scaleKey: 'dorian', focusInterval: '6', focusNote: 'F#', hasShape: true,
+    })
+    const without = getObjective({
+      root: 'A', scaleKey: 'dorian', focusInterval: '6', focusNote: 'F#', hasShape: false,
+    })
+    expect(withShape).toContain('sweep')
+    expect(without).not.toContain('sweep')
+  })
+
+  it('produces a usable objective for every concept in the curriculum', () => {
+    for (const c of CONCEPTS) {
+      const o = getObjective({
+        root: c.root, scaleKey: c.mode, focusInterval: c.focus,
+        focusNote: 'X', hasShape: Boolean(c.technique),
+      })
+      expect(o.length, `${c.id}: objective too thin`).toBeGreaterThan(80)
+    }
+  })
+})
+
+describe('PRIMER', () => {
+  it('answers the questions a confused first-timer actually asks', () => {
+    const qs = PRIMER.map(p => p.q.toLowerCase()).join(' ')
+    expect(qs).toContain('what am i actually doing')
+    expect(qs).toContain('listening for')
+    expect(PRIMER.every(p => p.a.length > 60)).toBe(true)
+  })
+})
 
 // The theory layer states musical FACTS. If a fact is wrong, it teaches a lie.
 // These lock the facts down; the prose is free to change.
