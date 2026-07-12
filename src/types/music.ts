@@ -1,0 +1,88 @@
+export const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const
+export const NOTE_NAMES_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'] as const
+
+export type NoteName = string
+
+export interface ScaleDef {
+  name: string
+  intervals: number[]
+  category: string
+}
+
+export interface ChordDef {
+  name: string
+  suffix: string
+  intervals: number[]
+  category: string
+}
+
+export interface Tuning {
+  name: string
+  notes: number[]
+  labels: string[]
+}
+
+export type DisplayMode = 'notes' | 'intervals' | 'both'
+export type InlayStyle = 'dots' | 'blocks' | 'none'
+export type ThemeMode = 'dark' | 'light'
+export type ColorTheme = 'obsidian' | 'midnight' | 'ember' | 'vapor' | 'sage'
+export type GuitarModel = 'strat' | 'lespaul'
+
+export interface FretNote {
+  note: string
+  octave: number
+  midi: number
+  interval: number
+  intervalName: string
+  degree: number
+  isInScale: boolean
+  isRoot: boolean
+  stringIndex: number
+  fret: number
+}
+
+export type ViewMode = 'chords' | 'scales'
+
+export interface AppState {
+  // Key selection (top level)
+  keyRoot: string
+  keyQuality: string // 'ionian' for major, 'aeolian' for natural minor, etc.
+
+  // What's shown on the fretboard
+  viewMode: ViewMode // are we showing a chord or a scale?
+  selectedChordRoot: string | null
+  selectedChordKey: string | null
+  selectedScaleRoot: string | null
+  selectedScaleKey: string | null
+
+  // Fretboard settings
+  tuningKey: string
+  inlayStyle: InlayStyle
+  showNoteNames: boolean
+  showIntervals: boolean
+  highlightRoot: boolean
+  showLeftHanded: boolean
+  scalePosition: number | null
+  numFrets: number
+  fretRange: [number, number] | null // visible fret window [lo, hi]; null = whole neck
+  intervalColors: Record<string, string>
+  theme: ThemeMode
+  colorTheme: ColorTheme
+  guitarModel: GuitarModel
+  zoomToPosition: boolean
+
+  // Audio
+  padLatched: boolean
+
+  advancedMode: boolean
+  activeTab: 'explore' | 'technique'
+  techniqueMode: '3nps' | 'arpeggios' | 'tapping'
+  selectedPattern: number // 0-based pattern index
+
+  // Progression stepper
+  progression: number[] // indices into diatonic chords (degrees 0-6), duplicates allowed
+  progressionIndex: number // which chord we're on (-1 = off)
+  progressionPlaying: boolean
+  progressionBpm: number
+  progressionBarsPerChord: number // how many bars each chord sustains (1, 2, 4)
+}
