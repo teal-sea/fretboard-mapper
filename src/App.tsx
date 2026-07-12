@@ -16,6 +16,7 @@ import { CONCEPTS, getNextConcept, markSeen, type Concept } from './utils/concep
 import { startMic, stopMic, readPitch, recalibrateMic } from './utils/micInput'
 import { intervalSemitones } from './utils/musicTheory'
 import { getScaleInsight, getChordInsight, chordsInScale, getObjective, PRIMER } from './utils/theory'
+import { getSameNoteModes, describeModalShift, contrastWithKey, type SiblingMode } from './utils/modes'
 import { loadSeen } from './utils/concepts'
 
 // ─── Harmony Map row definitions ────────────────────────────
@@ -605,6 +606,48 @@ export default function App() {
     diatonicChords, primaryChords,
   ])
 
+  // ─── Modal relativity: the same notes, a different home ───
+  // The whole reason this app exists. These siblings use the IDENTICAL pitch
+  // set — only the drone's home note differs. The neck does not move.
+  const sameNoteModes = useMemo(
+    () => getSameNoteModes(
+      state.selectedScaleRoot || state.keyRoot,
+      state.selectedScaleKey || state.keyQuality
+    ),
+    [state.selectedScaleRoot, state.keyRoot, state.selectedScaleKey, state.keyQuality]
+  )
+
+  const [lastShift, setLastShift] = useState<string | null>(null)
+
+  const selectSibling = useCallback((s: SiblingMode) => {
+    const prevRoot = state.selectedScaleRoot || state.keyRoot
+    const prevKey = state.selectedScaleKey || state.keyQuality
+    if (s.isCurrent) return
+    setLastShift(describeModalShift(prevRoot, prevKey, s.root, s.scaleKey))
+    up({
+      keyRoot: s.root,
+      keyQuality: s.scaleKey,
+      selectedScaleRoot: s.root,
+      selectedScaleKey: s.scaleKey,
+      viewMode: 'scales',
+      selectedChordRoot: null,
+      selectedChordKey: null,
+    })
+  }, [state.selectedScaleRoot, state.keyRoot, state.selectedScaleKey, state.keyQuality, up])
+
+  // Explain the mode against the tonic you're ACTUALLY sitting on, not in the
+  // abstract: "You're in A. A Aeolian uses F. A Dorian swaps it for F#."
+  const keyContrast = useMemo(() => {
+    const root = state.selectedScaleRoot || state.keyRoot
+    const sk = state.selectedScaleKey || state.keyQuality
+    const scale = SCALES[sk]
+    if (!scale) return null
+    const isMinorish = scale.intervals.some(i => i % 12 === 3)
+    const base = isMinorish ? 'aeolian' : 'ionian'
+    if (base === sk) return null
+    return contrastWithKey(root, base, sk)
+  }, [state.selectedScaleRoot, state.keyRoot, state.selectedScaleKey, state.keyQuality])
+
   const playableChords = useMemo(
     () => chordsInScale(
       state.selectedScaleRoot || state.keyRoot,
@@ -899,6 +942,40 @@ export default function App() {
           )}
         </div>
 
+        {/* ═══ Same notes, different home — the point of the whole thing ═══
+            Every chip below uses the IDENTICAL notes now on the neck. Click one
+            and the drone moves home; the fretboard does not move at all. */}
+        {sameNoteModes.length > 1 && (
+          <div className="modes-strip">
+            <div className="modes-head">
+              <span className="modes-label">Same notes · different home</span>
+              <span className="modes-hint">
+                All of these are the identical {sameNoteModes.length} notes already on your
+                neck. Move the drone and the mode changes — your hands don't.
+              </span>
+            </div>
+            <div className="modes-row">
+              {sameNoteModes.map(s => (
+                <button
+                  key={`${s.root}-${s.scaleKey}`}
+                  className={`mode-chip ${s.isCurrent ? 'active' : ''}`}
+                  onClick={() => selectSibling(s)}
+                  title={`${s.root} ${s.name} — same notes, home moves to ${s.root}`}
+                >
+                  <span className="mode-chip-root">{s.root}</span>
+                  <span className="mode-chip-name">{s.name}</span>
+                </button>
+              ))}
+            </div>
+            {lastShift && (
+              <p className="modes-shift">
+                {lastShift}
+                <button className="modes-dismiss" onClick={() => setLastShift(null)}>×</button>
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Chord tier selector + diatonic chord buttons */}
         <div className="chord-tier-bar">
           {HARMONY_ROWS.map((row, ri) => {
@@ -965,6 +1042,10 @@ export default function App() {
               <button className="theory-toggle" onClick={() => up({ showTheory: false })}>hide</button>
             </div>
             <div className="theory-title">{insight.title}</div>
+            {/* In the context of the tonic you're actually on — not in the abstract */}
+            {state.viewMode !== 'chords' && keyContrast && (
+              <p className="theory-context">{keyContrast.sentence}</p>
+            )}
             <p className="theory-body">
               {insight.body}
               {state.viewMode !== 'chords' && playableChords > 0 && (
