@@ -22,6 +22,9 @@ interface Props {
   highlightedPositions?: Set<string> | null
   // Next chord tones — shown as ring outlines for anticipation
   nextChordToneNotes?: Set<number> | null
+  // Live listening — the exact MIDI note currently heard from the mic.
+  // Every fretboard location producing that pitch gets a "heard" ring.
+  heardMidi?: number | null
 }
 
 // Real guitar scale lengths in inches → relative units
@@ -58,6 +61,7 @@ export default function Fretboard({
   chordToneNotes = null, chordRootIndex = null,
   highlightedPositions = null,
   nextChordToneNotes = null,
+  heardMidi = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState(900)
@@ -462,6 +466,33 @@ export default function Fretboard({
                 strokeDasharray="4 3" className="chord-connect-line" />
             )
           })()}
+
+          {/* Heard-note layer — rings on every location producing the live pitch.
+              Drawn on top so it works identically in all three render modes. */}
+          {heardMidi !== null && stringOrder.map((si, visualIdx) => {
+            const y = paddingTop + visualIdx * stringSpacing
+            return board[si].map(fn => {
+              if (fn.midi !== heardMidi) return null
+              const cx = fn.fret === 0 ? nutX - 5
+                : nutX + (fretPos[fn.fret - 1] + fretPos[fn.fret]) / 2
+              const fretW = fn.fret === 0 ? 40 : fretPos[fn.fret] - fretPos[fn.fret - 1]
+              const r = Math.max(12, Math.min(17, fretW * 0.28))
+              // In-scale: bright confirmation. Out-of-scale: you're off the map —
+              // still shown, because that's feedback too.
+              const ringColor = fn.isInScale ? '#fff' : '#e05555'
+              return (
+                <g key={`h${si}-${fn.fret}`} className="heard-note">
+                  {!fn.isInScale && (
+                    <circle cx={cx} cy={y} r={r * 0.45} fill={ringColor} opacity={0.5} />
+                  )}
+                  <circle cx={cx} cy={y} r={r + 4} fill="none"
+                    stroke={ringColor} strokeWidth={2.5} className="heard-ring" />
+                  <circle cx={cx} cy={y} r={r + 9} fill="none"
+                    stroke={ringColor} strokeWidth={1} opacity={0.4} className="heard-ring-outer" />
+                </g>
+              )
+            })
+          })}
 
           {/* Fret numbers */}
           {[...Array(numFrets)].map((_, i) => {

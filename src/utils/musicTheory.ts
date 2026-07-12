@@ -31,6 +31,14 @@ export function intervalName(semitones: number): string {
   return INTERVAL_NAMES[((semitones % 12) + 12) % 12] || '?'
 }
 
+const INTERVAL_SEMITONES: Record<string, number> = Object.fromEntries(
+  Object.entries(INTERVAL_NAMES).map(([semis, name]) => [name, Number(semis)])
+)
+
+export function intervalSemitones(name: string): number | null {
+  return INTERVAL_SEMITONES[name] ?? null
+}
+
 // ─── Scales ──────────────────────────────────────────────────────────
 export const SCALES: Record<string, ScaleDef> = {
   // Major modes

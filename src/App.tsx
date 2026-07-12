@@ -13,6 +13,8 @@ import { DEFAULT_INTERVAL_COLORS, ALL_INTERVALS } from './utils/defaultColors'
 import Fretboard from './components/Fretboard'
 import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome, startDrone, stopDrone } from './utils/audioEngine'
 import { CONCEPTS, getNextConcept, markSeen, type Concept } from './utils/concepts'
+import { startMic, stopMic, readPitch } from './utils/micInput'
+import { intervalSemitones } from './utils/musicTheory'
 
 // ─── Harmony Map row definitions ────────────────────────────
 const HARMONY_ROWS = [
@@ -396,6 +398,9 @@ export default function App() {
 
   const [metronomeOn, setMetronomeOn] = useState(false)
   const [droneOn, setDroneOn] = useState(false)
+  const [listening, setListening] = useState(false)
+  const [heardMidi, setHeardMidi] = useState<number | null>(null)
+  const [focusFound, setFocusFound] = useState(false)
 
   const startProgression = useCallback(() => {
     if (progressionTimerRef.current) clearInterval(progressionTimerRef.current)
@@ -433,6 +438,7 @@ export default function App() {
       if (progressionTimerRef.current) clearInterval(progressionTimerRef.current)
       stopMetronome()
       stopDrone()
+      stopMic()
     }
   }, [])
 
@@ -482,6 +488,7 @@ export default function App() {
       showIntervals: true,
     })
     markSeen(c.id)
+    setFocusFound(false) // new idea, new ear-hunt
     setDroneOn(true) // the effect above starts/retunes the drone in the new key
   }, [up])
 
@@ -498,6 +505,60 @@ export default function App() {
     const cur = state.scalePosition ?? 0
     up({ scalePosition: cur >= n ? 1 : cur + 1 })
   }, [scalePositions.length, state.scalePosition, up])
+
+  // ─── Listening: live pitch feedback ───
+  // The mic hears you (guitar, whistle, hum — anything pitched) and the neck
+  // answers. Confirmation, not judgment: no scores, no misses.
+  const toggleListen = useCallback(async () => {
+    if (listening) {
+      stopMic()
+      setListening(false)
+      setHeardMidi(null)
+    } else {
+      const ok = await startMic()
+      setListening(ok) // permission denied → button simply stays off
+    }
+  }, [listening])
+
+  // Poll the detector ~20×/s. A note must be heard twice in a row to commit
+  // (kills flicker from transients); it lingers ~200ms after you stop (kills
+  // strobing between notes). State only changes when the NOTE changes.
+  const lastRawRef = useRef<number | null>(null)
+  const emptyCountRef = useRef(0)
+  useEffect(() => {
+    if (!listening) return
+    const timer = setInterval(() => {
+      const p = readPitch()
+      if (p !== null) {
+        emptyCountRef.current = 0
+        if (p.midi === lastRawRef.current) {
+          setHeardMidi(cur => (cur === p.midi ? cur : p.midi))
+        }
+        lastRawRef.current = p.midi
+      } else {
+        lastRawRef.current = null
+        emptyCountRef.current++
+        if (emptyCountRef.current >= 4) {
+          setHeardMidi(cur => (cur === null ? cur : null))
+        }
+      }
+    }, 50)
+    return () => clearInterval(timer)
+  }, [listening])
+
+  // Did you find the note the concept told you to listen for?
+  const focusPc = useMemo(() => {
+    if (!currentConcept) return null
+    const semis = intervalSemitones(currentConcept.focus)
+    if (semis === null) return null
+    return (noteIndex(currentConcept.root) + semis) % 12
+  }, [currentConcept])
+
+  const hearingFocus = heardMidi !== null && focusPc !== null && heardMidi % 12 === focusPc
+
+  useEffect(() => {
+    if (hearingFocus) setFocusFound(true)
+  }, [hearingFocus])
 
   useEffect(() => {
     if (state.progressionPlaying && progressionTimerRef.current) {
@@ -565,7 +626,11 @@ export default function App() {
             <div className="concept-head">
               <span className="concept-title">{currentConcept.title}</span>
               <span className="concept-focus">
-                listen for the <b>{currentConcept.focus}</b>
+                listen for the{' '}
+                <b className={`${hearingFocus ? 'hit' : ''} ${focusFound ? 'found' : ''}`}>
+                  {currentConcept.focus}
+                </b>
+                {focusFound && <span className="focus-check" title="you found it">{'✓'}</span>}
               </span>
             </div>
             <div className="concept-hook">{currentConcept.hook}</div>
@@ -755,6 +820,7 @@ export default function App() {
           nextChordToneNotes={nextChordInfo?.notes || null}
           guitarModel={state.guitarModel}
           zoomToPosition={state.zoomToPosition && state.scalePosition !== null}
+          heardMidi={listening ? heardMidi : null}
         />
 
         {/* Flow controls — the only buttons that exist during a session */}
@@ -765,6 +831,17 @@ export default function App() {
             <button className={`flow-btn ${droneOn ? 'on' : ''}`} onClick={toggleDrone}>
               <span className="flow-dot" />{droneOn ? 'Drone on' : 'Drone off'}
             </button>
+            <button className={`flow-btn ${listening ? 'on' : ''}`} onClick={toggleListen}
+              title="Hear yourself on the neck — guitar, whistle, hum. Headphones recommended while the drone plays.">
+              <span className="flow-dot" />{listening ? 'Listening' : 'Listen'}
+            </button>
+            {listening && (
+              <span className={`heard-readout ${hearingFocus ? 'focus-hit' : ''}`}>
+                {heardMidi !== null
+                  ? <>{noteName(heardMidi % 12, flats)}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
+                  : '···'}
+              </span>
+            )}
             <button className="flow-btn ghost" onClick={exitFlow}>Explore {'↗'}</button>
           </div>
         )}
