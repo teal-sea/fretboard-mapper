@@ -1443,6 +1443,145 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   .hero-formula { font-size: 11px; }
 }
 
+/* ─── Flow mode: the session engine ─────────────────────────── */
+
+/* The front door */
+.start-session {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 520px;
+  margin: 4px auto 2px;
+  padding: 18px 24px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--accent-dim), transparent);
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.start-session:hover {
+  background: linear-gradient(135deg, var(--accent-glow), var(--accent-dim));
+  box-shadow: 0 0 26px var(--accent-glow);
+  transform: translateY(-1px);
+}
+.start-session-main {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent-2);
+}
+.start-session-sub {
+  font-size: 11px;
+  color: var(--text-2);
+  letter-spacing: 0.05em;
+}
+
+/* One idea. Never a lecture. */
+.concept-card {
+  width: 100%;
+  max-width: 720px;
+  margin: 4px auto 0;
+  padding: 18px 22px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+}
+.concept-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.concept-title {
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+.concept-focus {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.concept-focus b {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 7px;
+  margin-left: 4px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #000;
+  font-weight: 800;
+  text-align: center;
+}
+.concept-hook {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-2);
+}
+.concept-listen {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-2);
+}
+
+/* The only buttons that exist during a session */
+.flow-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.flow-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.flow-btn:hover { color: var(--text); border-color: var(--accent); }
+.flow-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+}
+.flow-btn.primary:hover { box-shadow: 0 0 16px var(--accent-glow); }
+.flow-btn.ghost { background: transparent; }
+.flow-btn .flow-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-3, #666);
+  transition: background var(--transition);
+}
+.flow-btn.on { color: var(--text); border-color: var(--accent); }
+.flow-btn.on .flow-dot {
+  background: var(--accent);
+  animation: drone-pulse 2.4s ease-in-out infinite;
+}
+
 /* Ambient drone toggle */
 .drone-btn {
   display: inline-flex;

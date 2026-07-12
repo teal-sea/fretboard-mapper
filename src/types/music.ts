@@ -74,6 +74,10 @@ export interface AppState {
   // Audio
   padLatched: boolean
 
+  // Flow mode — the session engine (concept → shape → drone → hands)
+  flowMode: boolean
+  conceptId: string | null
+
   advancedMode: boolean
   activeTab: 'explore' | 'technique'
   techniqueMode: '3nps' | 'arpeggios' | 'tapping'
