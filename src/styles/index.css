@@ -2079,6 +2079,73 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 .flow-sw.root { background: var(--bg-active); border: 1.5px solid var(--text); }
 .flow-sw.scale { background: var(--bg-active); }
 .flow-sw.heard { background: transparent; border: 2px solid #fff; }
+.flow-sw.shape { background: var(--bg-active); border: 2px solid rgba(255,255,255,0.9); }
+
+/* The target note breathes so your eye finds it instantly */
+.focus-halo { animation: focus-breathe 2.8s ease-in-out infinite; }
+@keyframes focus-breathe {
+  0%, 100% { opacity: 0.10; }
+  50%      { opacity: 0.26; }
+}
+
+/* ─── The objective, in plain English, before any jargon ─── */
+.flow-objective {
+  max-width: 68ch;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  padding: 11px 16px;
+  border-radius: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+}
+.flow-objective b { color: var(--accent); }
+
+.flow-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.flow-help {
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.flow-help:hover { color: var(--text); border-color: var(--accent); }
+
+/* ─── The primer: the whole game, for a first-timer ─── */
+.primer {
+  display: grid;
+  gap: 12px;
+  max-width: 820px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-surface);
+  max-height: 42vh;
+  overflow-y: auto;
+}
+.primer-item { display: grid; gap: 4px; }
+.primer-q {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.primer-a {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
 
 .flow-controls {
   display: flex;

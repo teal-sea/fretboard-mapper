@@ -19,6 +19,83 @@ export interface Insight {
   focus?: string         // interval label worth staring at
 }
 
+// ─── Plain English, for someone who has never heard the word "mode" ───
+// The app must never assume you already know the jargon it's using.
+
+// What a scale IS, said without jargon. Keyed by scale id.
+const PLAIN: Record<string, string> = {
+  ionian: 'the plain major scale — the happy, resolved one',
+  dorian: 'a minor (sad) scale with ONE note lifted higher than normal',
+  phrygian: 'a minor scale with the note right above home pushed down — dark, Spanish',
+  lydian: 'a major (happy) scale with ONE note pushed higher — dreamy, floating',
+  mixolydian: 'a major scale with ONE note lowered — bright, but bluesy',
+  aeolian: 'the plain minor scale — the sad one',
+  locrian: 'an unstable scale that never feels settled',
+  harmonic_minor: 'a minor scale with one note raised, making a big exotic leap',
+  melodic_minor: 'a scale that starts sad and turns bright on the way up',
+  minor_penta: 'the 5-note scale everyone solos with — nothing in it can sound wrong',
+  major_penta: 'the sweet 5-note scale — open and vocal',
+  blues: 'the 5-note solo scale plus one deliberately "wrong" note',
+}
+
+export function plainScaleName(scaleKey: string): string | null {
+  return PLAIN[scaleKey] ?? null
+}
+
+// The objective, in words a beginner can act on. Every value is passed in,
+// so this can't drift out of sync with what's on the neck.
+export function getObjective(opts: {
+  root: string
+  scaleKey: string
+  focusInterval: string
+  focusNote: string
+  hasShape: boolean
+}): string {
+  const { root, scaleKey, focusInterval, focusNote, hasShape } = opts
+  const plain = PLAIN[scaleKey]
+  const scaleName = SCALES[scaleKey]?.name ?? scaleKey
+
+  const what = plain
+    ? `${root} ${scaleName} is ${plain}.`
+    : `You're playing ${root} ${scaleName}.`
+
+  const shape = hasShape
+    ? ' The white-outlined notes are a shape you can sweep through.'
+    : ''
+
+  return (
+    `${what} A drone is holding ${root} underneath you, so every note you play ` +
+    `is heard against it.${shape} Your job: play around and land on ${focusNote} — ` +
+    `the glowing notes. That's the ${focusInterval}, the one note that gives this ` +
+    `scale its character. When the app hears you hit it, it'll tell you.`
+  )
+}
+
+// The whole game, for a first-timer. Shown behind a "what is this?" toggle so
+// it never nags anyone who already knows.
+export const PRIMER: { q: string; a: string }[] = [
+  {
+    q: 'What am I actually doing?',
+    a: 'Playing over a drone (a held note) and hunting for one specific note on the neck. That note is what makes each scale sound the way it does. Find it, hear it, and the theory stops being abstract.',
+  },
+  {
+    q: 'What’s a "mode" or "scale"?',
+    a: 'A scale is just a set of notes that sound good together. A mode is one of those sets with its own flavour. Two scales can share almost every note and differ by one — and that one note changes everything. That’s the note we make you find.',
+  },
+  {
+    q: 'What do R, b3, 5, 6 mean?',
+    a: 'They’re positions, not note names. R is "home" (the root). The numbers count steps up from home. So the 6 is the sixth note of the scale. We use numbers because the shape stays the same in every key — learn it once, play it anywhere.',
+  },
+  {
+    q: 'Why is there a drone?',
+    a: 'A single held note gives your ear a reference. Against silence, no note sounds like anything. Against a drone, each note has a clear personality — and the note you’re hunting will jump out.',
+  },
+  {
+    q: 'What is it listening for?',
+    a: 'Your microphone. Play, whistle, or hum. It works out which note you produced and lights it up on the neck. When you land the glowing note, you own that sound.',
+  },
+]
+
 // ─── What makes each scale itself ───
 // The one note that, if you changed it, would make it a different mode.
 const CHARACTER: Record<string, { focus: string; title: string; body: string }> = {
