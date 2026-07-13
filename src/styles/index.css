@@ -2994,6 +2994,8 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   color: var(--text-2);
   max-width: 50ch;
 }
+.intro-sub em { color: var(--text); font-style: italic; }
+.intro-sub b { color: var(--accent); font-weight: 700; }
 .intro-modes {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 260px));
