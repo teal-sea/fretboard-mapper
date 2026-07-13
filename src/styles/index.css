@@ -3244,19 +3244,22 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
     min-width: 700px;
     max-height: none;
   }
-  /* Flow's neck uses the exact same width-first rule as Study right above
-     this — no bespoke sizing model. A previous attempt at a "smarter"
-     height-first system for Flow's zoomed position view didn't actually
-     render on a real device (percentage-height chains are a known trap,
-     but removing them wasn't enough either — something about that custom
-     path was still broken and I don't have real-device access to find out
-     what). Study's width-first + horizontal-scroll approach is proven to
-     work on an actual phone; Flow now rides the same code path instead of
-     a separate one only ever verified in a resized desktop browser.
-     Because the zoomed viewBox has fewer frets but the SAME svg height as
-     the full board, forcing the same 700px width makes it render several
-     times taller — .flow-neck's overflow:hidden + max-height below clips
-     that safely instead of overlapping the controls beneath it. */
+  /* Flow's zoomed position view is a fundamentally different SHAPE than
+     Study's full 15-fret neck: the viewBox height is always the same 6
+     strings, but the width covers only 3-4 frets instead of 15, so the
+     aspect ratio is much closer to square. Forcing Study's min-width:700px
+     onto that shape (previous attempt) made it render several times
+     taller than wide, and the overflow:hidden safety clip below turned
+     that into a tiny zoomed-in window on real hardware — confirmed from
+     an actual phone screenshot, not assumed.
+     The fix isn't a bespoke sizing model, it's *removing* the width-first
+     override for this specific case: min-width:0 lets it fall back to the
+     base (non-mobile) .fretboard-svg rule — width:100%, capped max-height,
+     preserveAspectRatio="xMidYMid meet" doing the letterboxing — the exact
+     same approach already confirmed working on desktop Flow. A 3-4 fret
+     view doesn't need horizontal scroll at 390px the way a 15-fret one
+     does, so it doesn't need the width-forcing trick that scroll requires. */
+  .flow-neck .fretboard-svg { min-width: 0; max-height: min(44vh, 400px); }
 
   /* ─── Flow: let it scroll ───
      .app.mode-flow locks the whole screen to exactly 100dvh with no

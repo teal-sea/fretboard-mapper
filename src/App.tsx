@@ -11,7 +11,7 @@ import {
 import type { DiatonicChord, FretPosition } from './utils/musicTheory'
 import { DEFAULT_INTERVAL_COLORS, ALL_INTERVALS } from './utils/defaultColors'
 import Fretboard from './components/Fretboard'
-import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome, startDrone, stopDrone, setDroneVolume, setDroneSpread, setDroneTone } from './utils/audioEngine'
+import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome, startDrone, stopDrone, setDroneVolume, setDroneSpread, setDroneTone, setPadVolume, setPadSpread, setPadTone } from './utils/audioEngine'
 import { CONCEPTS, getNextConcept, markSeen, loadOwned, markOwned, type Concept } from './utils/concepts'
 import { startMic, stopMic, readPitch, recalibrateMic, getMicError } from './utils/micInput'
 import { intervalSemitones } from './utils/musicTheory'
@@ -109,6 +109,9 @@ const initialState: AppState = {
   droneVolume: 1,
   droneSpread: 1,
   droneTone: 0.5,
+  padVolume: 1,
+  padSpread: 1,
+  padTone: 0.5,
   appMode: 'study',
   conceptId: null,
   showTheory: true,
@@ -507,6 +510,9 @@ export default function App() {
   useEffect(() => { setDroneVolume(state.droneVolume) }, [state.droneVolume])
   useEffect(() => { setDroneSpread(state.droneSpread) }, [state.droneSpread])
   useEffect(() => { setDroneTone(state.droneTone) }, [state.droneTone])
+  useEffect(() => { setPadVolume(state.padVolume) }, [state.padVolume])
+  useEffect(() => { setPadSpread(state.padSpread) }, [state.padSpread])
+  useEffect(() => { setPadTone(state.padTone) }, [state.padTone])
 
   // ─── Flow mode: the session engine ───
   // concept → shape on the neck → drone in key → hands. One click, zero config.
@@ -1879,6 +1885,22 @@ export default function App() {
             <DrawerSlider
               label="Tone" value={state.droneTone} max={1}
               onChange={v => up({ droneTone: v })}
+            />
+          </div>
+
+          <div className="drawer-section">
+            <span className="drawer-label">PAD</span>
+            <DrawerSlider
+              label="Volume" value={state.padVolume} max={1.5}
+              onChange={v => up({ padVolume: v })}
+            />
+            <DrawerSlider
+              label="Spread" value={state.padSpread} max={1.5}
+              onChange={v => up({ padSpread: v })}
+            />
+            <DrawerSlider
+              label="Tone" value={state.padTone} max={1}
+              onChange={v => up({ padTone: v })}
             />
           </div>
 
