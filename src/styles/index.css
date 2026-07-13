@@ -2343,6 +2343,16 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 }
 .walk-done b { color: var(--ember); }
 
+/* The way in. The centrepiece is never more than one press away. */
+.flow-ctl.walk-entry {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.flow-ctl.walk-entry:hover {
+  background: var(--accent);
+  color: #04211d;
+}
+
 /* ═══ The run player — the app follows your hands ═══════════════ */
 .flow-sw.done { background: #2f3742; border: 1px solid rgba(255,255,255,0.55); }
 .flow-sw.todo { background: #191d24; border: 1px solid rgba(255,255,255,0.22); }
