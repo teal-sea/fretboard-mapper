@@ -945,12 +945,20 @@ export default function App() {
               It <em>listens while you play,</em> and answers on the neck.
             </h1>
             <p className="intro-sub">
-              Hold a drone in any key and the fretboard fills with the notes that work over
-              it. Improvise, and Modal Runs hears you through the mic — it lights up what you
-              just played, tells you the moment you land the note it asked for, and moves the
-              tonic so you can hear A Aeolian become D Dorian without your hands moving at
-              all. Same seven notes, seven different sounds. You find them by ear rather than
-              by memorising them.
+              In 1959, Miles Davis walked into a studio bored of chasing chord changes and cut
+              an album built on almost none. <em>Kind of Blue</em> — still the best-selling
+              jazz record ever made — runs on scales instead of progressions. He called it
+              modal jazz: hold one note underneath (a <b>drone</b>), improvise inside a single
+              scale (a <b>mode</b>), and let the mode do the emotional work a wall of chords
+              usually does.
+            </p>
+            <p className="intro-sub">
+              That's this app, on a fretboard. Hold a drone in any key and the neck fills with
+              the notes that work over it. Play, and Modal Runs hears you through the mic — it
+              lights up what you just played and tells you the moment you land the note it's
+              hunting for. Move the tonic and the same seven notes turn from A Aeolian into D
+              Dorian without your hands moving at all. Same notes. Seven different moods. You
+              find them by ear, the way Miles did — not off a chart.
             </p>
 
             {/* The thesis, made concrete — the thing a textbook can't do. */}
