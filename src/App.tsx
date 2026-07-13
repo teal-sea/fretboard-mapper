@@ -957,8 +957,8 @@ export default function App() {
               the notes that work over it. Play, and Modal Runs hears you through the mic — it
               lights up what you just played and tells you the moment you land the note it's
               hunting for. Move the tonic and the same seven notes turn from A Aeolian into D
-              Dorian without your hands moving at all. Same notes. Seven different moods. You
-              find them by ear, the way Miles did — not off a chart.
+              Dorian — same frets, same notes, just a different one as home. Seven different
+              moods out of one shape. You find them by ear, the way Miles did — not off a chart.
             </p>
 
             {/* The thesis, made concrete — the thing a textbook can't do. */}
@@ -985,9 +985,9 @@ export default function App() {
                 <span className="intro-step-n">3</span>
                 <span className="intro-step-t">Move the tonic</span>
                 <span className="intro-step-d">
-                  Tap <b>Dorian</b> in the same-notes strip. Identical notes, identical
-                  fingering — the drone simply moves home to D, and the app names the one
-                  note that separates it from where you just were.
+                  Tap <b>Dorian</b> in the same-notes strip. Same frets, same notes — the
+                  drone simply moves home to D, and the app names the one note that
+                  separates it from where you just were.
                 </span>
               </div>
             </div>
@@ -1430,7 +1430,8 @@ export default function App() {
               <span className="modes-label">Same notes · different home</span>
               <span className="modes-hint">
                 All of these are the identical {sameNoteModes.length} notes already on your
-                neck. Move the drone and the mode changes — your hands don't.
+                neck, at the same frets. Move the drone and a different one becomes home —
+                the mode changes without a single new note.
               </span>
             </div>
             <div className="modes-row">
