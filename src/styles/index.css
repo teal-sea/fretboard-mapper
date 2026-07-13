@@ -555,12 +555,11 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 }
 .note-group { cursor: pointer; transition: opacity 0.4s ease; }
 .note-group:hover circle { filter: brightness(1.15); }
-/* 0.12 was low enough that every neon interval colour lost its hue against
-   the near-black background and collapsed into the same muddy brown-gray —
-   the opposite of what a neon logo palette should look like. Saturating
-   ghosted dots as well as raising their opacity keeps them dim but still
-   legibly the actual colour, not a smear. */
-.note-group.ghosted { opacity: 0.28; filter: saturate(1.6); }
+/* 0.12 read as muddy; saturate() on top of an already-dim alpha blend
+   made it worse, not better — it boosts whatever the blend produced, and a
+   dim gold blended toward near-black reads as mustard/brown, so saturating
+   it just makes a more intense mustard/brown. No filter, modest opacity. */
+.note-group.ghosted { opacity: 0.18; }
 .note-group.passing-tone { opacity: 1; }
 .note-group.passing-tone:hover circle { filter: brightness(1.3); opacity: 0.5; }
 .pos-highlight { transition: all 0.4s ease; }
