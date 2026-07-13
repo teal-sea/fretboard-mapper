@@ -78,7 +78,7 @@ export default function Fretboard({
   nextChordToneNotes = null,
   heardMidi = null,
   focusInterval = null,
-  focusColor = '#5eead4',
+  focusColor = '#09cede',
   runNotes = null,
 }: Props) {
   const runMap = useMemo(() => {
@@ -500,28 +500,42 @@ export default function Fretboard({
                 const isTarget = fn.intervalName === focusInterval
                 const isRootNote = fn.isRoot
                 const inShape = highlightedPositions?.has(`${si}-${fn.fret}`) ?? false
-                const r = isTarget ? baseR : baseR * 0.86
-                const fill = isTarget ? focusColor : inShape ? '#2b313a' : '#20252c'
+                const r = isTarget ? baseR * 1.05 : baseR * 0.86
+
+                // Focus is expressed with LIGHT, not with grey paint. Every note keeps
+                // its interval colour — the same language Study speaks — and the target
+                // simply burns while the rest recede. Filling non-targets with slate
+                // made Flow look like a different app than the one on the box.
+                const dimOpacity = inShape ? 0.72 : isRootNote ? 0.6 : 0.34
 
                 return (
                   <g key={`n${si}-${fn.fret}`} className={`note-group ${inPos ? '' : 'ghosted'}`}>
                     {isTarget && inPos && (
-                      <circle cx={cx} cy={y} r={r + 8} fill={focusColor} opacity={0.16}
-                        className="focus-halo" />
+                      <>
+                        <circle cx={cx} cy={y} r={r + 10} fill={color} opacity={0.16}
+                          className="focus-halo" />
+                        <circle cx={cx} cy={y} r={r + 5} fill={color} opacity={0.22} />
+                      </>
                     )}
-                    <circle cx={cx} cy={y} r={r} fill={fill}
+                    <circle cx={cx} cy={y} r={r} fill={color}
+                      opacity={isTarget ? 1 : dimOpacity}
                       stroke={
-                        inShape ? 'rgba(255,255,255,0.9)'
-                        : isRootNote ? 'rgba(255,255,255,0.55)'
-                        : 'none'
+                        isTarget ? '#fff'
+                        : inShape ? 'rgba(255,255,255,0.85)'
+                        : isRootNote ? 'rgba(255,255,255,0.5)'
+                        : 'rgba(255,255,255,0.12)'
                       }
-                      strokeWidth={inShape ? 2.2 : isRootNote ? 1.4 : 0} />
+                      strokeWidth={isTarget ? 2.2 : inShape ? 2 : isRootNote ? 1.4 : 0.75}
+                      style={inPos
+                        ? { filter: `drop-shadow(0 0 ${isTarget ? 10 : 3}px ${color}${isTarget ? '' : '70'})` }
+                        : undefined} />
                     {inPos && (
                       <text x={cx} y={y} textAnchor="middle" dominantBaseline="central"
                         className="interval-label"
                         style={{
-                          fill: isTarget ? '#06312b' : (isRootNote || inShape) ? '#e9ebee' : '#79818c',
-                          fontWeight: isTarget ? 800 : 600,
+                          fill: '#0a0a0f',
+                          opacity: isTarget ? 1 : 0.82,
+                          fontWeight: isTarget ? 800 : 700,
                           ...(showLeftHanded
                             ? { transform: 'scaleX(-1)', transformOrigin: `${cx}px ${y}px` }
                             : {}),

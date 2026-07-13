@@ -886,14 +886,15 @@ export default function App() {
           <div className="intro">
             <img className="intro-logo" src="/logo.png" alt="Modal Runs" />
             <h1 className="intro-title">
-              A Aeolian and D Dorian are the <em>same seven notes.</em>
+              It <em>listens while you play,</em> and answers on the neck.
             </h1>
             <p className="intro-sub">
-              Nothing under your hands moves between them. The only thing that changes is
-              which note the music keeps falling back to, and that one difference is why
-              one of them grieves and the other lifts. Every book says this in a sentence.
-              Actually hearing it takes a drone holding the tonic while you play over it,
-              which is the whole of what this is.
+              Hold a drone in any key and the fretboard fills with the notes that work over
+              it. Improvise, and Modal Runs hears you through the mic — it lights up what you
+              just played, tells you the moment you land the note it asked for, and moves the
+              tonic so you can hear A Aeolian become D Dorian without your hands moving at
+              all. Same seven notes, seven different sounds. You find them by ear rather than
+              by memorising them.
             </p>
 
             {/* The thesis, made concrete — the thing a textbook can't do. */}
@@ -1037,7 +1038,7 @@ export default function App() {
                       <span className="walk-here-pos">Position {walkPos.index}</span>
                       home is <b>{walkPos.tonic}</b> — so this is{' '}
                       <b>{walkPos.tonic} {walkPos.modeName}</b>
-                      {walkPos.plain && <span className="walk-plain">, {walkPos.plain}</span>}
+                      {walkPos.plain && <span className="walk-plain">{walkPos.plain}</span>}
                     </p>
 
                     {walkStory && <p className="walk-story">{walkStory}</p>}
@@ -1175,7 +1176,7 @@ export default function App() {
           <div className="flow-legend">
             {isWalk && walkPos ? (
               <>
-                <span><i className="flow-sw target" /> home — {walkPos.tonic}</span>
+                <span><i className="flow-sw target" style={{ background: state.intervalColors['R'] }} /> home — {walkPos.tonic}</span>
                 <span><i className="flow-sw scale" /> the same seven notes, everywhere</span>
                 <span><i className="flow-sw heard" /> what it hears you play</span>
               </>
@@ -1189,8 +1190,8 @@ export default function App() {
               </>
             ) : (
               <>
-                <span><i className="flow-sw target" /> find these ({focusNoteName})</span>
-                <span><i className="flow-sw root" /> home ({currentConcept.root})</span>
+                <span><i className="flow-sw target" style={{ background: state.intervalColors[currentConcept.focus] }} /> find these ({focusNoteName})</span>
+                <span><i className="flow-sw root" style={{ background: state.intervalColors['R'] }} /> home ({currentConcept.root})</span>
                 <span><i className="flow-sw scale" /> safe to play</span>
                 <span><i className="flow-sw heard" /> what it hears you play</span>
               </>
