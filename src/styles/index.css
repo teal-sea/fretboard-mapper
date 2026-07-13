@@ -2812,10 +2812,14 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   transition: all var(--transition);
 }
 .flow-ctl:hover { color: var(--text); border-color: var(--text-3); }
+/* The button you press to move to the next idea — the single most-clicked
+   control in Flow. It was a flat inverted white/black pill, zero brand
+   presence on the app's actual workhorse button. */
 .flow-ctl.primary {
-  background: var(--text);
-  border-color: var(--text);
-  color: var(--bg);
+  background: var(--brand-grad);
+  border-color: transparent;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.35);
 }
 .flow-ctl.primary:hover { transform: translateY(-1px); }
 .flow-ctl.primary.beckon { animation: flow-beckon 1.6s ease-in-out infinite; }
@@ -3011,17 +3015,28 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   gap: 12px;
   margin-top: 2px;
 }
+/* The first real decision anyone makes on the site — worth carrying the
+   actual brand gradient, not just a hover-only accent border. */
 .intro-mode {
+  position: relative;
   display: grid;
   gap: 6px;
   justify-items: center;
-  padding: 18px 16px;
+  padding: 20px 16px 18px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--bg-surface);
   cursor: pointer;
   transition: all var(--transition);
   text-align: center;
+  overflow: hidden;
+}
+.intro-mode::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--brand-grad);
 }
 .intro-mode:hover { border-color: var(--accent); transform: translateY(-2px); }
 .intro-mode-name {
