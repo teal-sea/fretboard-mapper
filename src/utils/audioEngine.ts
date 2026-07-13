@@ -374,6 +374,106 @@ export function chordToMidi(rootDegree: number, intervals: number[]): number[] {
   return intervals.map(i => baseMidi + i)
 }
 
+// ─── Arpeggiator ──────────────────────────────────────────────────────
+// The third backing option alongside the drone (one held note) and the pad
+// (all notes held together): the same chord tones, played one at a time,
+// up then down, locked to bpm. Shares the pad's Volume/Tone controls —
+// it's the same "chord voice" family, just plucked instead of sustained.
+
+let arpTimer: ReturnType<typeof setInterval> | null = null
+let arpSequence: number[] = []
+let arpStep = 0
+let arpBpmVal = 100
+
+function pluckArpNote(midi: number, panPos: number, now: number): void {
+  if (!ctx || !masterGain) return
+  const audioCtx = ctx
+  const freq = midiToFreq(midi)
+
+  const pan = audioCtx.createStereoPanner()
+  pan.pan.setValueAtTime(Math.max(-1, Math.min(1, panPos * padSpread)), now)
+
+  const filter = audioCtx.createBiquadFilter()
+  filter.type = 'lowpass'
+  filter.Q.setValueAtTime(0.7, now)
+  filter.frequency.setValueAtTime(500 + padTone * 5000, now)
+
+  const gain = audioCtx.createGain()
+  const peak = 0.32 * padVolume
+  gain.gain.setValueAtTime(0, now)
+  gain.gain.linearRampToValueAtTime(peak, now + 0.012)
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55)
+
+  const body = audioCtx.createOscillator()
+  body.type = 'triangle'
+  body.frequency.setValueAtTime(freq, now)
+
+  const shimmer = audioCtx.createOscillator()
+  shimmer.type = 'sine'
+  shimmer.frequency.setValueAtTime(freq * 2.002, now)
+  const shimmerGain = audioCtx.createGain()
+  shimmerGain.gain.setValueAtTime(0.15, now)
+
+  body.connect(gain)
+  shimmer.connect(shimmerGain)
+  shimmerGain.connect(gain)
+  gain.connect(filter)
+  filter.connect(pan)
+  pan.connect(masterGain)
+
+  body.start(now); body.stop(now + 0.6)
+  shimmer.start(now); shimmer.stop(now + 0.6)
+  setTimeout(() => {
+    for (const n of [body, shimmer, gain, filter, pan, shimmerGain]) {
+      try { n.disconnect() } catch { /* already disconnected */ }
+    }
+  }, 700)
+}
+
+function arpTick(): void {
+  if (!ctx || arpSequence.length === 0) return
+  const now = ctx.currentTime
+  const i = arpStep % arpSequence.length
+  const panPos = arpSequence.length > 1 ? -0.6 + (i / (arpSequence.length - 1)) * 1.2 : 0
+  pluckArpNote(arpSequence[i], panPos, now)
+  arpStep++
+}
+
+function scheduleArpTimer(): void {
+  if (arpTimer) clearInterval(arpTimer)
+  const interval = 60000 / arpBpmVal / 2 // 8th notes
+  arpTimer = setInterval(arpTick, interval)
+}
+
+export function startArpeggio(midiNotes: number[], bpm: number): void {
+  if (midiNotes.length === 0) return
+  getCtx()
+  const down = midiNotes.slice(1, -1).reverse()
+  arpSequence = midiNotes.length > 1 ? [...midiNotes, ...down] : midiNotes
+  arpBpmVal = bpm
+  arpStep = 0
+  arpTick()
+  scheduleArpTimer()
+}
+
+export function setArpBpm(bpm: number): void {
+  arpBpmVal = bpm
+  if (arpTimer) scheduleArpTimer()
+}
+
+export function stopArpeggio(): void {
+  if (arpTimer) {
+    clearInterval(arpTimer)
+    arpTimer = null
+  }
+  arpStep = 0
+  arpSequence = []
+}
+
+export function isArpeggioRunning(): boolean {
+  return arpTimer !== null
+}
+
 // ─── Metronome ──────────────────────────────────────────────────────
 let metronomeTimer: ReturnType<typeof setInterval> | null = null
 let metronomeBeat = 0

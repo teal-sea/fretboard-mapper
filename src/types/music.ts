@@ -80,6 +80,7 @@ export interface AppState {
   padVolume: number    // 0–1.5
   padSpread: number    // 0–1.5, stereo width multiplier
   padTone: number       // 0–1, dark → bright
+  backingMode: 'drone' | 'chord' | 'arp' // what Play triggers underneath the mode
 
   // Two first-class modes sharing one shell:
   //   'study' — the full fretboard mapper: whole neck, any key, chords over

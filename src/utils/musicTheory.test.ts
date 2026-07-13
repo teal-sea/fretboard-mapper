@@ -5,7 +5,7 @@ import {
   getScaleNotes, getChordNotes, computeFretboard,
   getDiatonicChords, getCompatibleScales, getRelatedModes,
   getScalePositions, compute3NPSPattern, computeSweepShape, computeTappingPattern,
-  formulaString,
+  formulaString, chordIntervalsForScale,
 } from './musicTheory'
 
 // ─── Note Functions ─────────────────────────────────────────────────
@@ -509,6 +509,44 @@ describe('formulaString', () => {
   it('formats major triad correctly', () => {
     const result = formulaString(CHORDS['major'].intervals)
     expect(result).toBe('R - 3 - 5')
+  })
+})
+
+// ─── Chord-For-Scale (backing chord derivation) ─────────────────────
+
+describe('chordIntervalsForScale', () => {
+  it('gives Dorian a min7', () => {
+    expect(chordIntervalsForScale('dorian')).toEqual(CHORDS['min7'].intervals)
+  })
+  it('gives Lydian a maj7', () => {
+    expect(chordIntervalsForScale('lydian')).toEqual(CHORDS['maj7'].intervals)
+  })
+  it('gives Mixolydian a dom7', () => {
+    expect(chordIntervalsForScale('mixolydian')).toEqual(CHORDS['dom7'].intervals)
+  })
+  it('gives Locrian a half-diminished 7th', () => {
+    expect(chordIntervalsForScale('locrian')).toEqual(CHORDS['half_dim7'].intervals)
+  })
+  it('gives Aeolian a min7', () => {
+    expect(chordIntervalsForScale('aeolian')).toEqual(CHORDS['min7'].intervals)
+  })
+  it('gives Ionian a maj7', () => {
+    expect(chordIntervalsForScale('ionian')).toEqual(CHORDS['maj7'].intervals)
+  })
+  it('gives Harmonic Minor a min-major 7th', () => {
+    expect(chordIntervalsForScale('harmonic_minor')).toEqual(CHORDS['min_maj7'].intervals)
+  })
+  it('gives Melodic Minor a min-major 7th', () => {
+    expect(chordIntervalsForScale('melodic_minor')).toEqual(CHORDS['min_maj7'].intervals)
+  })
+  it('overrides minor pentatonic to a min7', () => {
+    expect(chordIntervalsForScale('minor_penta')).toEqual(CHORDS['min7'].intervals)
+  })
+  it('overrides major pentatonic to a maj7', () => {
+    expect(chordIntervalsForScale('major_penta')).toEqual(CHORDS['maj7'].intervals)
+  })
+  it('falls back gracefully for an unknown key', () => {
+    expect(chordIntervalsForScale('not-a-real-scale')).toEqual(CHORDS['major'].intervals)
   })
 })
 
