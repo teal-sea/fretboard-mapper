@@ -12,12 +12,12 @@ import type { DiatonicChord, FretPosition } from './utils/musicTheory'
 import { DEFAULT_INTERVAL_COLORS, ALL_INTERVALS } from './utils/defaultColors'
 import Fretboard from './components/Fretboard'
 import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome, startDrone, stopDrone } from './utils/audioEngine'
-import { CONCEPTS, getNextConcept, markSeen, type Concept } from './utils/concepts'
-import { startMic, stopMic, readPitch, recalibrateMic } from './utils/micInput'
+import { CONCEPTS, getNextConcept, markSeen, loadOwned, markOwned, type Concept } from './utils/concepts'
+import { startMic, stopMic, readPitch, recalibrateMic, getMicError } from './utils/micInput'
 import { intervalSemitones } from './utils/musicTheory'
 import { getScaleInsight, getChordInsight, chordsInScale, getObjective, PRIMER } from './utils/theory'
 import { getSameNoteModes, describeModalShift, contrastWithKey, recontextualise, type SiblingMode } from './utils/modes'
-import { loadSeen } from './utils/concepts'
+import { loadPersistedState, savePersistedState } from './utils/persist'
 import { getSweepShape, getArpeggioShapes, buildRun } from './utils/arpeggios'
 import {
   getWalkPositions, currentWalkIndex, describeStep,
@@ -121,8 +121,12 @@ const initialState: AppState = {
 }
 
 export default function App() {
-  const [state, setState] = useState<AppState>(initialState)
+  const [state, setState] = useState<AppState>(() => ({ ...initialState, ...loadPersistedState() }))
   const up = useCallback((p: Partial<AppState>) => setState(s => ({ ...s, ...p })), [])
+
+  // Remember what you were looking at — key, mode, settings, whether you've
+  // seen the intro — across a refresh. No account, no server: just this tab.
+  useEffect(() => { savePersistedState(state) }, [state])
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [chordTier, setChordTier] = useState(0) // index into HARMONY_ROWS (0=Triad, 2=7th, etc.)
 
@@ -411,10 +415,28 @@ export default function App() {
   const [metronomeOn, setMetronomeOn] = useState(false)
   const [droneOn, setDroneOn] = useState(false)
   const [listening, setListening] = useState(false)
+  const [micError, setMicError] = useState<string | null>(null)
+
+  // Narrow + portrait — the moment the neck is hardest to read. We only ever
+  // suggest turning the phone; nothing here blocks using the app in portrait.
+  const [isPortraitNarrow, setIsPortraitNarrow] = useState(false)
+  const [rotateDismissed, setRotateDismissed] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px) and (orientation: portrait)')
+    setIsPortraitNarrow(mq.matches)
+    const onChange = (e: MediaQueryListEvent) => setIsPortraitNarrow(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  useEffect(() => { if (listening) setRotateDismissed(false) }, [listening])
   const [heardMidi, setHeardMidi] = useState<number | null>(null)
   const [focusFound, setFocusFound] = useState(false)
   const [justLanded, setJustLanded] = useState(false)
-  const [soundsOwned, setSoundsOwned] = useState(() => loadSeen().length)
+  const [soundsOwned, setSoundsOwned] = useState(() => loadOwned().length)
+  const [collectionOpen, setCollectionOpen] = useState(false)
+  // Recomputed whenever the panel opens or the owned count changes — the
+  // panel itself can't be open while a new sound lands, so this stays in sync.
+  const ownedIds = useMemo(() => (collectionOpen ? loadOwned() : []), [collectionOpen, soundsOwned])
 
   const startProgression = useCallback(() => {
     if (progressionTimerRef.current) clearInterval(progressionTimerRef.current)
@@ -539,8 +561,10 @@ export default function App() {
       setListening(false)
       setHeardMidi(null)
     } else {
+      setMicError(null)
       const ok = await startMic()
-      setListening(ok) // permission denied → button simply stays off
+      setListening(ok)
+      if (!ok) setMicError(getMicError())
     }
   }, [listening])
 
@@ -589,14 +613,17 @@ export default function App() {
   const hearingFocus = heardMidi !== null && focusPc !== null && heardMidi % 12 === focusPc
 
   // ─── The reward. You didn't score a point — you now OWN a sound. ───
+  // Owning is per concept (id), persisted, and mic-confirmed — not a page
+  // view. Re-landing a concept you already own still feels good but doesn't
+  // double-count the collection.
   useEffect(() => {
-    if (!hearingFocus || focusFound) return
+    if (!hearingFocus || focusFound || !currentConcept) return
     setFocusFound(true)
     setJustLanded(true)
-    setSoundsOwned(n => n + 1)
+    setSoundsOwned(markOwned(currentConcept.id).length)
     const t = setTimeout(() => setJustLanded(false), 900)
     return () => clearTimeout(t)
-  }, [hearingFocus, focusFound])
+  }, [hearingFocus, focusFound, currentConcept])
 
   // ─── The theory layer: why what you're looking at works ───
   const insight = useMemo(() => {
@@ -986,10 +1013,21 @@ export default function App() {
         <main className={`flow-stage ${justLanded ? 'landed' : ''}`}>
           <div className="flow-aura" />
 
-          <div className={`flow-owned ${justLanded ? 'gained' : ''}`}>
+          {listening && isPortraitNarrow && !rotateDismissed && (
+            <div className="rotate-prompt">
+              <span>Turn your phone sideways — the neck reads a lot easier in landscape while you play.</span>
+              <button onClick={() => setRotateDismissed(true)}>Got it</button>
+            </div>
+          )}
+
+          <button
+            className={`flow-owned ${justLanded ? 'gained' : ''}`}
+            onClick={() => setCollectionOpen(true)}
+            title="See every sound you've landed by ear"
+          >
             <span className="flow-owned-n">{soundsOwned}</span>
             <span>sounds you own</span>
-          </div>
+          </button>
 
           <header className="flow-idea">
             <p className="flow-key">
@@ -1241,12 +1279,49 @@ export default function App() {
             )}
           </footer>
 
-          {!listening && (
+          {micError && (
+            <p className="flow-coach mic-error">
+              <span className="flow-pip" />
+              {micError}
+            </p>
+          )}
+
+          {!listening && !micError && (
             <p className="flow-coach">
               <span className="flow-pip" />
               Turn on <b>&nbsp;Listen&nbsp;</b> and play anything — a note, a whistle, a hum.
               The neck shows you what it heard.
             </p>
+          )}
+
+          {collectionOpen && (
+            <div className="collection-overlay" onClick={() => setCollectionOpen(false)}>
+              <div className="collection-panel" onClick={e => e.stopPropagation()}>
+                <div className="drawer-header">
+                  <span className="drawer-title">{soundsOwned} / {CONCEPTS.length} sounds you own</span>
+                  <button className="drawer-close" onClick={() => setCollectionOpen(false)}>&times;</button>
+                </div>
+                <p className="collection-sub">
+                  Owned means Listen heard you actually land it — not just that you looked at it.
+                </p>
+                <div className="collection-grid">
+                  {CONCEPTS.map(c => {
+                    const owned = ownedIds.includes(c.id)
+                    return (
+                      <button
+                        key={c.id}
+                        className={`collection-item ${owned ? 'owned' : 'locked'}`}
+                        onClick={() => { applyConcept(c); setCollectionOpen(false) }}
+                        title={owned ? c.hook : `Not yet — ${c.hook}`}
+                      >
+                        <span className="collection-item-mark">{owned ? '✓' : '·'}</span>
+                        <span className="collection-item-title">{c.title}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
           )}
         </main>
       )}
@@ -1302,6 +1377,8 @@ export default function App() {
             </span>
           )}
         </div>
+
+        {micError && <p className="mic-error study-mic-error">{micError}</p>}
 
         {/* ═══ Same notes, different home — the point of the whole thing ═══
             Every chip below uses the IDENTICAL notes now on the neck. Click one

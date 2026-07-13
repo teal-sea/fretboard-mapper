@@ -287,6 +287,35 @@ export function resetSeen(): void {
   }
 }
 
+// ─── Sounds you own ───
+// Distinct from "seen" above: seen just means shown to you, so the curriculum
+// doesn't repeat itself. Owned means the mic actually heard you land the
+// concept's focus note — a real ear-training result, not a page view.
+const OWNED_KEY = 'fm.ownedSounds'
+
+export function loadOwned(): string[] {
+  try {
+    const raw = localStorage.getItem(OWNED_KEY)
+    return raw ? (JSON.parse(raw) as string[]) : []
+  } catch {
+    return []
+  }
+}
+
+export function markOwned(id: string): string[] {
+  try {
+    const owned = loadOwned()
+    if (!owned.includes(id)) {
+      const next = [...owned, id]
+      localStorage.setItem(OWNED_KEY, JSON.stringify(next))
+      return next
+    }
+    return owned
+  } catch {
+    return loadOwned()
+  }
+}
+
 // Pick the next idea: prefer something unseen; when the well runs dry, start
 // over rather than repeating the one just played.
 export function getNextConcept(currentId?: string | null): Concept {

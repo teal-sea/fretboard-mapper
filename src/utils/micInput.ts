@@ -11,6 +11,13 @@ let stream: MediaStream | null = null
 let source: MediaStreamAudioSourceNode | null = null
 let analyser: AnalyserNode | null = null
 let sampleBuf: Float32Array | null = null
+let lastError: string | null = null
+
+// The reason the last startMic() call failed, for the UI to show. null once
+// a call has succeeded (or before any call has been made).
+export function getMicError(): string | null {
+  return lastError
+}
 
 // ─── Ambient calibration ───
 // The mic hears everything — including the app's own drone bleeding back
@@ -52,6 +59,13 @@ export function recalibrateMic(): void {
 
 export async function startMic(): Promise<boolean> {
   if (stream) return true
+  lastError = null
+
+  if (!navigator.mediaDevices?.getUserMedia) {
+    lastError = 'This browser can\'t access the microphone. Try a recent Chrome, Firefox, or Safari.'
+    return false
+  }
+
   try {
     // Music-appropriate constraints: the browser's voice-call processing
     // (echo cancellation, noise suppression, auto gain) mangles instruments.
@@ -62,9 +76,18 @@ export async function startMic(): Promise<boolean> {
         autoGainControl: false,
       },
     })
-  } catch {
+  } catch (err) {
     stream = null
-    return false // permission denied or no mic
+    const name = err instanceof DOMException ? err.name : ''
+    lastError =
+      name === 'NotAllowedError' || name === 'PermissionDeniedError'
+        ? 'Mic access is blocked. Allow it for this site in your browser settings, then try again.'
+        : name === 'NotFoundError' || name === 'DevicesNotFoundError'
+        ? 'No microphone found. Plug in an interface or mic and try again.'
+        : name === 'NotReadableError' || name === 'TrackStartError'
+        ? 'Another app has the microphone locked — close it and try again.'
+        : 'Could not start the microphone.'
+    return false
   }
 
   const ctx = getCtx()
