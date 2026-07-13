@@ -13,7 +13,12 @@
       "Bash(npm run dev *)",
       "Bash(npm test)",
       "Bash(npm install *)",
-      "Bash(pkill -f *)"
+      "Bash(pkill -f *)",
+      "Bash(sed -i * )",
+      "Bash(mkdir -p *)",
+      "Bash(chmod *)",
+      "Bash(rm /tmp/*)",
+      "Bash(rm /Users/thomas/.claude/jobs/*)"
     ]
   }
 }
