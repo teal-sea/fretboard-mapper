@@ -64,12 +64,14 @@ describe('getSameNoteModes — the same notes, a different home', () => {
 })
 
 describe('describeModalShift', () => {
-  it('says the hands did not move', () => {
+  it('says the note set did not change, not that the hands did not move', () => {
     const s = describeModalShift('A', 'aeolian', 'D', 'dorian')
     expect(s).toContain('same seven notes')
+    expect(s).toContain('same')
+    expect(s).toContain('frets')
     expect(s).toContain('A')
     expect(s).toContain('D')
-    expect(s.toLowerCase()).toContain("hands don't change")
+    expect(s.toLowerCase()).toContain('no new notes')
   })
 })
 

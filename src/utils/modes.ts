@@ -2,12 +2,15 @@
 // The thesis of this whole app:
 //
 //   The same seven notes played from a different home note is a different mode.
-//   On a guitar, that means the shapes under your hands do not move at all —
-//   the DRONE decides which note is home, and that alone changes everything.
+//   On a guitar, that means the notes available under your fingers — the
+//   frets that are "in the scale" at all — do not change. The DRONE decides
+//   which one of them is home, and that alone changes everything you'd
+//   actually play: what you resolve to, what you'd run first, what you'd
+//   avoid landing on. Same raw material, different centre of gravity.
 //
-// A Aeolian and D Dorian and G Mixolydian are the SAME SEVEN NOTES. Play the
-// identical fretboard shape; move the drone from A to D and it stops sounding
-// sad and starts sounding hopeful. Nothing moved but the centre of gravity.
+// A Aeolian and D Dorian and G Mixolydian are the SAME SEVEN NOTES at the
+// SAME FRETS. Move the drone from A to D and it stops sounding sad and
+// starts sounding hopeful — without a single new note becoming available.
 //
 // Books state this. They cannot make you HEAR it. A drone can.
 
@@ -84,11 +87,11 @@ export function describeModalShift(
   }
 
   return (
-    `These are the exact same seven notes you were just playing — the drone ` +
-    `simply moved home from ${fromRoot} to ${toRoot}. That is the only ` +
-    `difference between ${fromRoot} ${fromName} and ${toRoot} ${toName}` +
+    `These are the exact same seven notes you were just playing, at the same ` +
+    `frets — the drone simply moved home from ${fromRoot} to ${toRoot}. That ` +
+    `is the only difference between ${fromRoot} ${fromName} and ${toRoot} ${toName}` +
     (plain ? `, which is ${plain}.` : '.') +
-    ` Your hands don't change. The sound completely does.`
+    ` No new notes. The sound completely changes anyway.`
   )
 }
 
