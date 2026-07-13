@@ -469,8 +469,8 @@ export default function App() {
       {/* Context bar */}
       <header className="context-bar">
         <div className="context-brand">
-          <span className="context-logo">FM</span>
-          <span className="context-title">Fretboard Mapper</span>
+          <img className="context-mark" src="/mark.png" alt="" width={30} height={30} />
+          <span className="context-title">modalruns</span>
         </div>
         <div className="context-actions">
           <button className="icon-btn" onClick={() => setSettingsOpen(true)} title="Settings">

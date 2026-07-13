@@ -14,6 +14,18 @@
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --transition: 0.2s var(--ease);
   --transition-slow: 0.4s var(--ease);
+
+  /* ─── Modal Runs brand — sampled from the logo ─── */
+  --neon-cyan:    #09cede;
+  --neon-blue:    #2987e6;
+  --neon-purple:  #9846ea;
+  --neon-magenta: #e648d8;
+  --neon-pink:    #f749a2;
+  --neon-coral:   #f57064;
+  --neon-amber:   #fab123; /* the root-note dot in the mark */
+  --brand-grad: linear-gradient(100deg,
+    var(--neon-cyan), var(--neon-blue) 28%, var(--neon-purple) 55%,
+    var(--neon-pink) 80%, var(--neon-coral));
 }
 
 html { font-size: 14px; }
@@ -21,24 +33,24 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 
 /* ─── Dark Theme ───────────────────────────────────────────────────── */
 .app.dark {
-  --bg: #08080d;
-  --bg-surface: #0e0e15;
-  --bg-raised: #15151d;
-  --bg-hover: #1c1c26;
-  --bg-active: #24242e;
-  --border: #1c1c28;
-  --border-subtle: #141420;
+  --bg: #050507;
+  --bg-surface: #0b0b11;
+  --bg-raised: #12121a;
+  --bg-hover: #1a1a24;
+  --bg-active: #22222e;
+  --border: #1b1b26;
+  --border-subtle: #131320;
   --text: #eae8e3;
-  --text-2: #807c76;
-  --text-3: #504e48;
-  --accent: #d4a017;
-  --accent-2: #e8b631;
-  --accent-dim: rgba(212,160,23,0.08);
-  --accent-glow: rgba(212,160,23,0.15);
-  --glass: rgba(10,10,16,0.82);
+  --text-2: #857f76;
+  --text-3: #524f48;
+  --accent: #fab123;
+  --accent-2: #ffc451;
+  --accent-dim: rgba(250,177,35,0.09);
+  --accent-glow: rgba(250,177,35,0.18);
+  --glass: rgba(5,5,9,0.84);
   --glass-border: rgba(255,255,255,0.06);
-  --shadow-lg: 0 8px 40px rgba(0,0,0,0.5);
-  --shadow-sm: 0 2px 12px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.6);
+  --shadow-sm: 0 2px 12px rgba(0,0,0,0.35);
 }
 
 /* ─── Light Theme ──────────────────────────────────────────────────── */
@@ -176,21 +188,20 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   align-items: center;
   gap: 10px;
 }
-.context-logo {
-  font-family: var(--font-mono);
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.06em;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+.context-mark {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 9px rgba(152,70,234,0.5));
+}
+.context-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  background: var(--brand-grad);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-}
-.context-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-2);
-  letter-spacing: -0.01em;
 }
 .context-actions {
   display: flex;
