@@ -3055,14 +3055,21 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   /* Study on a phone: the control bar, mode chips and chord row are all built
      for a desktop row. Let them wrap or scroll sideways instead of blowing out
      the page width. */
-  .study-stage { padding: 10px 12px 24px; gap: 10px; }
+  .study-stage { padding: 8px 12px 24px; gap: 6px; }
   .study-bar {
     flex-wrap: wrap;
     justify-content: center;
     gap: 8px;
-    padding: 10px;
+    padding: 6px 0;
   }
   .study-bar-sep { display: none; }
+  /* The neck is the actual content — everything above it is chrome, and on
+     a phone that chrome was running almost a full screen before you ever
+     saw a fret. The hint sentence explains what the chip row already shows
+     at a glance; cut it here specifically to get to the neck faster. */
+  .modes-hint { display: none; }
+  .modes-strip { padding: 10px 12px; gap: 6px; }
+  .note-legend { padding: 2px 0; }
   .modes-row,
   .chord-grid-main,
   .chord-tier-bar,
@@ -3164,10 +3171,16 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
      3-4 fret zoomed view forced to 700px+ wide goes absurdly tall. Flip
      to height-first instead: fill the row's real height, let width follow
      the aspect ratio, and let .fretboard-viewport's horizontal scroll pick
-     up any excess width instead of the neck cropping or overlapping. */
-  .flow-neck .fretboard-container { width: auto; max-width: 100%; height: 100%; }
-  .flow-neck .fretboard-viewport { height: 100%; }
-  .flow-neck .fretboard-svg { width: auto; height: 100%; max-height: 100%; min-height: 0; min-width: 0; }
+     up any excess width instead of the neck cropping or overlapping.
+     No height:100% anywhere here on purpose — a percentage height only
+     resolves if every ancestor in the chain has a DEFINITE height, and
+     that chain silently breaking (container → viewport → svg, three
+     levels of it) is exactly the kind of thing that renders fine in one
+     engine and renders nothing at all in another. .flow-neck's height is
+     already a concrete 46vh below; the svg just caps itself at that same
+     concrete value directly instead of inheriting it through three divs. */
+  .flow-neck .fretboard-container { width: auto; max-width: 100%; }
+  .flow-neck .fretboard-svg { width: auto; max-height: 46vh; min-height: 0; min-width: 0; }
 
   /* ─── Flow: let it scroll ───
      .app.mode-flow locks the whole screen to exactly 100dvh with no
