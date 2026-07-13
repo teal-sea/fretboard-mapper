@@ -65,10 +65,47 @@ interface ActivePad {
   nodes: AudioNode[]
   oscillators: OscillatorNode[]
   envelope: GainNode
+  volumeGain: GainNode
+  panners: { node: StereoPannerNode; basePan: number }[]
+  filter: BiquadFilterNode
   latched: boolean
 }
 
 let currentPad: ActivePad | null = null
+
+// Same shape as the drone's controls (Settings → PAD), independent values —
+// this used to share the drone's exact detune amounts and filter range,
+// which is why the two were indistinguishable by ear. See the layer gains
+// and detune ratios below for the actual timbral split.
+let padVolume = 1
+let padSpread = 1
+let padTone = 0.5
+
+const clampPad = (v: number, max = 1.5) => Math.max(0, Math.min(max, v))
+
+export function setPadVolume(v: number): void {
+  padVolume = clampPad(v)
+  if (currentPad && ctx) currentPad.volumeGain.gain.setTargetAtTime(padVolume, ctx.currentTime, 0.1)
+}
+export function setPadSpread(v: number): void {
+  padSpread = clampPad(v)
+  if (currentPad && ctx) {
+    const now = ctx.currentTime
+    for (const { node, basePan } of currentPad.panners) {
+      node.pan.setTargetAtTime(Math.max(-1, Math.min(1, basePan * padSpread)), now, 0.15)
+    }
+  }
+}
+export function setPadTone(v: number): void {
+  padTone = Math.max(0, Math.min(1, v))
+  if (currentPad && ctx) {
+    const target = 500 + padTone * 4000
+    currentPad.filter.frequency.setTargetAtTime(target, ctx.currentTime, 0.2)
+  }
+}
+export function getPadVolume(): number { return padVolume }
+export function getPadSpread(): number { return padSpread }
+export function getPadTone(): number { return padTone }
 
 // 4 bars at 100 BPM = 9.6 seconds
 const DEFAULT_DURATION = 9.6
@@ -82,6 +119,7 @@ export function playChordPad(midiNotes: number[], latched: boolean = false): voi
 
   const nodes: AudioNode[] = []
   const oscillators: OscillatorNode[] = []
+  const panners: { node: StereoPannerNode; basePan: number }[] = []
 
   // For latched mode, use a very long duration so oscillators keep running
   const duration = latched ? 300 : DEFAULT_DURATION
@@ -90,6 +128,10 @@ export function playChordPad(midiNotes: number[], latched: boolean = false): voi
   const envelope = audioCtx.createGain()
   envelope.gain.setValueAtTime(0, now)
   nodes.push(envelope)
+
+  const volumeGain = audioCtx.createGain()
+  volumeGain.gain.value = padVolume
+  nodes.push(volumeGain)
 
   if (latched) {
     // Latch: smooth bloom to sustain, hold indefinitely
@@ -123,18 +165,21 @@ export function playChordPad(midiNotes: number[], latched: boolean = false): voi
   filter.Q.setValueAtTime(0.5, now)
   nodes.push(filter)
 
+  // padTone recentres this whole breathing range, same idea as the drone's
+  // Tone control but on its own independent value.
+  const padToneTarget = 500 + padTone * 4000
   if (latched) {
     // Latch: open slowly, hold open
-    filter.frequency.setValueAtTime(600, now)
-    filter.frequency.linearRampToValueAtTime(3000, now + 3.0)
+    filter.frequency.setValueAtTime(padToneTarget * 0.2, now)
+    filter.frequency.linearRampToValueAtTime(padToneTarget, now + 3.0)
   } else {
     const attack = 2.0
     const peakTime = duration * 0.65
     const fadeEnd = duration
-    filter.frequency.setValueAtTime(600, now)
-    filter.frequency.linearRampToValueAtTime(2800, now + attack * 1.2)
-    filter.frequency.linearRampToValueAtTime(3400, now + peakTime)
-    filter.frequency.exponentialRampToValueAtTime(800, now + fadeEnd)
+    filter.frequency.setValueAtTime(padToneTarget * 0.2, now)
+    filter.frequency.linearRampToValueAtTime(padToneTarget * 0.93, now + attack * 1.2)
+    filter.frequency.linearRampToValueAtTime(padToneTarget * 1.13, now + peakTime)
+    filter.frequency.exponentialRampToValueAtTime(padToneTarget * 0.27, now + fadeEnd)
   }
 
   // High-pass to remove mud
@@ -157,10 +202,11 @@ export function playChordPad(midiNotes: number[], latched: boolean = false): voi
 
     // Stereo spread
     const pan = audioCtx.createStereoPanner()
-    const spread = midiNotes.length > 1
+    const basePan = midiNotes.length > 1
       ? -0.5 + (ni / (midiNotes.length - 1)) * 1.0
       : 0
-    pan.pan.setValueAtTime(spread, now)
+    pan.pan.setValueAtTime(Math.max(-1, Math.min(1, basePan * padSpread)), now)
+    panners.push({ node: pan, basePan })
     nodes.push(pan)
 
     const noteGain = audioCtx.createGain()
@@ -173,28 +219,30 @@ export function playChordPad(midiNotes: number[], latched: boolean = false): voi
     sine1.frequency.setValueAtTime(freq, now)
     oscillators.push(sine1)
 
-    // Layer 2: Detuned sine +6 cents
+    // Layer 2: Detuned sine +14 cents — noticeably wider than the drone's
+    // ±6 cents. This used to share the drone's exact detune amount, which
+    // is a big part of why the two were indistinguishable by ear.
     const sine2 = audioCtx.createOscillator()
     sine2.type = 'sine'
-    sine2.frequency.setValueAtTime(freq * 1.0035, now)
+    sine2.frequency.setValueAtTime(freq * 1.008, now)
     oscillators.push(sine2)
 
-    // Layer 3: Detuned sine -6 cents
+    // Layer 3: Detuned sine -14 cents
     const sine3 = audioCtx.createOscillator()
     sine3.type = 'sine'
-    sine3.frequency.setValueAtTime(freq * 0.9965, now)
+    sine3.frequency.setValueAtTime(freq * 0.992, now)
     oscillators.push(sine3)
 
-    // Layer 4: Triangle +12 cents — airy texture
+    // Layer 4: Triangle +22 cents — airy texture, wider chorus than the drone
     const tri1 = audioCtx.createOscillator()
     tri1.type = 'triangle'
-    tri1.frequency.setValueAtTime(freq * 1.007, now)
+    tri1.frequency.setValueAtTime(freq * 1.013, now)
     oscillators.push(tri1)
 
-    // Layer 5: Triangle -12 cents
+    // Layer 5: Triangle -22 cents
     const tri2 = audioCtx.createOscillator()
     tri2.type = 'triangle'
-    tri2.frequency.setValueAtTime(freq * 0.993, now)
+    tri2.frequency.setValueAtTime(freq * 0.987, now)
     oscillators.push(tri2)
 
     // Layer 6: Sub sine — one octave down
@@ -215,7 +263,9 @@ export function playChordPad(midiNotes: number[], latched: boolean = false): voi
     shimmerHi.frequency.setValueAtTime(freq * 2.002, now)
     oscillators.push(shimmerHi)
 
-    // Mix levels
+    // Mix levels — shimmer boosted from the original 0.04/0.03: the drone
+    // has no fifth/octave-above shimmer at all, so leaning into it here is
+    // one more real point of difference, not just a wider detune.
     const gains = [
       { osc: sine1,    level: 0.30 },
       { osc: sine2,    level: 0.22 },
@@ -223,8 +273,8 @@ export function playChordPad(midiNotes: number[], latched: boolean = false): voi
       { osc: tri1,     level: 0.10 },
       { osc: tri2,     level: 0.10 },
       { osc: sub,      level: 0.15 },
-      { osc: shimmer5, level: 0.04 },
-      { osc: shimmerHi,level: 0.03 },
+      { osc: shimmer5, level: 0.07 },
+      { osc: shimmerHi,level: 0.06 },
     ]
 
     for (const { osc, level } of gains) {
@@ -239,11 +289,12 @@ export function playChordPad(midiNotes: number[], latched: boolean = false): voi
     pan.connect(hiPass)
   }
 
-  // Signal chain: hiPass → filter → shaper → envelope → master
+  // Signal chain: hiPass → filter → shaper → envelope → volumeGain → master
   hiPass.connect(filter)
   filter.connect(shaper)
   shaper.connect(envelope)
-  envelope.connect(masterGain)
+  envelope.connect(volumeGain)
+  volumeGain.connect(masterGain)
 
   // LFO on filter for breathing
   const lfo = audioCtx.createOscillator()
@@ -275,7 +326,7 @@ export function playChordPad(midiNotes: number[], latched: boolean = false): voi
     if (!latched) o.stop(now + duration + 0.5)
   })
 
-  currentPad = { nodes, oscillators, envelope, latched }
+  currentPad = { nodes, oscillators, envelope, volumeGain, panners, filter, latched }
 
   // Cleanup after duration (only for timed mode)
   if (!latched) {
@@ -380,12 +431,6 @@ export function isMetronomeRunning(): boolean {
 
 type Layer = { ratio: number; type: OscillatorType; gain: number }
 
-interface DriftVoice {
-  oscs: { osc: OscillatorNode; ratio: number }[]
-  pool: number[]   // candidate MIDI notes this voice may occupy (scale tones in its register)
-  baseMidi: number // current center note
-}
-
 interface ActiveDrone {
   nodes: AudioNode[]
   oscillators: OscillatorNode[]
@@ -393,7 +438,6 @@ interface ActiveDrone {
   volumeGain: GainNode
   panners: { node: StereoPannerNode; basePan: number }[]
   filter: BiquadFilterNode
-  scheduler: ReturnType<typeof setInterval>
 }
 
 let currentDrone: ActiveDrone | null = null
@@ -548,33 +592,6 @@ export function startDrone(rootPc: number, scaleIntervals: number[]): void {
     { ratio: 1.004, type: 'sine', gain: 0.3 },
   ])
 
-  // ─── Drifting upper voices ───
-  const driftLayers: Layer[] = [
-    { ratio: 1,     type: 'sine',     gain: 0.4 },
-    { ratio: 1.004, type: 'sine',     gain: 0.28 },
-    { ratio: 0.996, type: 'sine',     gain: 0.28 },
-    { ratio: 1.007, type: 'triangle', gain: 0.1 },
-  ]
-  const buildPool = (center: number, span: number): number[] => {
-    const pool: number[] = []
-    for (let m = center - span; m <= center + span; m++) {
-      if (pcs.has(((m % 12) + 12) % 12)) pool.push(m)
-    }
-    return pool.length ? pool : [center]
-  }
-  const driftVoices: DriftVoice[] = []
-  const registers = [
-    { center: 55, pan: -0.4,  level: 0.13 }, // G3 area
-    { center: 60, pan: 0.15,  level: 0.12 }, // C4 area
-    { center: 64, pan: 0.45,  level: 0.1 },  // E4 area
-  ]
-  for (const r of registers) {
-    const pool = buildPool(r.center, 4)
-    const startMidi = pool[Math.floor(pool.length / 2)]
-    const oscs = makeVoice(startMidi, r.level, r.pan, driftLayers)
-    driftVoices.push({ oscs, pool, baseMidi: startMidi })
-  }
-
   // Slow amplitude tremolo for life
   const trem = audioCtx.createOscillator()
   trem.type = 'sine'
@@ -589,35 +606,7 @@ export function startDrone(rootPc: number, scaleIntervals: number[]): void {
   // Start everything exactly once
   oscillators.forEach(o => { try { o.start(now) } catch {} })
 
-  // ─── Drift scheduler: nudge one voice to a neighbouring scale tone ───
-  const glide = (voice: DriftVoice) => {
-    if (voice.pool.length < 2) return
-    const curIdx = voice.pool.indexOf(voice.baseMidi)
-    let step = Math.random() < 0.5 ? -1 : 1
-    if (Math.random() < 0.3) step *= 2 // occasional wider leap
-    let ni = curIdx + step
-    if (ni < 0 || ni >= voice.pool.length) ni = curIdx - step // reflect at edges
-    ni = Math.max(0, Math.min(voice.pool.length - 1, ni))
-    const target = voice.pool[ni]
-    if (target === voice.baseMidi) return
-    voice.baseMidi = target
-
-    const t = audioCtx.currentTime
-    const glideTime = 3 + Math.random() * 2
-    const targetFreq = midiToFreq(target)
-    for (const { osc, ratio } of voice.oscs) {
-      osc.frequency.cancelScheduledValues(t)
-      osc.frequency.setValueAtTime(osc.frequency.value, t)
-      osc.frequency.exponentialRampToValueAtTime(targetFreq * ratio, t + glideTime)
-    }
-  }
-
-  const scheduler = setInterval(() => {
-    const v = driftVoices[Math.floor(Math.random() * driftVoices.length)]
-    glide(v)
-  }, 7000)
-
-  currentDrone = { nodes, oscillators, envelope, volumeGain, panners, filter, scheduler }
+  currentDrone = { nodes, oscillators, envelope, volumeGain, panners, filter }
 }
 
 export function stopDrone(): void {
@@ -626,7 +615,6 @@ export function stopDrone(): void {
   const drone = currentDrone
   currentDrone = null
 
-  clearInterval(drone.scheduler)
   drone.envelope.gain.cancelScheduledValues(now)
   drone.envelope.gain.setValueAtTime(drone.envelope.gain.value, now)
   drone.envelope.gain.linearRampToValueAtTime(0, now + 2.5)
