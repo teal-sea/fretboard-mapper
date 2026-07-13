@@ -1836,9 +1836,14 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   white-space: nowrap;
 }
 .mode-btn:hover { color: var(--text); }
+/* Every other "you are here" control in the app (mode chips, the Drone
+   button) fills solid --accent with a glow — this used to just invert to
+   plain white/black, the one control in the header that ignored the
+   theme entirely. */
 .mode-btn.active {
-  background: var(--text);
-  color: var(--bg);
+  background: var(--accent);
+  color: #04211d;
+  box-shadow: 0 0 14px var(--accent-glow);
 }
 .mode-btn .mode-ico { font-size: 11px; opacity: 0.8; }
 
@@ -1853,7 +1858,10 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   margin: 0 auto;
 }
 
-/* One toolbar row instead of four stacked strips */
+/* One toolbar row instead of four stacked strips. Same accent-tinted glow
+   as .modes-strip right below it — before this it was a flat grey box
+   sitting on top of a panel that visibly glowed, the first thing on the
+   page and the least on-brand. */
 .study-bar {
   display: flex;
   align-items: center;
@@ -1861,7 +1869,9 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   gap: 8px;
   flex-wrap: wrap;
   padding: 10px 12px;
-  background: var(--bg-surface);
+  background:
+    linear-gradient(180deg, var(--accent-dim), transparent 70%),
+    var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
 }
