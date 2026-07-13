@@ -592,11 +592,15 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 }
 
 /* ─── Bottom Strip ─────────────────────────────────────────────────── */
+/* Every other row in Study centers as a block — this one pushed the
+   position buttons to the left edge and "More" to the far right via
+   space-between, leaving a dead gap in the middle instead of reading as
+   part of the same centered page. */
 .bottom-strip {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: center;
+  gap: 24px;
 }
 
 /* Position bar */
@@ -802,9 +806,14 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   transition: all var(--transition);
 }
 .fret-range-reset:hover { border-color: var(--accent); color: var(--accent); }
+/* auto-fit, not auto-fill: fill reserves a full row's worth of column
+   tracks even when there are only 7 chords to show, so the real buttons
+   sat left-aligned against a wall of invisible empty columns eating the
+   rest of the row. auto-fit collapses the empty tracks to 0 so the real
+   buttons actually stretch to use the space instead of ceding it. */
 .chord-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 4px;
 }
 .chord-btn.empty {
@@ -3181,21 +3190,19 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
     min-width: 700px;
     max-height: none;
   }
-  /* Flow's zoomed position view: the width-first rule right above this
-     (min-width:700px) is for Study's full neck and is wrong here — a
-     3-4 fret zoomed view forced to 700px+ wide goes absurdly tall. Flip
-     to height-first instead: fill the row's real height, let width follow
-     the aspect ratio, and let .fretboard-viewport's horizontal scroll pick
-     up any excess width instead of the neck cropping or overlapping.
-     No height:100% anywhere here on purpose — a percentage height only
-     resolves if every ancestor in the chain has a DEFINITE height, and
-     that chain silently breaking (container → viewport → svg, three
-     levels of it) is exactly the kind of thing that renders fine in one
-     engine and renders nothing at all in another. .flow-neck's height is
-     already a concrete 46vh below; the svg just caps itself at that same
-     concrete value directly instead of inheriting it through three divs. */
-  .flow-neck .fretboard-container { width: auto; max-width: 100%; }
-  .flow-neck .fretboard-svg { width: auto; max-height: 46vh; min-height: 0; min-width: 0; }
+  /* Flow's neck uses the exact same width-first rule as Study right above
+     this — no bespoke sizing model. A previous attempt at a "smarter"
+     height-first system for Flow's zoomed position view didn't actually
+     render on a real device (percentage-height chains are a known trap,
+     but removing them wasn't enough either — something about that custom
+     path was still broken and I don't have real-device access to find out
+     what). Study's width-first + horizontal-scroll approach is proven to
+     work on an actual phone; Flow now rides the same code path instead of
+     a separate one only ever verified in a resized desktop browser.
+     Because the zoomed viewBox has fewer frets but the SAME svg height as
+     the full board, forcing the same 700px width makes it render several
+     times taller — .flow-neck's overflow:hidden + max-height below clips
+     that safely instead of overlapping the controls beneath it. */
 
   /* ─── Flow: let it scroll ───
      .app.mode-flow locks the whole screen to exactly 100dvh with no
