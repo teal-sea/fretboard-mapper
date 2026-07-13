@@ -74,6 +74,9 @@ export interface AppState {
 
   // Audio
   padLatched: boolean
+  droneVolume: number  // 0–1.5
+  droneSpread: number  // 0–1.5, stereo width multiplier
+  droneTone: number    // 0–1, dark → bright
 
   // Two first-class modes sharing one shell:
   //   'study' — the full fretboard mapper: whole neck, any key, chords over
