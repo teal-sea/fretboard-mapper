@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch *)",
+      "Bash(curl *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr merge *)",
+      "Bash(npm run build)",
+      "Bash(npm run test)",
+      "Bash(npm run dev *)",
+      "Bash(npm test)",
+      "Bash(npm install *)",
+      "Bash(pkill -f *)"
+    ]
+  }
+}

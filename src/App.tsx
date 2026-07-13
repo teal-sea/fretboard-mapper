@@ -493,7 +493,6 @@ export default function App() {
     scaleKey: state.activeTab === 'technique' ? state.keyQuality : (state.selectedScaleKey || state.keyQuality),
   }), [state.activeTab, state.keyRoot, state.keyQuality, state.selectedScaleRoot, state.selectedScaleKey])
 
-  const toggleDrone = useCallback(() => setDroneOn(d => !d), [])
 
   useEffect(() => {
     if (droneOn) {
@@ -573,21 +572,27 @@ export default function App() {
     up({ scalePosition: cur >= n ? 1 : cur + 1 })
   }, [scalePositions.length, state.scalePosition, up])
 
-  // ─── Listening: live pitch feedback ───
-  // The mic hears you (guitar, whistle, hum — anything pitched) and the neck
-  // answers. Confirmation, not judgment: no scores, no misses.
-  const toggleListen = useCallback(async () => {
-    if (listening) {
-      stopMic()
-      setListening(false)
-      setHeardMidi(null)
+  // ─── Play: one button, not two ───
+  // Drone and Listen used to be separate toggles — most people want both
+  // at once (that's the whole app), and a mic-only "Listen" button playing
+  // total silence looked broken. One press starts the room; the same press
+  // stops it. Drone always succeeds; Listen can fail (permission, no mic)
+  // without taking the drone down with it.
+  const isPlaying = droneOn || listening
+  const [justTapped, setJustTapped] = useState(0)
+  const togglePlay = useCallback(async () => {
+    setJustTapped(n => n + 1)
+    if (isPlaying) {
+      if (droneOn) setDroneOn(false)
+      if (listening) { stopMic(); setListening(false); setHeardMidi(null) }
     } else {
+      setDroneOn(true)
       setMicError(null)
       const ok = await startMic()
       setListening(ok)
       if (!ok) setMicError(getMicError())
     }
-  }, [listening])
+  }, [isPlaying, droneOn, listening])
 
   // Poll the detector ~20×/s. A note must be heard twice in a row to commit
   // (kills flicker from transients); it lingers ~200ms after you stop (kills
@@ -1150,7 +1155,7 @@ export default function App() {
                     ? <>Play the numbered notes <b>in order</b>. The app is listening — it lights up
                       the next note as you land each one. A drone is holding {currentConcept.root} underneath.</>
                     : <>This is an exercise: play the numbered notes in order.
-                      <b> Turn on Listen</b> and the app will follow your hands through it.</>}
+                      <b> Hit play</b> and the app will follow your hands through it.</>}
                 </p>
                 <h2 className="flow-hook">{currentConcept.hook}</h2>
                 <p className="flow-listen">{currentConcept.listenFor}</p>
@@ -1310,15 +1315,14 @@ export default function App() {
                 <button className="flow-ctl" onClick={shiftPosition}>Shift position</button>
               </>
             )}
-            <button className={`flow-ctl ${droneOn ? 'on' : ''}`} onClick={toggleDrone}>
-              <span className="flow-pip" />{droneOn ? 'Drone on' : 'Drone'}
-            </button>
             <button
-              className={`flow-ctl ${listening ? 'on' : ''}`}
-              onClick={toggleListen}
-              title="Hear yourself on the neck — guitar, whistle, hum. Headphones recommended while the drone plays."
+              key={justTapped}
+              className={`play-btn ${isPlaying ? 'on' : ''}`}
+              onClick={togglePlay}
+              title={isPlaying ? 'Stop the drone and the mic' : 'Start the drone and let it hear you'}
+              aria-label={isPlaying ? 'Stop' : 'Play'}
             >
-              <span className="flow-pip" />{listening ? 'Listening' : 'Listen'}
+              <span className="play-icon">{isPlaying ? '⏸' : '▶'}</span>
             </button>
             {listening && (
               <span className={`flow-readout ${hearingFocus ? 'hit' : ''}`}>
@@ -1336,10 +1340,10 @@ export default function App() {
             </p>
           )}
 
-          {!listening && !micError && (
+          {!isPlaying && !micError && (
             <p className="flow-coach">
               <span className="flow-pip" />
-              Turn on <b>&nbsp;Listen&nbsp;</b> and play anything — a note, a whistle, a hum.
+              Hit <b>&nbsp;play&nbsp;</b> and play anything — a note, a whistle, a hum.
               The neck shows you what it heard.
             </p>
           )}
@@ -1352,7 +1356,7 @@ export default function App() {
                   <button className="drawer-close" onClick={() => setCollectionOpen(false)}>&times;</button>
                 </div>
                 <p className="collection-sub">
-                  Owned means Listen heard you actually land it — not just that you looked at it.
+                  Owned means the app actually heard you land it — not just that you looked at it.
                 </p>
                 <div className="collection-grid">
                   {CONCEPTS.map(c => {
@@ -1406,18 +1410,13 @@ export default function App() {
           <span className="study-bar-sep" />
 
           <button
-            className={`drone-btn ${droneOn ? 'active' : ''}`}
-            onClick={toggleDrone}
-            title="Evolving ambient drone in the current key — improvise over it"
+            key={justTapped}
+            className={`play-btn small ${isPlaying ? 'on' : ''}`}
+            onClick={togglePlay}
+            title={isPlaying ? 'Stop the drone and the mic' : 'Start the drone and let it hear you'}
+            aria-label={isPlaying ? 'Stop' : 'Play'}
           >
-            <span className="drone-dot" />Drone
-          </button>
-          <button
-            className={`drone-btn ${listening ? 'active' : ''}`}
-            onClick={toggleListen}
-            title="Hear yourself on the neck — guitar, whistle, hum"
-          >
-            <span className="drone-dot" />{listening ? 'Listening' : 'Listen'}
+            <span className="play-icon">{isPlaying ? '⏸' : '▶'}</span>
           </button>
           {listening && (
             <span className="heard-readout">
