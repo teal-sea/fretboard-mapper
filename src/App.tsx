@@ -882,7 +882,7 @@ export default function App() {
       {!state.onboarded && (
         <div className="intro-veil">
           <div className="intro">
-            <p className="intro-eyebrow">Fretboard Mapper</p>
+            <img className="intro-logo" src="/logo.png" alt="Modal Runs" />
             <h1 className="intro-title">See the neck. <em>Then hear it.</em></h1>
             <p className="intro-sub">
               Two ways in. Study the fretboard in as much depth as you want, or drop
@@ -912,8 +912,8 @@ export default function App() {
       {/* ─── The shell: one switch between two first-class modes ─── */}
       <header className="shell-header">
         <div className="shell-brand">
-          <span className="shell-logo">FM</span>
-          <span className="shell-name">Fretboard Mapper</span>
+          <img className="shell-logo" src="/mark.png" alt="" width={28} height={28} />
+          <span className="shell-name">modalruns</span>
         </div>
 
         <div className="mode-switch">
