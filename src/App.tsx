@@ -1388,35 +1388,6 @@ export default function App() {
           </span>
         </div>
 
-        {/* ─── The theory layer: why what you're looking at actually works ─── */}
-        {state.showTheory && insight && (
-          <div className="theory-card">
-            <div className="theory-eyebrow">
-              <span>{insight.eyebrow}</span>
-              {insight.focus && <span>{'·'} the {insight.focus}</span>}
-              <button className="theory-toggle" onClick={() => up({ showTheory: false })}>hide</button>
-            </div>
-            <div className="theory-title">{insight.title}</div>
-            {/* In the context of the tonic you're actually on — not in the abstract */}
-            {state.viewMode !== 'chords' && keyContrast && (
-              <p className="theory-context">{keyContrast.sentence}</p>
-            )}
-            <p className="theory-body">
-              {insight.body}
-              {state.viewMode !== 'chords' && playableChords > 0 && (
-                <>{' '}There are <b>{playableChords}</b> chords that fit entirely inside this scale.
-                Every one of them is a place you can land.</>
-              )}
-            </p>
-          </div>
-        )}
-        {!state.showTheory && (
-          <button className="theory-toggle" style={{ margin: '0 auto' }}
-            onClick={() => up({ showTheory: true })}>
-            + show the theory
-          </button>
-        )}
-
         {/* Note legend */}
         <div className="note-legend">
           {activeIntervals.map(i => {
@@ -1528,6 +1499,38 @@ export default function App() {
             More
           </button>
         </div>
+
+        {/* ─── The theory layer: why what you're looking at actually works ───
+            It sits BELOW the neck on purpose. The neck is what you look at while
+            your hands are busy; this is what you read once. Above the neck it
+            pushed the fretboard clean off a laptop screen. */}
+        {state.showTheory && insight && (
+          <div className="theory-card">
+            <div className="theory-eyebrow">
+              <span>{insight.eyebrow}</span>
+              {insight.focus && <span>{'·'} the {insight.focus}</span>}
+              <button className="theory-toggle" onClick={() => up({ showTheory: false })}>hide</button>
+            </div>
+            <div className="theory-title">{insight.title}</div>
+            {/* In the context of the tonic you're actually on — not in the abstract */}
+            {state.viewMode !== 'chords' && keyContrast && (
+              <p className="theory-context">{keyContrast.sentence}</p>
+            )}
+            <p className="theory-body">
+              {insight.body}
+              {state.viewMode !== 'chords' && playableChords > 0 && (
+                <>{' '}There are <b>{playableChords}</b> chords that fit entirely inside this scale.
+                Every one of them is a place you can land.</>
+              )}
+            </p>
+          </div>
+        )}
+        {!state.showTheory && (
+          <button className="theory-toggle" style={{ margin: '0 auto' }}
+            onClick={() => up({ showTheory: true })}>
+            + show the theory
+          </button>
+        )}
 
         {/* Expanded sections */}
         {state.advancedMode && (
