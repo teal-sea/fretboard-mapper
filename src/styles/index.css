@@ -2741,6 +2741,59 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   display: block;
   filter: drop-shadow(0 0 34px rgba(152,70,234,0.4));
 }
+
+/* The thesis in three beats. Without this the app never says what it IS,
+   and the modal payoff sits behind a chip nobody knows to click. */
+.intro-how {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 26px 0 4px;
+  text-align: left;
+}
+@media (max-width: 720px) {
+  .intro-how { grid-template-columns: 1fr; gap: 10px; }
+}
+.intro-step {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "n t" ". d";
+  column-gap: 9px;
+  row-gap: 3px;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(255,255,255,0.012);
+}
+.intro-step-n {
+  grid-area: n;
+  display: grid;
+  place-items: center;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: #07070b;
+  background: var(--brand-grad);
+}
+.intro-step-t {
+  grid-area: t;
+  align-self: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.intro-step-d {
+  grid-area: d;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-2);
+}
+.intro-step-d em { color: var(--accent); font-style: normal; }
+.intro-step-d b { color: var(--accent); font-weight: 700; }
 .intro-title {
   font-family: Georgia, 'Iowan Old Style', serif;
   font-weight: 400;
