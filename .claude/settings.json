@@ -18,7 +18,11 @@
       "Bash(mkdir -p *)",
       "Bash(chmod *)",
       "Bash(rm /tmp/*)",
-      "Bash(rm /Users/thomas/.claude/jobs/*)"
+      "Bash(rm /Users/thomas/.claude/jobs/*)",
+      "Bash(git checkout *)",
+      "Bash(git branch *)",
+      "Bash(git cherry-pick *)",
+      "Bash(gh pr view *)"
     ]
   }
 }
