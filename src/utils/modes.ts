@@ -84,9 +84,9 @@ export function describeModalShift(
   }
 
   return (
-    `Nothing on the neck moved. These are the exact same seven notes you were ` +
-    `just playing — the drone simply moved home from ${fromRoot} to ${toRoot}. ` +
-    `That is the only difference between ${fromRoot} ${fromName} and ${toRoot} ${toName}` +
+    `These are the exact same seven notes you were just playing — the drone ` +
+    `simply moved home from ${fromRoot} to ${toRoot}. That is the only ` +
+    `difference between ${fromRoot} ${fromName} and ${toRoot} ${toName}` +
     (plain ? `, which is ${plain}.` : '.') +
     ` Your hands don't change. The sound completely does.`
   )

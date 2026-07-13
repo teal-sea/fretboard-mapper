@@ -95,6 +95,8 @@ export default function Fretboard({
     return m
   }, [runNotes])
   const containerRef = useRef<HTMLDivElement>(null)
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
   const [containerWidth, setContainerWidth] = useState(900)
 
   useEffect(() => {
@@ -163,6 +165,25 @@ export default function Fretboard({
     ? `${windowViewBox.x} 0 ${windowViewBox.w} ${svgHeight}`
     : `0 0 ${svgWidth} ${svgHeight}`
 
+  // A position filter (Study) highlights a fret range but — unlike
+  // zoomToPosition (Flow) — doesn't crop the viewBox, so on a phone the
+  // highlighted notes can sit entirely outside the sliver of the neck
+  // that's actually in view. Scroll the horizontally-scrollable viewport
+  // to bring them on screen instead of leaving whoever's using it to go
+  // hunting for their own highlight.
+  useEffect(() => {
+    if (zoomToPosition || !posRange || !viewportRef.current || !svgRef.current) return
+    const [lo, hi] = posRange
+    const svgRenderedWidth = svgRef.current.getBoundingClientRect().width
+    if (svgRenderedWidth === 0) return
+    const scale = svgRenderedWidth / svgWidth
+    const startPx = (lo === 0 ? 0 : nutX + fretPos[lo] - 16) * scale
+    const endPx = (nutX + fretPos[hi] + 16) * scale
+    const viewport = viewportRef.current
+    const targetCenter = (startPx + endPx) / 2
+    viewport.scrollTo({ left: Math.max(0, targetCenter - viewport.clientWidth / 2), behavior: 'smooth' })
+  }, [zoomToPosition, posRange, fretPos, nutX, svgWidth])
+
   const stringOrder = useMemo(() => {
     return [...Array(numStrings)].map((_, i) => numStrings - 1 - i)
   }, [numStrings])
@@ -174,8 +195,9 @@ export default function Fretboard({
 
   return (
     <div className="fretboard-container" ref={containerRef}>
-      <div className="fretboard-viewport">
+      <div className="fretboard-viewport" ref={viewportRef}>
         <svg
+          ref={svgRef}
           width="100%"
           viewBox={viewBox}
           preserveAspectRatio="xMidYMid meet"
