@@ -1695,43 +1695,46 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 }
 
 /* Ambient drone toggle */
-.drone-btn {
+/* ─── Play: one button that starts the drone + the mic together ───
+   Drone and Listen used to be two separate, easy-to-miss toggles — one of
+   them (Listen alone) played total silence, which read as broken. This is
+   the single most important control in the app, so it gets real weight:
+   the actual brand gradient, a pop on every tap, a sustained pulse while
+   live instead of a static "on" state. */
+.play-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  font-size: 12px;
-  font-weight: 700;
-  font-family: var(--font-sans);
-  letter-spacing: 0.03em;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-raised);
-  color: var(--text-2);
-  cursor: pointer;
-  transition: all var(--transition);
-}
-.drone-btn:hover { color: var(--text); border-color: var(--accent); }
-.drone-btn .drone-dot {
-  width: 9px;
-  height: 9px;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border: none;
   border-radius: 50%;
-  background: var(--text-3, #666);
-  transition: background var(--transition);
+  background: var(--brand-grad);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+  animation: play-pop 420ms var(--spring);
 }
-.drone-btn.active {
-  color: #000;
-  background: var(--accent);
-  border-color: var(--accent);
-  box-shadow: 0 0 16px var(--accent-glow);
+.play-btn.small { width: 40px; height: 40px; font-size: 14px; }
+.play-btn:hover { transform: scale(1.06); }
+.play-btn:active { transform: scale(0.92); }
+.play-btn .play-icon {
+  transform: translateX(1px); /* optical centring for ▶ */
+  transition: transform 0.2s var(--spring);
 }
-.drone-btn.active .drone-dot {
-  background: #000;
-  animation: drone-pulse 2.4s ease-in-out infinite;
+.play-btn.on .play-icon { transform: translateX(0); }
+.play-btn.on {
+  animation: play-pop 420ms var(--spring), play-pulse 2.4s ease-in-out 420ms infinite;
 }
-@keyframes drone-pulse {
-  0%, 100% { opacity: 0.35; transform: scale(0.85); }
-  50%      { opacity: 1;    transform: scale(1.15); }
+@keyframes play-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}
+@keyframes play-pulse {
+  0%, 100% { box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 0 rgba(152,70,234,0.4); }
+  50%      { box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 9px rgba(152,70,234,0); }
 }
 
 /* ─── Listening: live pitch feedback ────────────────────────── */
