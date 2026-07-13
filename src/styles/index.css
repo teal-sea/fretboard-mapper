@@ -14,6 +14,20 @@
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --transition: 0.2s var(--ease);
   --transition-slow: 0.4s var(--ease);
+
+  /* ─── Modal Runs brand — sampled from the logo ───
+     The app's teal accent already sits in this family, so the gradient
+     extends the design language rather than replacing it. */
+  --neon-cyan:    #09cede;
+  --neon-blue:    #2987e6;
+  --neon-purple:  #9846ea;
+  --neon-magenta: #e648d8;
+  --neon-pink:    #f749a2;
+  --neon-coral:   #f57064;
+  --neon-amber:   #fab123; /* the root-note dot in the mark */
+  --brand-grad: linear-gradient(100deg,
+    var(--neon-cyan), var(--neon-blue) 28%, var(--neon-purple) 55%,
+    var(--neon-pink) 80%, var(--neon-coral));
 }
 
 html { font-size: 14px; }
@@ -1728,24 +1742,20 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   min-width: 0;
 }
 .shell-logo {
-  display: grid;
-  place-items: center;
   width: 28px;
   height: 28px;
-  border-radius: 8px;
-  background: var(--accent);
-  color: #04211d;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(152,70,234,0.45));
 }
 .shell-name {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.01em;
-  color: var(--text);
+  letter-spacing: -0.025em;
   white-space: nowrap;
+  background: var(--brand-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 .shell-actions {
   display: flex;
@@ -2722,6 +2732,14 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   letter-spacing: 0.32em;
   text-transform: uppercase;
   color: var(--text-2);
+}
+/* The front door: the logo carries the name, so no wordmark text is needed. */
+.intro-logo {
+  width: min(210px, 46vw);
+  height: auto;
+  margin: 0 auto 4px;
+  display: block;
+  filter: drop-shadow(0 0 34px rgba(152,70,234,0.4));
 }
 .intro-title {
   font-family: Georgia, 'Iowan Old Style', serif;
