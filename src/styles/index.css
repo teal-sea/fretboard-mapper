@@ -506,7 +506,14 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 }
 .fretboard-svg {
   display: block;
-  min-height: 240px;
+  width: 100%;
+  min-height: 200px;
+  /* The SVG is width:100% with a viewBox, so its height follows the viewBox
+     ASPECT RATIO. Crop the viewBox to a few frets (zoom-to-position, or a fret
+     window) and that ratio goes near-square — the board then renders as tall as
+     it is wide and swallows the page. preserveAspectRatio="meet" letterboxes it
+     back down once there's a ceiling, so: give it a ceiling. */
+  max-height: min(52vh, 430px);
 }
 .open-string-label {
   font-family: var(--font-mono); font-size: 13px; font-weight: 600;
@@ -1857,17 +1864,16 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 }
 
 /* ─── The theory card: learning, dopaminely ─── */
+/* No left accent bar, no gradient wash. Let the words carry it. */
 .theory-card {
   display: grid;
-  gap: 5px;
-  max-width: 900px;
+  gap: 6px;
+  max-width: 780px;
   width: 100%;
   margin: 0 auto;
-  padding: 14px 18px;
-  border: 1px solid var(--border);
-  border-left: 2px solid var(--accent);
-  border-radius: 12px;
-  background: linear-gradient(90deg, var(--accent-dim), transparent 60%);
+  padding: 0;
+  border: 0;
+  background: none;
 }
 .theory-eyebrow {
   display: flex;
@@ -2579,16 +2585,16 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 .modes-dismiss:hover { color: var(--text); }
 
 /* The mode explained against the tonic you're actually sitting on */
+/* The payoff sentence. It's the point of the whole app, so it reads as the
+   lead line — not as a tinted callout box nested inside another box. */
 .theory-context {
   margin: 0;
-  padding: 9px 12px;
-  border-radius: 8px;
-  background: var(--accent-dim);
-  border-left: 2px solid var(--accent);
-  font-size: 13px;
-  line-height: 1.6;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1.55;
   color: var(--text);
-  max-width: 78ch;
+  letter-spacing: -0.005em;
+  max-width: 70ch;
 }
 
 /* ─── The primer: the whole game, for a first-timer ─── */
@@ -2722,16 +2728,26 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
      unreachable — including the buttons. It must scroll. */
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* The implicit grid column is auto-sized, i.e. to the headline's MAX-CONTENT.
+     On a phone that makes the track wider than the screen and the whole intro
+     hangs off the right edge. minmax(0,1fr) pins the track to the viewport so
+     the text wraps instead. */
+  grid-template-columns: minmax(0, 1fr);
 }
 .intro {
   display: grid;
   gap: 16px;
   justify-items: center;
   text-align: center;
+  width: 100%;
   max-width: 760px;
   margin: auto;
   padding: 8px 0;
+  /* Grid items default to min-width:auto, so a long headline refuses to shrink
+     and shoves the whole column off a phone screen instead of wrapping. */
+  min-width: 0;
 }
+.intro > * { min-width: 0; max-width: 100%; }
 .intro-eyebrow {
   font-family: var(--font-mono);
   font-size: 10.5px;
@@ -2757,32 +2773,26 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   margin: 4px 0 0;
   text-align: left;
 }
-@media (max-width: 720px) {
-  .intro-how { grid-template-columns: 1fr; gap: 10px; }
-}
+
+/* Not cards. Three columns of text with a hairline between them. */
 .intro-step {
   display: grid;
   grid-template-columns: auto 1fr;
   grid-template-areas: "n t" ". d";
-  column-gap: 9px;
-  row-gap: 3px;
-  padding: 13px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: rgba(255,255,255,0.012);
+  column-gap: 8px;
+  row-gap: 4px;
+  padding: 0 16px;
+  border: 0;
+  border-left: 1px solid var(--border);
 }
+.intro-step:first-child { border-left: 0; padding-left: 0; }
 .intro-step-n {
   grid-area: n;
-  display: grid;
-  place-items: center;
-  width: 19px;
-  height: 19px;
-  border-radius: 50%;
+  align-self: center;
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
-  color: #07070b;
-  background: var(--brand-grad);
+  color: var(--text-3);
 }
 .intro-step-t {
   grid-area: t;
@@ -2862,6 +2872,37 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   .intro-modes { grid-template-columns: 1fr; }
   .shell-header { grid-template-columns: auto 1fr auto; }
   .shell-name { display: none; }
+
+  /* Study on a phone: the control bar, mode chips and chord row are all built
+     for a desktop row. Let them wrap or scroll sideways instead of blowing out
+     the page width. */
+  .study-stage { padding: 10px 12px 24px; gap: 10px; }
+  .study-bar {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+  }
+  .study-bar-sep { display: none; }
+  .modes-row,
+  .chord-grid-main,
+  .chord-tier-bar,
+  .position-bar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .modes-row::-webkit-scrollbar,
+  .chord-grid-main::-webkit-scrollbar,
+  .position-bar::-webkit-scrollbar { display: none; }
+  .chord-grid-main { display: flex; gap: 6px; }
+  .chord-grid-main .chord-btn { flex: 0 0 auto; min-width: 104px; }
+  .modes-head { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .study-head { flex-direction: column; gap: 2px; text-align: center; }
+  .theory-context { font-size: 14px; }
+  .fretboard-svg { max-height: 46vh; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2870,4 +2911,33 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* ─── Phone ───
+   The intro is a fixed veil: on a short phone screen the three-column explainer
+   and the two doors do not fit, and anything past the fold is unreachable. Stack
+   it, shrink it, and let it scroll. */
+@media (max-width: 720px) {
+  .intro-how {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: 2px;
+  }
+  .intro-step {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding: 8px 0 0;
+  }
+  .intro-step:first-child { border-top: 0; padding-top: 0; }
+  .intro-veil { padding: 16px 14px; align-items: start; overflow-x: hidden; }
+  .intro { gap: 12px; }
+  .intro-how { width: 100%; }
+  .intro-step { min-width: 0; }
+  .intro-step-d, .intro-step-t { min-width: 0; overflow-wrap: break-word; }
+  .intro-logo { width: min(112px, 34vw); }
+  .intro-title { font-size: clamp(26px, 8vw, 38px); line-height: 1.1; }
+  .intro-sub { font-size: 13px; line-height: 1.5; }
+  .intro-modes { grid-template-columns: 1fr; gap: 8px; width: 100%; }
+  .intro-mode { padding: 12px 14px; }
+  .intro-mode-desc { font-size: 12px; }
 }
