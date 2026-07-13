@@ -2718,13 +2718,19 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   padding: 24px;
   background: rgba(6,7,9,0.92);
   backdrop-filter: blur(10px);
+  /* The veil is fixed, so anything taller than the viewport is simply
+     unreachable — including the buttons. It must scroll. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .intro {
   display: grid;
-  gap: 20px;
+  gap: 16px;
   justify-items: center;
   text-align: center;
-  max-width: 720px;
+  max-width: 760px;
+  margin: auto;
+  padding: 8px 0;
 }
 .intro-eyebrow {
   font-family: var(--font-mono);
@@ -2735,11 +2741,11 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 }
 /* The front door: the logo carries the name, so no wordmark text is needed. */
 .intro-logo {
-  width: min(210px, 46vw);
+  width: min(148px, 38vw);
   height: auto;
-  margin: 0 auto 4px;
+  margin: 0 auto;
   display: block;
-  filter: drop-shadow(0 0 34px rgba(152,70,234,0.4));
+  filter: drop-shadow(0 0 30px rgba(152,70,234,0.4));
 }
 
 /* The thesis in three beats. Without this the app never says what it IS,
@@ -2747,8 +2753,8 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 .intro-how {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  margin: 26px 0 4px;
+  gap: 10px;
+  margin: 4px 0 0;
   text-align: left;
 }
 @media (max-width: 720px) {

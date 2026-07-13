@@ -504,7 +504,9 @@ export default function App() {
     markSeen(c.id)
     setFocusFound(false) // new idea, new ear-hunt
     setJustLanded(false)
-    setDroneOn(true) // the effect above starts/retunes the drone in the new key
+    // The drone is never started for you — sound only ever begins on an explicit
+    // press of the Drone button. If it's already running, the effect above retunes
+    // it to the new key.
   }, [up])
 
   const startSession = useCallback(() => applyConcept(getNextConcept(null)), [applyConcept])
@@ -767,7 +769,7 @@ export default function App() {
       scalePosition: null,
       fretRange: null,
     })
-    setDroneOn(true) // the drone follows you home
+    // If the drone is already on it follows you home; it does not switch itself on.
   }, [walkPositions, walkPos, up])
 
   // Claiming a mode is owning a sound.
@@ -850,8 +852,8 @@ export default function App() {
   const applyTwist = useCallback((s: SiblingMode) => {
     setTwistTonic(s.root)
     // Move ONLY the drone's home. The shape under the hands does not move.
+    // A running drone retunes to the new home; a silent one stays silent.
     up({ keyRoot: s.root, keyQuality: s.scaleKey, selectedScaleRoot: s.root, selectedScaleKey: s.scaleKey })
-    setDroneOn(true)
   }, [up])
 
   useEffect(() => { setTwistTonic(null) }, [currentConcept?.id])
