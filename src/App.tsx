@@ -11,7 +11,7 @@ import {
 import type { DiatonicChord, FretPosition } from './utils/musicTheory'
 import { DEFAULT_INTERVAL_COLORS, ALL_INTERVALS } from './utils/defaultColors'
 import Fretboard from './components/Fretboard'
-import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome, startDrone, stopDrone } from './utils/audioEngine'
+import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome, startDrone, stopDrone, setDroneVolume, setDroneSpread, setDroneTone } from './utils/audioEngine'
 import { CONCEPTS, getNextConcept, markSeen, loadOwned, markOwned, type Concept } from './utils/concepts'
 import { startMic, stopMic, readPitch, recalibrateMic, getMicError } from './utils/micInput'
 import { intervalSemitones } from './utils/musicTheory'
@@ -106,6 +106,9 @@ const initialState: AppState = {
   guitarModel: 'strat',
   zoomToPosition: false,
   padLatched: false,
+  droneVolume: 1,
+  droneSpread: 1,
+  droneTone: 0.5,
   appMode: 'study',
   conceptId: null,
   showTheory: true,
@@ -499,6 +502,12 @@ export default function App() {
       stopDrone()
     }
   }, [droneOn, droneTuning])
+
+  // Volume/spread/tone apply live — the drone doesn't need to restart for
+  // these to take effect, and starting fresh also picks up the latest value.
+  useEffect(() => { setDroneVolume(state.droneVolume) }, [state.droneVolume])
+  useEffect(() => { setDroneSpread(state.droneSpread) }, [state.droneSpread])
+  useEffect(() => { setDroneTone(state.droneTone) }, [state.droneTone])
 
   // ─── Flow mode: the session engine ───
   // concept → shape on the neck → drone in key → hands. One click, zero config.
@@ -1858,6 +1867,22 @@ export default function App() {
             <ToggleSwitch label="Left-Handed" on={state.showLeftHanded} toggle={() => up({ showLeftHanded: !state.showLeftHanded })} />
           </div>
 
+          <div className="drawer-section">
+            <span className="drawer-label">DRONE</span>
+            <DrawerSlider
+              label="Volume" value={state.droneVolume} max={1.5}
+              onChange={v => up({ droneVolume: v })}
+            />
+            <DrawerSlider
+              label="Spread" value={state.droneSpread} max={1.5}
+              onChange={v => up({ droneSpread: v })}
+            />
+            <DrawerSlider
+              label="Tone" value={state.droneTone} max={1}
+              onChange={v => up({ droneTone: v })}
+            />
+          </div>
+
           <CollapsibleSection title="COLORS">
             <div className="drawer-section">
               <div className="color-header">
@@ -1891,6 +1916,26 @@ function ToggleSwitch({ label, on, toggle }: { label: string; on: boolean; toggl
       <div className={`switch-track ${on ? 'on' : ''}`}>
         <div className="switch-thumb" />
       </div>
+    </div>
+  )
+}
+
+function DrawerSlider({ label, value, max, onChange }: {
+  label: string; value: number; max: number; onChange: (v: number) => void
+}) {
+  return (
+    <div className="slider-row">
+      <span className="slider-row-label">{label}</span>
+      <input
+        className="slider"
+        type="range"
+        min={0}
+        max={max}
+        step={0.01}
+        value={value}
+        onChange={e => onChange(Number(e.target.value))}
+      />
+      <span className="slider-row-value">{Math.round((value / max) * 100)}%</span>
     </div>
   )
 }

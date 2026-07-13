@@ -390,10 +390,53 @@ interface ActiveDrone {
   nodes: AudioNode[]
   oscillators: OscillatorNode[]
   envelope: GainNode
+  volumeGain: GainNode
+  panners: { node: StereoPannerNode; basePan: number }[]
+  filter: BiquadFilterNode
   scheduler: ReturnType<typeof setInterval>
 }
 
 let currentDrone: ActiveDrone | null = null
+
+// User-controlled drone sound-design knobs. Module-level so they persist
+// across drone restarts (key changes, mode switches) without the caller
+// having to thread them through every startDrone() call.
+let droneVolume = 1    // 0–1.5, multiplies the envelope's peak level
+let droneSpread = 1    // 0–1.5, multiplies every voice's stereo pan
+let droneTone = 0.5    // 0–1, where the breathing lowpass sits (dark → bright)
+
+const clamp01 = (v: number, max = 1.5) => Math.max(0, Math.min(max, v))
+
+export function setDroneVolume(v: number): void {
+  droneVolume = clamp01(v)
+  if (currentDrone && ctx) {
+    currentDrone.volumeGain.gain.setTargetAtTime(droneVolume, ctx.currentTime, 0.1)
+  }
+}
+
+export function setDroneSpread(v: number): void {
+  droneSpread = clamp01(v)
+  if (currentDrone && ctx) {
+    const now = ctx.currentTime
+    for (const { node, basePan } of currentDrone.panners) {
+      node.pan.setTargetAtTime(Math.max(-1, Math.min(1, basePan * droneSpread)), now, 0.15)
+    }
+  }
+}
+
+export function setDroneTone(v: number): void {
+  droneTone = Math.max(0, Math.min(1, v))
+  if (currentDrone && ctx) {
+    // Same 500–2200Hz breathing range the drone already animates within —
+    // tone just re-centres where that range sits.
+    const target = 300 + droneTone * 3200
+    currentDrone.filter.frequency.setTargetAtTime(target, ctx.currentTime, 0.2)
+  }
+}
+
+export function getDroneVolume(): number { return droneVolume }
+export function getDroneSpread(): number { return droneSpread }
+export function getDroneTone(): number { return droneTone }
 
 // Start a modal drone rooted at pitch-class `rootPc` (0=C..11=B) using the
 // given scale intervals (semitone offsets from the root, e.g. [0,2,3,5,7,9,10]).
@@ -409,12 +452,21 @@ export function startDrone(rootPc: number, scaleIntervals: number[]): void {
 
   const nodes: AudioNode[] = []
   const oscillators: OscillatorNode[] = []
+  const panners: { node: StereoPannerNode; basePan: number }[] = []
 
   // ─── Master drone envelope — slow bloom, hold indefinitely ───
+  // The bloom shape (attack) is fixed; overall level is the separate,
+  // live-adjustable volumeGain below it, so the Volume control can be
+  // turned while the drone is already sustaining without re-triggering
+  // the swell.
   const envelope = audioCtx.createGain()
   envelope.gain.setValueAtTime(0, now)
-  envelope.gain.linearRampToValueAtTime(0.6, now + 5)
+  envelope.gain.linearRampToValueAtTime(0.85, now + 5)
   nodes.push(envelope)
+
+  const volumeGain = audioCtx.createGain()
+  volumeGain.gain.value = droneVolume
+  nodes.push(volumeGain)
 
   // ─── Shared tone-shaping: hiPass → breathing lowpass → saturation → envelope → master ───
   const hiPass = audioCtx.createBiquadFilter()
@@ -426,8 +478,9 @@ export function startDrone(rootPc: number, scaleIntervals: number[]): void {
   const filter = audioCtx.createBiquadFilter()
   filter.type = 'lowpass'
   filter.Q.value = 0.6
-  filter.frequency.setValueAtTime(500, now)
-  filter.frequency.linearRampToValueAtTime(2200, now + 8)
+  const toneTarget = 300 + droneTone * 3200
+  filter.frequency.setValueAtTime(toneTarget * 0.3, now)
+  filter.frequency.linearRampToValueAtTime(toneTarget, now + 8)
   nodes.push(filter)
 
   const shaper = audioCtx.createWaveShaper()
@@ -438,7 +491,8 @@ export function startDrone(rootPc: number, scaleIntervals: number[]): void {
   hiPass.connect(filter)
   filter.connect(shaper)
   shaper.connect(envelope)
-  envelope.connect(masterGain)
+  envelope.connect(volumeGain)
+  volumeGain.connect(masterGain)
 
   // Very slow breathing LFO on the cutoff
   const lfo = audioCtx.createOscillator()
@@ -454,7 +508,8 @@ export function startDrone(rootPc: number, scaleIntervals: number[]): void {
   // Build a small oscillator stack on a base note; returns glide handles.
   const makeVoice = (baseMidi: number, level: number, pan: number, layers: Layer[]) => {
     const panner = audioCtx.createStereoPanner()
-    panner.pan.value = pan
+    panner.pan.value = Math.max(-1, Math.min(1, pan * droneSpread))
+    panners.push({ node: panner, basePan: pan })
     nodes.push(panner)
 
     const voiceGain = audioCtx.createGain()
@@ -562,7 +617,7 @@ export function startDrone(rootPc: number, scaleIntervals: number[]): void {
     glide(v)
   }, 7000)
 
-  currentDrone = { nodes, oscillators, envelope, scheduler }
+  currentDrone = { nodes, oscillators, envelope, volumeGain, panners, filter, scheduler }
 }
 
 export function stopDrone(): void {
