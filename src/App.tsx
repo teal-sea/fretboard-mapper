@@ -885,39 +885,44 @@ export default function App() {
         <div className="intro-veil">
           <div className="intro">
             <img className="intro-logo" src="/logo.png" alt="Modal Runs" />
-            <h1 className="intro-title">Seven notes. <em>Seven different feelings.</em></h1>
+            <h1 className="intro-title">
+              A Aeolian and D Dorian are the <em>same seven notes.</em>
+            </h1>
             <p className="intro-sub">
-              A mode isn't a new scale to memorise. It's the <em>same</em> notes with a
-              different note as home. Move the home note and the sound changes completely —
-              while your hands don't move at all. Books tell you that. They can't make you
-              hear it. A drone can.
+              Nothing under your hands moves between them. The only thing that changes is
+              which note the music keeps falling back to, and that one difference is why
+              one of them grieves and the other lifts. Every book says this in a sentence.
+              Actually hearing it takes a drone holding the tonic while you play over it,
+              which is the whole of what this is.
             </p>
 
             {/* The thesis, made concrete — the thing a textbook can't do. */}
             <div className="intro-how">
               <div className="intro-step">
                 <span className="intro-step-n">1</span>
-                <span className="intro-step-t">Pick a key</span>
+                <span className="intro-step-t">Set the key</span>
                 <span className="intro-step-d">
-                  The neck fills with every note that works. Colour tells you what each one
-                  <em> does</em> — the root burns amber.
+                  The neck fills with the notes that belong to it. Each one is coloured by
+                  its interval rather than its name, so you read what a note <em>does</em>{' '}
+                  against the tonic, not merely what it's called. The root is amber.
                 </span>
               </div>
               <div className="intro-step">
                 <span className="intro-step-n">2</span>
-                <span className="intro-step-t">A drone holds home</span>
+                <span className="intro-step-t">Start the drone</span>
                 <span className="intro-step-d">
-                  It sustains the tonic so every note you play has something to lean against.
-                  That's the whole trick — you can suddenly <em>hear</em> the theory.
+                  It sustains the tonic underneath you, so every note you play finally has
+                  something to lean against. The b6 aches against it; the natural 6 opens up.
+                  Intervals stop being arithmetic and start being sounds.
                 </span>
               </div>
               <div className="intro-step">
                 <span className="intro-step-n">3</span>
-                <span className="intro-step-t">Move home, change the mode</span>
+                <span className="intro-step-t">Move the tonic</span>
                 <span className="intro-step-d">
-                  Tap <b>Dorian</b> in the same-notes strip. The shapes don't budge — but the app
-                  names the single note that changed, and tells you why it now sounds hopeful
-                  instead of sad.
+                  Tap <b>Dorian</b> in the same-notes strip. Identical notes, identical
+                  fingering — the drone simply moves home to D, and the app names the one
+                  note that separates it from where you just were.
                 </span>
               </div>
             </div>
@@ -926,17 +931,17 @@ export default function App() {
               <button className="intro-mode" onClick={() => up({ onboarded: true, appMode: 'study' })}>
                 <span className="intro-mode-name">Study the neck</span>
                 <span className="intro-mode-desc">
-                  Go poking. Any key, any mode, chords laid over scales, arpeggios and
-                  positions — the whole fretboard at once, and a plain-English explanation
-                  of every note you're looking at.
+                  Any key, any mode. Chords laid over scales, arpeggios, positions, the whole
+                  fretboard at once — and the theory that accounts for what you're looking at,
+                  written for someone who wants to understand it rather than recite it.
                 </span>
               </button>
               <button className="intro-mode" onClick={() => { up({ onboarded: true }); startSession() }}>
                 <span className="intro-mode-name">Just play</span>
                 <span className="intro-mode-desc">
-                  One idea, chosen for you. The drone starts, the shape is already on the
-                  neck, and it listens through your mic and tells you when you land the note
-                  it asked for.
+                  One idea, chosen for you, with the shape already sitting on the neck. Start
+                  the drone and play over it; if you let it listen through your mic, it will
+                  tell you when you land the note it asked for.
                 </span>
               </button>
             </div>
