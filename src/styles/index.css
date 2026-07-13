@@ -2212,17 +2212,15 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 /* overflow:hidden is load-bearing: this is a 1fr grid row that can be
    squeezed by tall siblings (long concept text, the primer panel). Without
    a clip, an oversized child centers on top of its own box and spills into
-   the rows above and below instead of shrinking to fit. */
+   the rows above and below instead of shrinking to fit.
+   Sizing is width-first by default (.fretboard-svg's own width:100% +
+   max-height, same as Study) so on a spacious desktop screen the zoomed
+   position view fills the available width like the full neck does —
+   preserveAspectRatio="xMidYMid meet" on the SVG itself does the
+   letterboxing on whichever axis is tighter. Phone flips this to
+   height-first; see the phone media query. */
 .flow-neck { display: grid; place-items: center; min-height: 0; overflow: hidden; }
-/* The zoomed position view has few frets and six strings — width-first
-   sizing (the default, used by the full neck) makes it too tall for
-   whatever's left of the grid row. Drive sizing from height instead: fill
-   the row vertically, let width follow the aspect ratio, and let the
-   existing horizontal scroll (.fretboard-viewport) pick up any excess
-   width instead of the neck cropping strings off top and bottom. */
-.flow-neck .fretboard-container { width: auto; max-width: 100%; height: 100%; }
-.flow-neck .fretboard-viewport { height: 100%; }
-.flow-neck .fretboard-svg { width: auto; height: 100%; max-height: 100%; min-height: 0; }
+.flow-neck .fretboard-container { width: 100%; }
 
 /* Teaches the colour language in a glance */
 .flow-legend {
@@ -3150,9 +3148,15 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
     min-width: 700px;
     max-height: none;
   }
-  /* Flow's zoomed position view is handled by the height-driven sizing
-     above (.flow-neck .fretboard-svg), not this width-first mobile rule —
-     it already picks a legible size from the available row height. */
+  /* Flow's zoomed position view: the width-first rule right above this
+     (min-width:700px) is for Study's full neck and is wrong here — a
+     3-4 fret zoomed view forced to 700px+ wide goes absurdly tall. Flip
+     to height-first instead: fill the row's real height, let width follow
+     the aspect ratio, and let .fretboard-viewport's horizontal scroll pick
+     up any excess width instead of the neck cropping or overlapping. */
+  .flow-neck .fretboard-container { width: auto; max-width: 100%; height: 100%; }
+  .flow-neck .fretboard-viewport { height: 100%; }
+  .flow-neck .fretboard-svg { width: auto; height: 100%; max-height: 100%; min-height: 0; min-width: 0; }
 
   /* ─── Flow: let it scroll ───
      .app.mode-flow locks the whole screen to exactly 100dvh with no
