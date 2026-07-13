@@ -29,6 +29,11 @@ export interface Concept {
     kind: 'ascending' | 'descending' | 'updown' | 'sweep' | 'sequence3'
     shapeIndex?: number                         // which position on the neck
   }
+
+  // THE WALK: climb the neck through all seven positions. Each one starts on a
+  // different degree, so each one is a different mode — and the drone follows
+  // you home. Claim all seven.
+  walk?: boolean
 }
 
 // ─── The curriculum ───
@@ -36,6 +41,18 @@ export interface Concept {
 // naked and unmistakable. That's the "oh, THAT's it" hit.
 
 export const CONCEPTS: Concept[] = [
+  // ── THE WALK — the exercise this whole app exists for ──
+  // Same seven notes, seven positions, seven modes. Move up the neck and the
+  // drone moves home with you. Claim all seven.
+  {
+    id: 'walk-am-cmaj',
+    root: 'A', mode: 'aeolian', title: 'Walk the Neck',
+    hook: 'Seven positions. Seven modes. The same seven notes.',
+    listenFor: 'A minor and C major are the same scale. Every position on the neck starts on a different note of it — and that starting note is what decides the mode. Move up the neck; the drone moves home with you. Your hands never change. The sound completely does.',
+    focus: 'R', position: null,
+    walk: true,
+  },
+
   // ── The modal colour spine ──
   {
     id: 'dorian-6-A',
@@ -274,6 +291,12 @@ export function resetSeen(): void {
 // over rather than repeating the one just played.
 export function getNextConcept(currentId?: string | null): Concept {
   const seen = loadSeen()
+
+  // Your first session is The Walk. It's the whole idea of the app in one
+  // exercise — everything else makes more sense once you've felt it.
+  const walk = CONCEPTS.find(c => c.walk)
+  if (walk && seen.length === 0 && currentId !== walk.id) return walk
+
   let pool = CONCEPTS.filter(c => !seen.includes(c.id) && c.id !== currentId)
 
   if (pool.length === 0) {

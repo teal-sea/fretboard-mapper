@@ -19,6 +19,10 @@ import { getScaleInsight, getChordInsight, chordsInScale, getObjective, PRIMER }
 import { getSameNoteModes, describeModalShift, contrastWithKey, recontextualise, type SiblingMode } from './utils/modes'
 import { loadSeen } from './utils/concepts'
 import { getSweepShape, getArpeggioShapes, buildRun } from './utils/arpeggios'
+import {
+  getWalkPositions, currentWalkIndex, describeStep,
+  initWalk, feedWalk, enterPosition, walkProgress,
+} from './utils/walk'
 import { initRun, advanceRun, scoreRun, stepStates } from './utils/runner'
 import type { RunNoteMark } from './components/Fretboard'
 
@@ -697,6 +701,87 @@ export default function App() {
     return noteName(focusPc, useFlats(currentConcept.root))
   }, [currentConcept, focusPc])
 
+  // ═══ THE WALK ═══════════════════════════════════════════════════
+  // Same seven notes, seven positions, seven modes. Move up the neck and the
+  // drone moves home with you. Claim each mode by improvising in its position
+  // and resolving to its tonic.
+  const isWalk = Boolean(currentConcept?.walk)
+
+  const walkPositions = useMemo(() => {
+    if (!isWalk) return []
+    return getWalkPositions(
+      state.selectedScaleRoot || state.keyRoot,
+      state.selectedScaleKey || state.keyQuality,
+      tuning,
+      state.numFrets
+    )
+  }, [isWalk, state.selectedScaleRoot, state.keyRoot, state.selectedScaleKey, state.keyQuality, tuning, state.numFrets])
+
+  const walkIdx = useMemo(
+    () => currentWalkIndex(walkPositions, state.selectedScaleRoot || state.keyRoot),
+    [walkPositions, state.selectedScaleRoot, state.keyRoot]
+  )
+  const walkPos = walkPositions[walkIdx] ?? null
+
+  const [walkState, setWalkState] = useState(initWalk)
+  const [walkStory, setWalkStory] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isWalk) return
+    setWalkState(initWalk())
+    setWalkStory(null)
+  }, [isWalk, currentConcept?.id])
+
+  const scalePcs = useMemo(() => {
+    const sk = state.selectedScaleKey || state.keyQuality
+    const sr = state.selectedScaleRoot || state.keyRoot
+    const sc = SCALES[sk]
+    return sc ? getScaleNotes(sr, sc) : new Set<number>()
+  }, [state.selectedScaleKey, state.keyQuality, state.selectedScaleRoot, state.keyRoot])
+
+  // The mic drives the game.
+  useEffect(() => {
+    if (!isWalk || !walkPos || !listening || heardMidi === null) return
+    setWalkState(s => feedWalk(s, { position: walkPos, scalePcs, heardMidi }))
+  }, [heardMidi, isWalk, walkPos, listening, scalePcs])
+
+  const walkProg = useMemo(
+    () => (walkPos ? walkProgress(walkState, walkPos) : null),
+    [walkState, walkPos]
+  )
+
+  // Step to a position: the notes on the neck do NOT move. Only home does.
+  const goToPosition = useCallback((i: number) => {
+    const p = walkPositions[i]
+    if (!p) return
+    setWalkStory(describeStep(walkPos, p))
+    setWalkState(enterPosition)
+    up({
+      keyRoot: p.tonic,
+      keyQuality: p.modeKey,
+      selectedScaleRoot: p.tonic,
+      selectedScaleKey: p.modeKey,
+      viewMode: 'scales',
+      selectedChordRoot: null,
+      selectedChordKey: null,
+      scalePosition: null,
+      fretRange: null,
+    })
+    setDroneOn(true) // the drone follows you home
+  }, [walkPositions, walkPos, up])
+
+  // Claiming a mode is owning a sound.
+  useEffect(() => {
+    if (!walkState.justClaimed) return
+    setSoundsOwned(n => n + 1)
+    setJustLanded(true)
+    const t = setTimeout(() => setJustLanded(false), 900)
+    return () => clearTimeout(t)
+  }, [walkState.justClaimed])
+
+  const walkComplete = isWalk && walkPositions.length > 0 &&
+    walkState.claimed.length >= walkPositions.length
+
   // ─── The run player: the app follows your hands through the arpeggio ───
   const currentRun = useMemo(() => {
     if (!currentConcept?.run) return null
@@ -872,7 +957,66 @@ export default function App() {
               </button>
             </p>
 
-            {currentRun ? (
+            {isWalk && walkPos && walkProg ? (
+              /* ═══ THE WALK — seven positions, seven modes, same seven notes ═══ */
+              <>
+                {/* The ladder: seven modes to claim. */}
+                <div className="ladder">
+                  {walkPositions.map((p, i) => {
+                    const claimed = walkState.claimed.includes(p.tonic)
+                    const here = i === walkIdx
+                    return (
+                      <button
+                        key={p.tonic}
+                        className={`rung ${here ? 'here' : ''} ${claimed ? 'claimed' : ''}`}
+                        onClick={() => goToPosition(i)}
+                        title={`Position ${p.index} — ${p.tonic} ${p.modeName}`}
+                      >
+                        <span className="rung-tonic">{p.tonic}</span>
+                        <span className="rung-mode">{p.modeName}</span>
+                        <span className="rung-mark">{claimed ? '✓' : here ? '●' : ''}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {walkComplete ? (
+                  <div className="walk-done">
+                    <span className="walk-done-tag">You walked the neck</span>
+                    <p>
+                      All seven. You just played <b>one scale</b> across the whole fretboard and
+                      heard it become <b>seven different modes</b> — because the only thing that
+                      ever changed was where home was. Most guitarists learn these shapes for
+                      years and never once hear this.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="walk-here">
+                      <span className="walk-here-pos">Position {walkPos.index}</span>
+                      home is <b>{walkPos.tonic}</b> — so this is{' '}
+                      <b>{walkPos.tonic} {walkPos.modeName}</b>
+                      {walkPos.plain && <span className="walk-plain">, {walkPos.plain}</span>}
+                    </p>
+
+                    {walkStory && <p className="walk-story">{walkStory}</p>}
+
+                    <div className={`walk-task ${walkProg.readyToResolve ? 'ready' : ''} ${walkProg.claimed ? 'claimed' : ''}`}>
+                      <div className="walk-pips">
+                        {Array.from({ length: walkProg.needed }).map((_, i) => (
+                          <span key={i} className={`walk-pip ${i < walkProg.explored ? 'lit' : ''}`} />
+                        ))}
+                      </div>
+                      <span className="walk-instruction">{walkProg.instruction}</span>
+                    </div>
+                  </>
+                )}
+
+                {walkState.combo > 1 && !walkComplete && (
+                  <span className="walk-combo">{walkState.combo} modes in a row</span>
+                )}
+              </>
+            ) : currentRun ? (
               /* ═══ A RUN: the app follows your hands, note by note ═══ */
               <>
                 <p className="flow-objective">
@@ -969,24 +1113,32 @@ export default function App() {
               intervalColors={state.intervalColors}
               highlightRoot={state.highlightRoot}
               showLeftHanded={state.showLeftHanded}
-              posRange={activePosRange}
+              /* In the walk, the neck highlights the position you're standing in
+                 — the notes themselves never move. */
+              posRange={isWalk && walkPos ? walkPos.range : activePosRange}
               numFrets={state.numFrets}
               fretRange={state.fretRange}
               tuningLabels={tuning.labels}
               highlightedPositions={state.activeTab === 'technique' ? highlightedPosSet : null}
               guitarModel={state.guitarModel}
-              zoomToPosition={state.scalePosition !== null}
+              zoomToPosition={!isWalk && state.scalePosition !== null}
               heardMidi={listening ? heardMidi : null}
-              /* A run takes over the neck entirely (numbered steps). Otherwise the
-                 focus note glows — and it ALWAYS glows, so the neck can never
-                 contradict "find the glowing ones". */
+              /* A run takes over the neck (numbered steps). In the walk, the ROOT
+                 glows — which IS the new tonic, so moving position visibly moves
+                 home. Otherwise the concept's focus note glows. */
               runNotes={runMarks}
-              focusInterval={runMarks ? null : currentConcept.focus}
+              focusInterval={runMarks ? null : isWalk ? 'R' : currentConcept.focus}
             />
           </div>
 
           <div className="flow-legend">
-            {currentRun ? (
+            {isWalk && walkPos ? (
+              <>
+                <span><i className="flow-sw target" /> home — {walkPos.tonic}</span>
+                <span><i className="flow-sw scale" /> the same seven notes, everywhere</span>
+                <span><i className="flow-sw heard" /> what it hears you play</span>
+              </>
+            ) : currentRun ? (
               <>
                 <span><i className="flow-sw target" /> play this one next</span>
                 <span><i className="flow-sw done" /> already played</span>
@@ -1005,10 +1157,29 @@ export default function App() {
           </div>
 
           <footer className="flow-controls">
-            <button className={`flow-ctl primary ${focusFound ? 'beckon' : ''}`} onClick={nextConcept}>
-              {focusFound ? 'Next sound' : 'Next idea'} {'→'}
-            </button>
-            <button className="flow-ctl" onClick={shiftPosition}>Shift position</button>
+            {isWalk ? (
+              <>
+                <button
+                  className="flow-ctl"
+                  onClick={() => goToPosition((walkIdx - 1 + walkPositions.length) % walkPositions.length)}
+                >
+                  {'←'} Down the neck
+                </button>
+                <button
+                  className={`flow-ctl primary ${walkProg?.claimed ? 'beckon' : ''}`}
+                  onClick={() => goToPosition((walkIdx + 1) % walkPositions.length)}
+                >
+                  Up the neck {'→'}
+                </button>
+              </>
+            ) : (
+              <>
+                <button className={`flow-ctl primary ${focusFound ? 'beckon' : ''}`} onClick={nextConcept}>
+                  {focusFound ? 'Next sound' : 'Next idea'} {'→'}
+                </button>
+                <button className="flow-ctl" onClick={shiftPosition}>Shift position</button>
+              </>
+            )}
             <button className={`flow-ctl ${droneOn ? 'on' : ''}`} onClick={toggleDrone}>
               <span className="flow-pip" />{droneOn ? 'Drone on' : 'Drone'}
             </button>

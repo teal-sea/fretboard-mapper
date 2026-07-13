@@ -2121,6 +2121,203 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 }
 .flow-help:hover { color: var(--text); border-color: var(--accent); }
 
+/* ═══ THE WALK — seven positions, seven modes, same seven notes ═══
+   The centrepiece. Climb the neck; the drone follows you home. */
+
+.ladder {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-surface);
+}
+.rung {
+  position: relative;
+  display: grid;
+  gap: 1px;
+  justify-items: center;
+  min-width: 78px;
+  padding: 8px 10px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--bg-raised);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.rung:hover { border-color: var(--text-3); transform: translateY(-1px); }
+.rung-tonic {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-2);
+}
+.rung-mode {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-3);
+}
+.rung-mark {
+  position: absolute;
+  bottom: 3px;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--text-3);
+}
+
+/* Where you are right now */
+.rung.here {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.rung.here .rung-tonic { color: var(--accent); }
+.rung.here .rung-mode  { color: var(--text-2); }
+.rung.here .rung-mark  { color: var(--accent); }
+
+/* Earned. */
+.rung.claimed {
+  background: var(--ember-dim);
+  border-color: var(--ember);
+  animation: rung-claim 640ms var(--spring);
+}
+.rung.claimed .rung-tonic { color: var(--ember); }
+.rung.claimed .rung-mode  { color: var(--text-2); }
+.rung.claimed .rung-mark  { color: var(--ember); font-weight: 800; }
+.rung.claimed.here { border-color: var(--ember); box-shadow: 0 0 16px var(--ember-dim); }
+@keyframes rung-claim {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
+
+.walk-here {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 15px;
+  color: var(--text-2);
+}
+.walk-here b { color: var(--text); }
+.walk-here-pos {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #04211d;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.walk-plain { color: var(--text-3); }
+
+.walk-story {
+  margin: 0;
+  max-width: 72ch;
+  padding: 11px 15px;
+  border-radius: 10px;
+  border-left: 2px solid var(--accent);
+  background: var(--accent-dim);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text);
+  animation: shift-in 520ms var(--spring);
+}
+
+/* The task: improvise, then come home. */
+.walk-task {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-surface);
+  transition: all var(--transition);
+}
+.walk-task.ready {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  box-shadow: 0 0 18px var(--accent-glow);
+}
+.walk-task.claimed {
+  border-color: var(--ember);
+  background: var(--ember-dim);
+}
+.walk-pips { display: flex; gap: 5px; }
+.walk-pip {
+  width: 9px; height: 9px;
+  border-radius: 999px;
+  background: var(--bg-active);
+  border: 1px solid var(--text-3);
+  transition: all var(--transition);
+}
+.walk-pip.lit {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.15);
+}
+.walk-instruction {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.walk-task.ready .walk-instruction { color: var(--accent-2); }
+.walk-task.claimed .walk-instruction { color: var(--ember); }
+
+.walk-combo {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--ember-dim);
+  border: 1px solid var(--ember);
+  color: var(--ember);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  animation: rung-claim 500ms var(--spring);
+}
+
+.walk-done {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  max-width: 700px;
+  padding: 18px 20px;
+  border: 1px solid var(--ember);
+  border-radius: 16px;
+  background: var(--ember-dim);
+  text-align: center;
+  animation: shift-in 600ms var(--spring);
+}
+.walk-done-tag {
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: var(--ember);
+  color: #2a1004;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.walk-done p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text);
+}
+.walk-done b { color: var(--ember); }
+
 /* ═══ The run player — the app follows your hands ═══════════════ */
 .flow-sw.done { background: #2f3742; border: 1px solid rgba(255,255,255,0.55); }
 .flow-sw.todo { background: #191d24; border: 1px solid rgba(255,255,255,0.22); }
