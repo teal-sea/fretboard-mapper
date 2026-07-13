@@ -1737,6 +1737,61 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   50%      { box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 9px rgba(152,70,234,0); }
 }
 
+/* ─── Backing switch: Drone / Chord / Arp, lives right next to Play ──── */
+.backing-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.backing-switch {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.backing-switch-btn {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  letter-spacing: 0.02em;
+  border: none;
+  background: var(--bg-raised);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.backing-switch-btn + .backing-switch-btn { border-left: 1px solid var(--border); }
+.backing-switch-btn:hover { color: var(--text); background: var(--bg-hover); }
+.backing-switch-btn.active {
+  background: var(--brand-grad);
+  color: #fff;
+}
+.backing-bpm {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.backing-bpm-btn {
+  width: 22px; height: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-raised);
+  color: var(--text-2);
+  font-size: 12px; font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition);
+  font-family: var(--font-mono);
+}
+.backing-bpm-btn:hover { background: var(--bg-hover); border-color: var(--accent); }
+.backing-bpm-val {
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 600;
+  color: var(--text-2);
+  min-width: 30px; text-align: center;
+}
+
 /* ─── Listening: live pitch feedback ────────────────────────── */
 
 /* Rings on the neck where the heard note lives */

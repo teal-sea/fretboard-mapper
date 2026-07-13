@@ -6,12 +6,12 @@ import {
   noteIndex, noteName, useFlats, intervalName,
   getDiatonicChords, getCompatibleScales, getRelatedModes,
   compute3NPSPattern, computeSweepShape, computeTappingPattern,
-  getScalePositions,
+  getScalePositions, chordIntervalsForScale,
 } from './utils/musicTheory'
 import type { DiatonicChord, FretPosition } from './utils/musicTheory'
 import { DEFAULT_INTERVAL_COLORS, ALL_INTERVALS } from './utils/defaultColors'
 import Fretboard from './components/Fretboard'
-import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome, startDrone, stopDrone, setDroneVolume, setDroneSpread, setDroneTone, setPadVolume, setPadSpread, setPadTone } from './utils/audioEngine'
+import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome, startDrone, stopDrone, startArpeggio, stopArpeggio, setArpBpm, setDroneVolume, setDroneSpread, setDroneTone, setPadVolume, setPadSpread, setPadTone } from './utils/audioEngine'
 import { CONCEPTS, getNextConcept, markSeen, loadOwned, markOwned, type Concept } from './utils/concepts'
 import { startMic, stopMic, readPitch, recalibrateMic, getMicError } from './utils/micInput'
 import { intervalSemitones } from './utils/musicTheory'
@@ -55,6 +55,15 @@ const KEY_QUALITIES = [
   { key: 'locrian', label: 'Locrian' },
   { key: 'harmonic_minor', label: 'Harm. Minor' },
   { key: 'melodic_minor', label: 'Mel. Minor' },
+]
+
+// The three things Play can trigger underneath a mode — a held pedal tone,
+// the mode's own parent chord held together, or that chord arpeggiated in
+// tempo. Kept as one list so a future 4th option is a one-line add.
+const BACKING_MODES: { key: AppState['backingMode']; label: string; title: string }[] = [
+  { key: 'drone', label: 'Drone', title: 'A single sustained pedal tone' },
+  { key: 'chord', label: 'Chord', title: "The chord this mode actually lives against" },
+  { key: 'arp',   label: 'Arp',   title: 'That chord, arpeggiated and locked to tempo' },
 ]
 
 // A concept's scale isn't always a viable KEY. Pentatonics/blues borrow a
@@ -112,6 +121,7 @@ const initialState: AppState = {
   padVolume: 1,
   padSpread: 1,
   padTone: 0.5,
+  backingMode: 'drone',
   appMode: 'study',
   conceptId: null,
   showTheory: true,
@@ -497,14 +507,6 @@ export default function App() {
   }), [state.activeTab, state.keyRoot, state.keyQuality, state.selectedScaleRoot, state.selectedScaleKey])
 
 
-  useEffect(() => {
-    if (droneOn) {
-      startDrone(noteIndex(droneTuning.root), SCALES[droneTuning.scaleKey]?.intervals || [])
-    } else {
-      stopDrone()
-    }
-  }, [droneOn, droneTuning])
-
   // Volume/spread/tone apply live — the drone doesn't need to restart for
   // these to take effect, and starting fresh also picks up the latest value.
   useEffect(() => { setDroneVolume(state.droneVolume) }, [state.droneVolume])
@@ -520,6 +522,41 @@ export default function App() {
     () => CONCEPTS.find(c => c.id === state.conceptId) || null,
     [state.conceptId]
   )
+
+  // The chord a mode is actually played against — a concept's own hand-picked
+  // chordKey when there is one (Flow), otherwise the chord built from
+  // whatever scale is currently on the neck (Study, or a concept without one).
+  const backingChordIntervals = useMemo(() => {
+    const fromConcept = currentConcept?.chordKey ? CHORDS[currentConcept.chordKey] : null
+    return fromConcept ? fromConcept.intervals : chordIntervalsForScale(droneTuning.scaleKey)
+  }, [currentConcept, droneTuning.scaleKey])
+  const backingChordMidi = useMemo(
+    () => chordToMidi(noteIndex(droneTuning.root), backingChordIntervals),
+    [droneTuning.root, backingChordIntervals]
+  )
+
+  useEffect(() => {
+    if (!droneOn) {
+      stopDrone(); stopChordPad(); stopArpeggio()
+      return
+    }
+    if (state.backingMode === 'chord') {
+      stopDrone(); stopArpeggio()
+      playChordPad(backingChordMidi, true)
+    } else if (state.backingMode === 'arp') {
+      stopDrone(); stopChordPad()
+      startArpeggio(backingChordMidi, state.progressionBpm)
+    } else {
+      stopChordPad(); stopArpeggio()
+      startDrone(noteIndex(droneTuning.root), SCALES[droneTuning.scaleKey]?.intervals || [])
+    }
+  }, [droneOn, droneTuning, state.backingMode, backingChordMidi])
+
+  // Tempo changes while the arpeggiator is already running just reschedule
+  // its ticks — no need to tear it down and replay from the root.
+  useEffect(() => {
+    if (droneOn && state.backingMode === 'arp') setArpBpm(state.progressionBpm)
+  }, [state.progressionBpm, droneOn, state.backingMode])
 
   const applyConcept = useCallback((c: Concept) => {
     up({
@@ -591,14 +628,48 @@ export default function App() {
     if (isPlaying) {
       if (droneOn) setDroneOn(false)
       if (listening) { stopMic(); setListening(false); setHeardMidi(null) }
+      if (state.backingMode === 'arp' && metronomeOn) { stopMetronome(); setMetronomeOn(false) }
     } else {
       setDroneOn(true)
       setMicError(null)
       const ok = await startMic()
       setListening(ok)
       if (!ok) setMicError(getMicError())
+      // Arp is tempo-locked, so Play brings the click in with it.
+      if (state.backingMode === 'arp') { startMetronome(state.progressionBpm); setMetronomeOn(true) }
     }
-  }, [isPlaying, droneOn, listening])
+  }, [isPlaying, droneOn, listening, state.backingMode, state.progressionBpm, metronomeOn])
+
+  const backingNoun = state.backingMode === 'chord' ? 'the chord' : state.backingMode === 'arp' ? 'the arpeggiator' : 'the drone'
+
+  // Drone / Chord / Arp switch, shown right beside Play in both Flow and
+  // Study — same markup either place so they can't drift apart.
+  const backingControls = (
+    <div className="backing-controls">
+      <div className="backing-switch" role="group" aria-label="Backing sound">
+        {BACKING_MODES.map(m => (
+          <button
+            key={m.key}
+            type="button"
+            className={`backing-switch-btn ${state.backingMode === m.key ? 'active' : ''}`}
+            onClick={() => up({ backingMode: m.key })}
+            title={m.title}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+      {state.backingMode === 'arp' && (
+        <div className="backing-bpm">
+          <button type="button" className="backing-bpm-btn"
+            onClick={() => up({ progressionBpm: Math.max(40, state.progressionBpm - 5) })}>&minus;</button>
+          <span className="backing-bpm-val">{state.progressionBpm}</span>
+          <button type="button" className="backing-bpm-btn"
+            onClick={() => up({ progressionBpm: Math.min(200, state.progressionBpm + 5) })}>+</button>
+        </div>
+      )}
+    </div>
+  )
 
   // Poll the detector ~20×/s. A note must be heard twice in a row to commit
   // (kills flicker from transients); it lingers ~200ms after you stop (kills
@@ -1159,7 +1230,7 @@ export default function App() {
                 <p className="flow-objective">
                   {listening
                     ? <>Play the numbered notes <b>in order</b>. The app is listening — it lights up
-                      the next note as you land each one. A drone is holding {currentConcept.root} underneath.</>
+                      the next note as you land each one. {backingNoun[0].toUpperCase()}{backingNoun.slice(1)} is holding {currentConcept.root} underneath.</>
                     : <>This is an exercise: play the numbered notes in order.
                       <b> Hit play</b> and the app will follow your hands through it.</>}
                 </p>
@@ -1321,11 +1392,12 @@ export default function App() {
                 <button className="flow-ctl" onClick={shiftPosition}>Shift position</button>
               </>
             )}
+            {backingControls}
             <button
               key={justTapped}
               className={`play-btn ${isPlaying ? 'on' : ''}`}
               onClick={togglePlay}
-              title={isPlaying ? 'Stop the drone and the mic' : 'Start the drone and let it hear you'}
+              title={isPlaying ? `Stop ${backingNoun} and the mic` : `Start ${backingNoun} and let it hear you`}
               aria-label={isPlaying ? 'Stop' : 'Play'}
             >
               <span className="play-icon">{isPlaying ? '⏸' : '▶'}</span>
@@ -1415,11 +1487,12 @@ export default function App() {
 
           <span className="study-bar-sep" />
 
+          {backingControls}
           <button
             key={justTapped}
             className={`play-btn small ${isPlaying ? 'on' : ''}`}
             onClick={togglePlay}
-            title={isPlaying ? 'Stop the drone and the mic' : 'Start the drone and let it hear you'}
+            title={isPlaying ? `Stop ${backingNoun} and the mic` : `Start ${backingNoun} and let it hear you`}
             aria-label={isPlaying ? 'Stop' : 'Play'}
           >
             <span className="play-icon">{isPlaying ? '⏸' : '▶'}</span>

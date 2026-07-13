@@ -102,6 +102,29 @@ export const CHORDS: Record<string, ChordDef> = {
   'm6':        { name: 'Minor 6th',    suffix: 'm6',    intervals: [0,3,7,9],     category: 'Extended' },
 }
 
+// A few scales aren't built from regular steps, so stacking every other
+// degree doesn't land on their real backing chord — these are well-known
+// exceptions (same chords Flow's concepts.ts already hand-picks for them).
+const SCALE_CHORD_OVERRIDE: Record<string, number[]> = {
+  'major_penta': [0, 4, 7, 11],
+  'minor_penta': [0, 3, 7, 10],
+  'blues':       [0, 4, 7, 10],
+  'major_blues': [0, 4, 7, 11],
+}
+
+// The chord a mode is idiomatically played against — root, 3rd, 5th, 7th
+// degree of the scale itself (e.g. Dorian's 1-3-5-7 is a min7). This is the
+// same tertian-stacking logic used to build diatonic chords, just anchored
+// on the scale's own root instead of walking all seven degrees.
+export function chordIntervalsForScale(scaleKey: string): number[] {
+  const override = SCALE_CHORD_OVERRIDE[scaleKey]
+  if (override) return override
+  const intervals = SCALES[scaleKey]?.intervals ?? CHORDS.major.intervals
+  const n = intervals.length
+  if (n < 5) return [intervals[0] ?? 0, intervals[Math.floor(n / 2)] ?? 4, intervals[n - 1] ?? 7]
+  return [0, 2, 4, 6].filter(d => d < n).map(d => intervals[d])
+}
+
 // ─── Tunings ─────────────────────────────────────────────────────────
 // Values = semitone offset from C0 for each string (low to high)
 export const TUNINGS: Record<string, Tuning> = {
