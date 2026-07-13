@@ -49,12 +49,18 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   --text: #e9ebee;
   --text-2: #79818c;
   --text-3: #3a4049;
-  --accent: #5eead4;
-  --accent-2: #8ff5e4;
-  --accent-dim: rgba(94,234,212,0.08);
-  --accent-glow: rgba(94,234,212,0.18);
-  --ember: #ff8a4c;
-  --ember-dim: rgba(255,138,76,0.14);
+  /* Signal colour = the logo's cyan. Used for chrome, active states, the live
+     "it's listening" pulse. Deliberately NOT the reward colour — if the colour
+     you see everywhere is also the colour of winning, winning stops landing. */
+  --accent: #09cede;
+  --accent-2: #4fe3ef;
+  --accent-dim: rgba(9,206,222,0.10);
+  --accent-glow: rgba(9,206,222,0.22);
+  /* Reward = the gold dot from the mark. Gold means ARRIVAL and nothing else:
+     the root, the note you resolved to, the mode you now own. It is the only
+     warm colour in the whole system, so it stays scarce and keeps its punch. */
+  --ember: #ffc233;
+  --ember-dim: rgba(255,194,51,0.14);
   --glass: rgba(10,11,13,0.86);
   --glass-border: rgba(255,255,255,0.06);
   --shadow-lg: 0 8px 40px rgba(0,0,0,0.5);
@@ -73,12 +79,13 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   --text: #14171a;
   --text-2: #5c646d;
   --text-3: #9aa2aa;
-  --accent: #0f9e8a;
-  --accent-2: #14b89f;
-  --accent-dim: rgba(15,158,138,0.08);
-  --accent-glow: rgba(15,158,138,0.16);
-  --ember: #e0672c;
-  --ember-dim: rgba(224,103,44,0.12);
+  /* Same system, darkened to hold contrast on white. */
+  --accent: #0a8fa0;
+  --accent-2: #09b3c4;
+  --accent-dim: rgba(10,143,160,0.09);
+  --accent-glow: rgba(10,143,160,0.16);
+  --ember: #c98b00;
+  --ember-dim: rgba(201,139,0,0.14);
   --glass: rgba(244,245,246,0.9);
   --glass-border: rgba(0,0,0,0.06);
   --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
@@ -2093,7 +2100,9 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 .flow-sw { width: 10px; height: 10px; border-radius: 999px; }
 .flow-sw.target { background: var(--accent); }
 .flow-sw.root { background: var(--bg-active); border: 1.5px solid var(--text); }
-.flow-sw.scale { background: var(--bg-active); }
+/* The other scale tones aren't grey any more — they keep their interval colour,
+   just dimmed. So the swatch shows the spectrum, not a slate dot. */
+.flow-sw.scale { background: var(--brand-grad); opacity: 0.55; }
 .flow-sw.heard { background: transparent; border: 2px solid #fff; }
 .flow-sw.shape { background: var(--bg-active); border: 2px solid rgba(255,255,255,0.9); }
 
@@ -2940,4 +2949,66 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   .intro-modes { grid-template-columns: 1fr; gap: 8px; width: 100%; }
   .intro-mode { padding: 12px 14px; }
   .intro-mode-desc { font-size: 12px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PHONE — 620px and under.
+   Must live at the END of the sheet: these override base rules of equal
+   specificity, and the base rules are declared above.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 620px) {
+
+  /* ─── Header ───
+     The Study/Flow pill was built at desktop scale and ate the header,
+     squashing the logo and the icon buttons against the edges. */
+  .shell-header {
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+  .shell-logo { width: 24px; height: 24px; }
+  .mode-switch { padding: 2px; gap: 2px; justify-self: center; }
+  .mode-btn {
+    padding: 6px 15px;
+    font-size: 12.5px;
+    gap: 5px;
+  }
+  .shell-actions { gap: 4px; }
+  .icon-btn { width: 30px; height: 30px; font-size: 13px; }
+
+  /* ─── The neck ───
+     Squeezing 15 frets into 390px makes the notes unreadable. Keep the board
+     at a legible size and let the viewport scroll sideways instead — that's
+     how you read a fretboard on a phone. */
+  .fretboard-viewport { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .fretboard-svg {
+    min-width: 700px;
+    max-height: none;
+  }
+  .flow-neck .fretboard-svg { min-width: 620px; }
+
+  /* ─── Flow ─── */
+  .walk-plain {
+    display: block;
+    margin-top: 2px;
+  }
+  .flow-actions,
+  .flow-controls,
+  .walk-nav {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  .flow-legend {
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    font-size: 10px;
+  }
+  .flow-hint {
+    display: block;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .modes-row { gap: 6px; }
+  .mode-chip { flex: 0 0 auto; }
 }
