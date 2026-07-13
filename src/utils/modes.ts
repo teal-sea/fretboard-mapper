@@ -92,6 +92,44 @@ export function describeModalShift(
   )
 }
 
+// ─── The payoff: the same shape, a different home ───
+// You just learned an Am7 arpeggio. Don't move your hands. Move the DRONE to F,
+// and those identical four notes are now the 3rd, 5th, 7th and 9th of F — the
+// shape didn't change, its meaning did. This is modal relativity felt in the
+// hands instead of read in a table, and it is the whole point of the app.
+export interface Recontext {
+  newTonic: string
+  intervals: string[]      // what the shape's notes become against the new home
+  sentence: string
+}
+
+export function recontextualise(
+  chordRoot: string,
+  chordIntervals: number[],
+  newTonic: string
+): Recontext {
+  const chordPc = noteIndex(chordRoot)
+  const tonicPc = noteIndex(newTonic)
+  const flats = useFlats(newTonic)
+
+  const intervals = chordIntervals.map(i => {
+    const pc = (chordPc + i) % 12
+    return intervalName(((pc - tonicPc) % 12 + 12) % 12)
+  })
+
+  const notes = chordIntervals
+    .map(i => noteName((chordPc + i) % 12, flats))
+    .join(', ')
+
+  const sentence =
+    `Don't move your hands. The drone is now on ${newTonic}. Those same notes — ` +
+    `${notes} — are no longer a ${chordRoot} chord sitting at home; against ${newTonic} ` +
+    `they're the ${intervals.join(', ')}. Identical shape. Completely different meaning. ` +
+    `That is what a mode actually is.`
+
+  return { newTonic, intervals, sentence }
+}
+
 // ─── Explaining a mode INSIDE the key you selected ───
 // "Dorian is minor with a raised 6th" is textbook garbage in the abstract.
 // Against the tonic you're actually sitting on, it becomes concrete:

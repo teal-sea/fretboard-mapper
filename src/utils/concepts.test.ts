@@ -58,6 +58,40 @@ describe('concept curriculum', () => {
     }
   })
 
+  // A run concept that can't build a shape would render an empty neck — the
+  // user would be told to "play the numbered notes" with no numbers on screen.
+  it('every RUN concept resolves to a real, playable run', async () => {
+    const { getSweepShape, getArpeggioShapes, buildRun } = await import('./arpeggios')
+    const { TUNINGS } = await import('./musicTheory')
+    const std = TUNINGS['standard']
+
+    const runConcepts = CONCEPTS.filter(c => c.run)
+    expect(runConcepts.length, 'no run concepts at all').toBeGreaterThan(0)
+
+    for (const c of runConcepts) {
+      const chord = CHORDS[c.run!.chordKey]
+      expect(chord, `${c.id}: unknown chord "${c.run!.chordKey}"`).toBeDefined()
+
+      const shape = c.run!.kind === 'sweep'
+        ? getSweepShape(c.root, chord, std, c.run!.shapeIndex ?? 0, 15)
+        : getArpeggioShapes(c.root, chord, std, 15)[c.run!.shapeIndex ?? 1]
+          ?? getArpeggioShapes(c.root, chord, std, 15)[0]
+
+      expect(shape, `${c.id}: produced no shape — the neck would be empty`).toBeTruthy()
+
+      const run = buildRun(shape!, c.run!.kind)
+      expect(run.steps.length, `${c.id}: run has no steps`).toBeGreaterThan(2)
+
+      // Every step must be a real place on a real string.
+      for (const s of run.steps) {
+        expect(s.note.stringIndex).toBeGreaterThanOrEqual(0)
+        expect(s.note.stringIndex).toBeLessThan(6)
+        expect(s.note.fret).toBeGreaterThanOrEqual(0)
+        expect(s.note.midi).toBe(std.notes[s.note.stringIndex] + s.note.fret)
+      }
+    }
+  })
+
   it('every concept has copy that says something', () => {
     for (const c of CONCEPTS) {
       expect(c.hook.length, `${c.id}: empty hook`).toBeGreaterThan(8)

@@ -21,6 +21,14 @@ export interface Concept {
   chordKey?: string                             // key into CHORDS — the chord it lives against
   technique?: '3nps' | 'arpeggios' | 'tapping'  // optional shape to grab
   patternIndex?: number
+
+  // A RUN: a real arpeggio shape and a way of moving through it. The app walks
+  // you note by note and the mic follows your hands. This is the exercise.
+  run?: {
+    chordKey: string                            // key into CHORDS — the arpeggio
+    kind: 'ascending' | 'descending' | 'updown' | 'sweep' | 'sequence3'
+    shapeIndex?: number                         // which position on the neck
+  }
 }
 
 // ─── The curriculum ───
@@ -176,6 +184,50 @@ export const CONCEPTS: Concept[] = [
     listenFor: 'Against the drone, find the 2 — and now think of it as a 9. It\'s the same pitch; the name just tells you it\'s stacked on top. It floats above the chord instead of sitting in it.',
     focus: '2', position: 3, chordKey: 'min9',
   },
+  // ── RUNS: the app follows your hands through a real arpeggio ──
+  // These are exercises, not lectures. You play; it watches; it tells you when
+  // the shape is yours.
+  {
+    id: 'run-am7-ascend',
+    root: 'A', mode: 'dorian', title: 'Am7 — straight up',
+    hook: 'Learn the shape before you learn the speed.',
+    listenFor: 'Every note in order, up the neck. Don\'t rush it — play it slower than feels necessary and let each note actually ring. The app will follow you.',
+    focus: 'b3', position: null, chordKey: 'min7',
+    run: { chordKey: 'min7', kind: 'ascending' },
+  },
+  {
+    id: 'run-am7-sweep',
+    root: 'A', mode: 'dorian', title: 'Am7 — the sweep',
+    hook: 'One stroke down, one stroke back.',
+    listenFor: 'Let the pick fall through the strings — don\'t pick each note separately. Where two notes share a fret, roll the finger across instead of lifting it. That roll is the whole technique.',
+    focus: 'b3', position: null, chordKey: 'min7',
+    run: { chordKey: 'min7', kind: 'sweep' },
+  },
+  {
+    id: 'run-am7-threes',
+    root: 'A', mode: 'dorian', title: 'Am7 — in threes',
+    hook: 'This is what turns an exercise into a phrase.',
+    listenFor: 'Groups of three, shifting up one note each time. Suddenly it stops sounding like practice and starts sounding like music. Same notes — different order.',
+    focus: 'b3', position: null, chordKey: 'min7',
+    run: { chordKey: 'min7', kind: 'sequence3' },
+  },
+  {
+    id: 'run-cmaj7-ascend',
+    root: 'C', mode: 'ionian', title: 'Cmaj7 — straight up',
+    hook: 'The bright one.',
+    listenFor: 'Same idea, major flavour. Listen to how the 7 leans back into the root — that lean is what makes major sound settled.',
+    focus: '7', position: null, chordKey: 'maj7',
+    run: { chordKey: 'maj7', kind: 'ascending' },
+  },
+  {
+    id: 'run-g7-updown',
+    root: 'G', mode: 'mixolydian', title: 'G7 — up and back',
+    hook: 'The turnaround is the hard part.',
+    listenFor: 'Up, then straight back down without pausing at the top. Everyone can climb; almost nobody can turn around cleanly. Go slow at the peak.',
+    focus: 'b7', position: null, chordKey: 'dom7',
+    run: { chordKey: 'dom7', kind: 'updown' },
+  },
+
   {
     id: 'maj7-vs-dom7-C',
     root: 'C', mode: 'ionian', title: 'C Ionian — the 7 that decides everything',

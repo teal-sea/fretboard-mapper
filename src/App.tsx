@@ -16,8 +16,11 @@ import { CONCEPTS, getNextConcept, markSeen, type Concept } from './utils/concep
 import { startMic, stopMic, readPitch, recalibrateMic } from './utils/micInput'
 import { intervalSemitones } from './utils/musicTheory'
 import { getScaleInsight, getChordInsight, chordsInScale, getObjective, PRIMER } from './utils/theory'
-import { getSameNoteModes, describeModalShift, contrastWithKey, type SiblingMode } from './utils/modes'
+import { getSameNoteModes, describeModalShift, contrastWithKey, recontextualise, type SiblingMode } from './utils/modes'
 import { loadSeen } from './utils/concepts'
+import { getSweepShape, getArpeggioShapes, buildRun } from './utils/arpeggios'
+import { initRun, advanceRun, scoreRun, stepStates } from './utils/runner'
+import type { RunNoteMark } from './components/Fretboard'
 
 // ─── Harmony Map row definitions ────────────────────────────
 const HARMONY_ROWS = [
@@ -694,6 +697,80 @@ export default function App() {
     return noteName(focusPc, useFlats(currentConcept.root))
   }, [currentConcept, focusPc])
 
+  // ─── The run player: the app follows your hands through the arpeggio ───
+  const currentRun = useMemo(() => {
+    if (!currentConcept?.run) return null
+    const chord = CHORDS[currentConcept.run.chordKey]
+    if (!chord) return null
+
+    // Sweeps need a rakeable (one-note-per-string) shape; everything else can
+    // use a full position shape, which has more notes in it.
+    const shape =
+      currentConcept.run.kind === 'sweep'
+        ? getSweepShape(currentConcept.root, chord, tuning, currentConcept.run.shapeIndex ?? 0, state.numFrets)
+        : getArpeggioShapes(currentConcept.root, chord, tuning, state.numFrets)[
+            currentConcept.run.shapeIndex ?? 1
+          ] ?? getArpeggioShapes(currentConcept.root, chord, tuning, state.numFrets)[0]
+
+    if (!shape) return null
+    return buildRun(shape, currentConcept.run.kind)
+  }, [currentConcept, tuning, state.numFrets])
+
+  const [runState, setRunState] = useState(initRun)
+
+  // New exercise → fresh attempt.
+  useEffect(() => { setRunState(initRun()) }, [currentConcept?.id])
+
+  // The mic drives the run. One heard note = at most one advance (heardMidi only
+  // changes when the NOTE changes, so a sustained note can't run away with it).
+  useEffect(() => {
+    if (!currentRun || !listening || heardMidi === null) return
+    setRunState(s => advanceRun(currentRun, s, heardMidi, Date.now()))
+  }, [heardMidi, currentRun, listening])
+
+  const runMarks = useMemo((): RunNoteMark[] | null => {
+    if (!currentRun) return null
+    return stepStates(currentRun, runState).map(s => ({
+      stringIndex: s.step.note.stringIndex,
+      fret: s.step.note.fret,
+      order: s.order,
+      status: s.status,
+      roll: s.step.roll,
+    }))
+  }, [currentRun, runState])
+
+  const runResult = useMemo(
+    () => (currentRun ? scoreRun(currentRun, runState) : null),
+    [currentRun, runState]
+  )
+
+  // The payoff: same shape, move the drone, and it means something else entirely.
+  const [twistTonic, setTwistTonic] = useState<string | null>(null)
+
+  const twist = useMemo(() => {
+    if (!currentConcept?.run || !twistTonic) return null
+    const chord = CHORDS[currentConcept.run.chordKey]
+    if (!chord) return null
+    return recontextualise(currentConcept.root, chord.intervals, twistTonic)
+  }, [currentConcept, twistTonic])
+
+  // Where can we move home to and still keep every note of the shape in key?
+  const twistOptions = useMemo(() => {
+    if (!currentConcept?.run) return []
+    return getSameNoteModes(currentConcept.root, currentConcept.mode)
+      .filter(s => !s.isCurrent)
+      .slice(0, 3)
+  }, [currentConcept])
+
+  const applyTwist = useCallback((s: SiblingMode) => {
+    setTwistTonic(s.root)
+    // Move ONLY the drone's home. The shape under the hands does not move.
+    up({ keyRoot: s.root, keyQuality: s.scaleKey, selectedScaleRoot: s.root, selectedScaleKey: s.scaleKey })
+    setDroneOn(true)
+  }, [up])
+
+  useEffect(() => { setTwistTonic(null) }, [currentConcept?.id])
+
   // The objective, in words someone who's never heard the word "mode" can act on.
   const objective = useMemo(() => {
     if (!currentConcept || !focusNoteName) return ''
@@ -795,21 +872,82 @@ export default function App() {
               </button>
             </p>
 
-            {/* THE OBJECTIVE — plain English, before any jargon. */}
-            <p className="flow-objective">{objective}</p>
+            {currentRun ? (
+              /* ═══ A RUN: the app follows your hands, note by note ═══ */
+              <>
+                <p className="flow-objective">
+                  {listening
+                    ? <>Play the numbered notes <b>in order</b>. The app is listening — it lights up
+                      the next note as you land each one. A drone is holding {currentConcept.root} underneath.</>
+                    : <>This is an exercise: play the numbered notes in order.
+                      <b> Turn on Listen</b> and the app will follow your hands through it.</>}
+                </p>
+                <h2 className="flow-hook">{currentConcept.hook}</h2>
+                <p className="flow-listen">{currentConcept.listenFor}</p>
 
-            <h2 className="flow-hook">{currentConcept.hook}</h2>
-            <p className="flow-listen">{currentConcept.listenFor}</p>
-
-            <div className={`flow-target ${focusFound ? 'found' : ''}`}>
-              <b>{currentConcept.focus}</b>
-              <span>
-                {focusFound
-                  ? `You found it — that's the sound of ${soundName}`
-                  : `Find every ${focusNoteName ?? currentConcept.focus} — the glowing notes`}
-              </span>
-            </div>
+                <div className="run-bar">
+                  <span className="run-name">{currentRun.name}</span>
+                  <div className="run-progress">
+                    <div
+                      className="run-progress-fill"
+                      style={{ width: `${(runState.index / currentRun.steps.length) * 100}%` }}
+                    />
+                  </div>
+                  <span className="run-count">
+                    {Math.min(runState.index + (runState.done ? 1 : 0), currentRun.steps.length)}
+                    /{currentRun.steps.length}
+                  </span>
+                  <button className="run-reset" onClick={() => setRunState(initRun())}>restart</button>
+                </div>
+                <p className="run-hint">{currentRun.hint}</p>
+              </>
+            ) : (
+              /* ═══ A SOUND: hunt the note that defines the mode ═══ */
+              <>
+                <p className="flow-objective">{objective}</p>
+                <h2 className="flow-hook">{currentConcept.hook}</h2>
+                <p className="flow-listen">{currentConcept.listenFor}</p>
+                <div className={`flow-target ${focusFound ? 'found' : ''}`}>
+                  <b>{currentConcept.focus}</b>
+                  <span>
+                    {focusFound
+                      ? `You found it — that's the sound of ${soundName}`
+                      : `Find every ${focusNoteName ?? currentConcept.focus} — the glowing notes`}
+                  </span>
+                </div>
+              </>
+            )}
           </header>
+
+          {/* ═══ You played it. Now the payoff. ═══ */}
+          {runResult && (
+            <div className="run-done">
+              <div className="run-verdict">
+                <span className="run-verdict-tag">Shape learned</span>
+                {runResult.verdict}
+                <span className="run-stats">
+                  {runResult.seconds.toFixed(1)}s · {runResult.notesPerSecond.toFixed(1)} notes/sec
+                </span>
+              </div>
+
+              {twist ? (
+                <p className="run-twist">{twist.sentence}</p>
+              ) : twistOptions.length > 0 && (
+                <div className="run-twist-offer">
+                  <span className="run-twist-lead">
+                    Now don't move your hands — <b>move the drone</b> and play the exact same shape:
+                  </span>
+                  <div className="run-twist-btns">
+                    {twistOptions.map(s => (
+                      <button key={s.root} className="run-twist-btn" onClick={() => applyTwist(s)}>
+                        Drone on {s.root}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* The whole game explained, for anyone who's never seen this before */}
           {primerOpen && (
@@ -839,21 +977,31 @@ export default function App() {
               guitarModel={state.guitarModel}
               zoomToPosition={state.scalePosition !== null}
               heardMidi={listening ? heardMidi : null}
-              /* ALWAYS pass the focus. If a concept also has a shape, the shape
-                 is drawn as outlines on top — so the neck can never contradict
-                 "find the glowing ones". */
-              focusInterval={currentConcept.focus}
+              /* A run takes over the neck entirely (numbered steps). Otherwise the
+                 focus note glows — and it ALWAYS glows, so the neck can never
+                 contradict "find the glowing ones". */
+              runNotes={runMarks}
+              focusInterval={runMarks ? null : currentConcept.focus}
             />
           </div>
 
           <div className="flow-legend">
-            <span><i className="flow-sw target" /> find these ({focusNoteName})</span>
-            <span><i className="flow-sw root" /> home ({currentConcept.root})</span>
-            <span><i className="flow-sw scale" /> safe to play</span>
-            {currentConcept.technique && (
-              <span><i className="flow-sw shape" /> the shape to sweep</span>
+            {currentRun ? (
+              <>
+                <span><i className="flow-sw target" /> play this one next</span>
+                <span><i className="flow-sw done" /> already played</span>
+                <span><i className="flow-sw todo" /> still to come</span>
+                <span><i className="flow-sw roll" /> roll your finger, don't lift it</span>
+                <span><i className="flow-sw heard" /> what it hears you play</span>
+              </>
+            ) : (
+              <>
+                <span><i className="flow-sw target" /> find these ({focusNoteName})</span>
+                <span><i className="flow-sw root" /> home ({currentConcept.root})</span>
+                <span><i className="flow-sw scale" /> safe to play</span>
+                <span><i className="flow-sw heard" /> what it hears you play</span>
+              </>
             )}
-            <span><i className="flow-sw heard" /> what it hears you play</span>
           </div>
 
           <footer className="flow-controls">

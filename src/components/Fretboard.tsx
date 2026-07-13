@@ -29,6 +29,17 @@ interface Props {
   // so the neck reads as one instruction instead of a wall of colour.
   focusInterval?: string | null
   focusColor?: string
+  // Run player — the app walking you through an arpeggio, note by note.
+  // Numbered steps: what you've played, what you're aiming at, what's coming.
+  runNotes?: RunNoteMark[] | null
+}
+
+export interface RunNoteMark {
+  stringIndex: number
+  fret: number
+  order: number
+  status: 'done' | 'current' | 'todo'
+  roll: boolean
 }
 
 // Real guitar scale lengths in inches → relative units
@@ -68,7 +79,21 @@ export default function Fretboard({
   heardMidi = null,
   focusInterval = null,
   focusColor = '#5eead4',
+  runNotes = null,
 }: Props) {
+  const runMap = useMemo(() => {
+    if (!runNotes) return null
+    const m = new Map<string, RunNoteMark>()
+    // If a position appears twice in a run (up-and-back), the LIVE one wins.
+    for (const r of runNotes) {
+      const key = `${r.stringIndex}-${r.fret}`
+      const prev = m.get(key)
+      if (!prev || r.status === 'current' || (prev.status === 'todo' && r.status === 'done')) {
+        m.set(key, r)
+      }
+    }
+    return m
+  }, [runNotes])
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState(900)
 
@@ -416,6 +441,55 @@ export default function Fretboard({
                     </g>
                   )
                 }
+              }
+
+              // ─── Run Mode — the app walking you through the arpeggio ───
+              // Numbered, in order. What you've played fills in; what you're
+              // aiming at right now pulses. Everything else gets out of the way.
+              if (runMap) {
+                const mark = runMap.get(`${si}-${fn.fret}`)
+                if (!mark) {
+                  // Not in the run — still show it faintly. It's in the scale;
+                  // you're allowed to be there, it's just not the exercise.
+                  return (
+                    <g key={`n${si}-${fn.fret}`} className="note-group">
+                      <circle cx={cx} cy={y} r={baseR * 0.34} fill="#20252c" opacity={0.7} />
+                    </g>
+                  )
+                }
+
+                const isCurrent = mark.status === 'current'
+                const isDone = mark.status === 'done'
+                const r = isCurrent ? baseR * 1.05 : baseR * 0.92
+                const fill = isCurrent ? focusColor : isDone ? '#2f3742' : '#191d24'
+
+                return (
+                  <g key={`n${si}-${fn.fret}`} className="note-group">
+                    {isCurrent && (
+                      <circle cx={cx} cy={y} r={r + 10} fill={focusColor} opacity={0.2}
+                        className="run-target" />
+                    )}
+                    <circle cx={cx} cy={y} r={r} fill={fill}
+                      stroke={isDone ? 'rgba(255,255,255,0.55)' : isCurrent ? '#fff' : 'rgba(255,255,255,0.22)'}
+                      strokeWidth={isCurrent ? 2 : 1.2} />
+                    {/* A roll: same fret, next string — flatten the finger, don't lift it */}
+                    {mark.roll && (
+                      <circle cx={cx} cy={y} r={r + 4} fill="none"
+                        stroke="#ff8a4c" strokeWidth={1.4} strokeDasharray="3 2" />
+                    )}
+                    <text x={cx} y={y} textAnchor="middle" dominantBaseline="central"
+                      className="interval-label"
+                      style={{
+                        fill: isCurrent ? '#06312b' : isDone ? '#e9ebee' : '#79818c',
+                        fontWeight: 800,
+                        ...(showLeftHanded
+                          ? { transform: 'scaleX(-1)', transformOrigin: `${cx}px ${y}px` }
+                          : {}),
+                      }}>
+                      {mark.order}
+                    </text>
+                  </g>
+                )
               }
 
               // ─── Focus Mode (Flow) — one instruction, not a wall of colour ───

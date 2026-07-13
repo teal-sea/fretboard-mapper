@@ -2121,6 +2121,155 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 }
 .flow-help:hover { color: var(--text); border-color: var(--accent); }
 
+/* ═══ The run player — the app follows your hands ═══════════════ */
+.flow-sw.done { background: #2f3742; border: 1px solid rgba(255,255,255,0.55); }
+.flow-sw.todo { background: #191d24; border: 1px solid rgba(255,255,255,0.22); }
+.flow-sw.roll { background: transparent; border: 1.5px dashed var(--ember); }
+
+.run-target { animation: run-target-pulse 1.1s ease-in-out infinite; }
+@keyframes run-target-pulse {
+  0%, 100% { opacity: 0.12; }
+  50%      { opacity: 0.34; }
+}
+
+.run-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 560px;
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-surface);
+}
+.run-name {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.run-progress {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--bg-active);
+  overflow: hidden;
+}
+.run-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 220ms var(--ease);
+}
+.run-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.run-reset {
+  border: none;
+  background: none;
+  padding: 2px 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  cursor: pointer;
+}
+.run-reset:hover { color: var(--text-2); }
+
+.run-hint {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-3);
+}
+
+/* You played it. Now the payoff. */
+.run-done {
+  display: grid;
+  gap: 10px;
+  max-width: 780px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 14px 16px;
+  border: 1px solid var(--ember);
+  border-radius: 14px;
+  background: var(--ember-dim);
+  animation: shift-in 480ms var(--spring);
+}
+.run-verdict {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13.5px;
+  color: var(--text);
+}
+.run-verdict-tag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--ember);
+  color: #2a1004;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.run-stats {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.run-twist-offer { display: grid; gap: 8px; }
+.run-twist-lead {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.run-twist-btns { display: flex; gap: 7px; flex-wrap: wrap; }
+.run-twist-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.run-twist-btn:hover {
+  background: var(--accent);
+  color: #04211d;
+  transform: translateY(-1px);
+}
+.run-twist {
+  margin: 0;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border-left: 2px solid var(--accent);
+  background: var(--accent-dim);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text);
+  animation: shift-in 420ms var(--spring);
+}
+
 /* ═══ Same notes, different home — modal relativity ═══════════════
    The chips below all use the identical notes on the neck. This is the
    central idea of the app, so it gets real estate and the accent colour. */
