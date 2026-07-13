@@ -3063,6 +3063,10 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
     justify-content: flex-start;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    /* The native scrollbar is hidden above — without this, a row that's cut
+       off mid-chip just looks finished, not scrollable. */
+    -webkit-mask-image: linear-gradient(to right, transparent 0, black 14px, black calc(100% - 22px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, black 14px, black calc(100% - 22px), transparent 100%);
   }
   .modes-row::-webkit-scrollbar,
   .chord-grid-main::-webkit-scrollbar,
@@ -3149,6 +3153,23 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   /* Flow's zoomed position view is handled by the height-driven sizing
      above (.flow-neck .fretboard-svg), not this width-first mobile rule —
      it already picks a legible size from the available row height. */
+
+  /* ─── Flow: let it scroll ───
+     .app.mode-flow locks the whole screen to exactly 100dvh with no
+     scrolling — fine on desktop, but on a phone the concept text varies a
+     lot in length, and squeezing everything into one fixed screen meant the
+     neck shrank to whatever was left over: a postage stamp surrounded by
+     dead space. Scrolling a phone screen is normal; let the page be as
+     tall as it needs to be, and give the neck a real, fixed-size chunk of
+     the viewport regardless of how much text is above it. */
+  .app.mode-flow { height: auto; min-height: 100dvh; overflow: visible; }
+  .flow-stage {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+  .flow-neck { height: 46vh; max-height: 46vh; flex-shrink: 0; }
 
   /* ─── Flow ─── */
   .walk-plain {
