@@ -18,6 +18,7 @@ import { intervalSemitones } from './utils/musicTheory'
 import { getScaleInsight, getChordInsight, chordsInScale, getObjective, PRIMER } from './utils/theory'
 import { getSameNoteModes, describeModalShift, contrastWithKey, recontextualise, type SiblingMode } from './utils/modes'
 import { loadPersistedState, savePersistedState } from './utils/persist'
+import { familyId, getClaims, claimMode, markCompleted, totalClaimed } from './utils/progress'
 import { getSweepShape, getArpeggioShapes, buildRun } from './utils/arpeggios'
 import {
   getWalkPositions, currentWalkIndex, describeStep,
@@ -432,7 +433,10 @@ export default function App() {
   const [heardMidi, setHeardMidi] = useState<number | null>(null)
   const [focusFound, setFocusFound] = useState(false)
   const [justLanded, setJustLanded] = useState(false)
-  const [soundsOwned, setSoundsOwned] = useState(() => loadOwned().length)
+  // Two independent collections feed the same number: concepts you've
+  // mic-landed (loadOwned, this branch) and Walk positions you've claimed
+  // (totalClaimed, from #20's progress.ts) — different mechanics, same idea.
+  const [soundsOwned, setSoundsOwned] = useState(() => loadOwned().length + totalClaimed())
   const [collectionOpen, setCollectionOpen] = useState(false)
   // Recomputed whenever the panel opens or the owned count changes — the
   // panel itself can't be open while a new sound lands, so this stays in sync.
@@ -532,6 +536,14 @@ export default function App() {
   }, [up])
 
   const startSession = useCallback(() => applyConcept(getNextConcept(null)), [applyConcept])
+
+  // The Walk is the centrepiece, so it must be one press away — ALWAYS.
+  // It used to appear only for a brand-new user with empty storage, which meant
+  // anyone who'd already used the app could never find it again.
+  const startWalk = useCallback(() => {
+    const walk = CONCEPTS.find(c => c.walk)
+    if (walk) applyConcept(walk)
+  }, [applyConcept])
   const nextConcept = useCallback(
     () => applyConcept(getNextConcept(state.conceptId)),
     [applyConcept, state.conceptId]
@@ -620,7 +632,7 @@ export default function App() {
     if (!hearingFocus || focusFound || !currentConcept) return
     setFocusFound(true)
     setJustLanded(true)
-    setSoundsOwned(markOwned(currentConcept.id).length)
+    setSoundsOwned(markOwned(currentConcept.id).length + totalClaimed())
     const t = setTimeout(() => setJustLanded(false), 900)
     return () => clearTimeout(t)
   }, [hearingFocus, focusFound, currentConcept])
@@ -755,11 +767,22 @@ export default function App() {
   const [walkState, setWalkState] = useState(initWalk)
   const [walkStory, setWalkStory] = useState<string | null>(null)
 
+  // Which scale family are we walking? A minor and C major are the SAME walk,
+  // so a mode you claimed from one door stays claimed through the other.
+  const walkFamily = useMemo(
+    () => familyId(
+      state.selectedScaleRoot || state.keyRoot,
+      state.selectedScaleKey || state.keyQuality
+    ),
+    [state.selectedScaleRoot, state.keyRoot, state.selectedScaleKey, state.keyQuality]
+  )
+
+  // Pick up where you left off. Modes you've already earned are still yours.
   useEffect(() => {
     if (!isWalk) return
-    setWalkState(initWalk())
+    setWalkState({ ...initWalk(), claimed: getClaims(walkFamily) })
     setWalkStory(null)
-  }, [isWalk, currentConcept?.id])
+  }, [isWalk, currentConcept?.id, walkFamily])
 
   const scalePcs = useMemo(() => {
     const sk = state.selectedScaleKey || state.keyQuality
@@ -799,17 +822,23 @@ export default function App() {
     // If the drone is already on it follows you home; it does not switch itself on.
   }, [walkPositions, walkPos, up])
 
-  // Claiming a mode is owning a sound.
+  // Claiming a mode is owning a sound — and it is written down immediately, so
+  // closing the tab can never take it back.
   useEffect(() => {
     if (!walkState.justClaimed) return
-    setSoundsOwned(n => n + 1)
+    claimMode(walkFamily, walkState.justClaimed)
+    setSoundsOwned(loadOwned().length + totalClaimed())
     setJustLanded(true)
     const t = setTimeout(() => setJustLanded(false), 900)
     return () => clearTimeout(t)
-  }, [walkState.justClaimed])
+  }, [walkState.justClaimed, walkFamily])
 
   const walkComplete = isWalk && walkPositions.length > 0 &&
     walkState.claimed.length >= walkPositions.length
+
+  useEffect(() => {
+    if (walkComplete) markCompleted(walkFamily)
+  }, [walkComplete, walkFamily])
 
   // ─── The run player: the app follows your hands through the arpeggio ───
   const currentRun = useMemo(() => {
@@ -1256,6 +1285,10 @@ export default function App() {
               <>
                 <button className={`flow-ctl primary ${focusFound ? 'beckon' : ''}`} onClick={nextConcept}>
                   {focusFound ? 'Next sound' : 'Next idea'} {'→'}
+                </button>
+                {/* The centrepiece must always be one press away. */}
+                <button className="flow-ctl walk-entry" onClick={startWalk}>
+                  Walk the neck
                 </button>
                 <button className="flow-ctl" onClick={shiftPosition}>Shift position</button>
               </>
