@@ -49,13 +49,15 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   --text: #e9ebee;
   --text-2: #79818c;
   --text-3: #3a4049;
-  /* Signal colour = the logo's cyan. Used for chrome, active states, the live
+  /* Signal colour = the logo's blue. Used for chrome, active states, the live
      "it's listening" pulse. Deliberately NOT the reward colour — if the colour
-     you see everywhere is also the colour of winning, winning stops landing. */
-  --accent: #09cede;
-  --accent-2: #4fe3ef;
-  --accent-dim: rgba(9,206,222,0.10);
-  --accent-glow: rgba(9,206,222,0.22);
+     you see everywhere is also the colour of winning, winning stops landing.
+     Not the cyan/teal the logo also carries — that hue is Tealynx Labs' own
+     identity, not this app's, and using it here reads as borrowed. */
+  --accent: #2987e6;
+  --accent-2: #5ba7ef;
+  --accent-dim: rgba(41,135,230,0.10);
+  --accent-glow: rgba(41,135,230,0.22);
   /* Reward = the gold dot from the mark. Gold means ARRIVAL and nothing else:
      the root, the note you resolved to, the mode you now own. It is the only
      warm colour in the whole system, so it stays scarce and keeps its punch. */
@@ -80,10 +82,10 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   --text-2: #5c646d;
   --text-3: #9aa2aa;
   /* Same system, darkened to hold contrast on white. */
-  --accent: #0a8fa0;
-  --accent-2: #09b3c4;
-  --accent-dim: rgba(10,143,160,0.09);
-  --accent-glow: rgba(10,143,160,0.16);
+  --accent: #1f6fd1;
+  --accent-2: #2987e6;
+  --accent-dim: rgba(31,111,209,0.09);
+  --accent-glow: rgba(31,111,209,0.16);
   --ember: #c98b00;
   --ember-dim: rgba(201,139,0,0.14);
   --glass: rgba(244,245,246,0.9);
@@ -1836,14 +1838,13 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   white-space: nowrap;
 }
 .mode-btn:hover { color: var(--text); }
-/* Every other "you are here" control in the app (mode chips, the Drone
-   button) fills solid --accent with a glow — this used to just invert to
-   plain white/black, the one control in the header that ignored the
-   theme entirely. */
+/* The mode switch is the first thing anyone touches — it gets the actual
+   logo gradient, same as the sibling-mode chip, not a flat accent hue. */
 .mode-btn.active {
-  background: var(--accent);
-  color: #04211d;
-  box-shadow: 0 0 14px var(--accent-glow);
+  background: var(--brand-grad);
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+  box-shadow: 0 0 14px rgba(152,70,234,0.35);
 }
 .mode-btn .mode-ico { font-size: 11px; opacity: 0.8; }
 
@@ -1858,22 +1859,17 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   margin: 0 auto;
 }
 
-/* One toolbar row instead of four stacked strips. Same accent-tinted glow
-   as .modes-strip right below it — before this it was a flat grey box
-   sitting on top of a panel that visibly glowed, the first thing on the
-   page and the least on-brand. */
+/* One toolbar row instead of four stacked strips. Not a card — no border,
+   no background, no padding-box — it sits directly on the page like part
+   of the header, so .modes-strip below it is the only glowing panel on
+   the screen instead of two stacked copies of the same treatment. */
 .study-bar {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
-  padding: 10px 12px;
-  background:
-    linear-gradient(180deg, var(--accent-dim), transparent 70%),
-    var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 14px;
+  padding: 2px 0;
 }
 .study-bar-label {
   font-family: var(--font-mono);
@@ -2703,9 +2699,12 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   border-color: var(--accent);
   transform: translateY(-1px);
 }
+/* The "you are here" chip — this is the app's whole thesis (same notes,
+   different home), so it's the one place a flat accent colour undersells
+   it. The actual logo gradient instead of one hue skimmed off it. */
 .mode-chip.active {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--brand-grad);
+  border-color: transparent;
 }
 .mode-chip-root {
   font-family: var(--font-mono);
@@ -2718,8 +2717,8 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   font-weight: 600;
   color: var(--text-2);
 }
-.mode-chip.active .mode-chip-root { color: #04211d; }
-.mode-chip.active .mode-chip-name { color: rgba(4,33,29,0.75); }
+.mode-chip.active .mode-chip-root { color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.35); }
+.mode-chip.active .mode-chip-name { color: rgba(255,255,255,0.85); text-shadow: 0 1px 3px rgba(0,0,0,0.35); }
 
 .modes-shift {
   position: relative;
