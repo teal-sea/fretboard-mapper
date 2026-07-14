@@ -1923,6 +1923,100 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 .tuner-string.heard { color: var(--text); border-color: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
 .tuner-string.in-tune { color: #3ad29f; border-color: #3ad29f; box-shadow: 0 0 10px rgba(58,210,159,0.5); }
 
+/* ─── Flow (the jam) — the stage the particles live on ──────────────── */
+.jam-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  padding: 12px 20px 20px;
+  overflow: hidden;
+}
+.flow-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+.jam-stage > *:not(.flow-canvas) { position: relative; z-index: 1; }
+.jam-setup {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 18px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(12px);
+}
+.jam-setup-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.jam-chords { flex-direction: column; align-items: flex-start; }
+.jam-chord-pool, .jam-chord-seq { display: flex; gap: 6px; flex-wrap: wrap; }
+.jam-chord-btn {
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-raised);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.jam-chord-btn:hover { border-color: var(--accent); color: var(--text); }
+.jam-chord-btn.seq { background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
+.jam-chord-hint { font-size: 11px; color: var(--text-3); font-family: var(--font-mono); }
+.jam-home {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.jam-home b { color: var(--text); }
+.jam-whisper {
+  text-transform: none;
+  letter-spacing: 0.04em;
+  color: var(--text-2);
+  animation: jam-whisper-in 0.8s ease;
+}
+@keyframes jam-whisper-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.jam-neck {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  overflow: hidden;
+}
+.jam-neck .fretboard-container { width: 100%; }
+.jam-summary {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-2);
+}
+@media (max-width: 620px) {
+  .app.mode-flow { height: auto; min-height: 100dvh; overflow: visible; }
+  .jam-stage { overflow: visible; }
+  .jam-neck { height: 42vh; max-height: 42vh; flex-shrink: 0; }
+  .jam-neck .fretboard-svg { min-width: 0; max-height: min(40vh, 380px); }
+}
+
 /* ─── Listening: live pitch feedback ────────────────────────── */
 
 /* Rings on the neck where the heard note lives */
@@ -2015,7 +2109,9 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   display: flex;
   flex-direction: column;
 }
-.app.mode-flow { height: 100dvh; overflow: hidden; }
+/* learn (the concept drills, formerly named flow — the .flow-* classes
+   below still serve it) and flow (the jam) both lock to the viewport */
+.app.mode-learn, .app.mode-flow { height: 100dvh; overflow: hidden; }
 
 /* ─── Header ─── */
 .shell-header {
@@ -3489,7 +3585,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
      dead space. Scrolling a phone screen is normal; let the page be as
      tall as it needs to be, and give the neck a real, fixed-size chunk of
      the viewport regardless of how much text is above it. */
-  .app.mode-flow { height: auto; min-height: 100dvh; overflow: visible; }
+  .app.mode-learn { height: auto; min-height: 100dvh; overflow: visible; }
   .flow-stage {
     display: flex;
     flex-direction: column;
