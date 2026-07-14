@@ -2181,13 +2181,16 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   gap: 10px;
   min-width: 0;
 }
-/* The mark is the best asset the product has — it gets real size and a
-   real glow, not a favicon-in-the-corner treatment. */
+/* The mark is the best asset the product has. Branding 101: the lockup
+   dominates its zone and gets clear space — it does not shrink to fit the
+   chrome; the chrome makes room. Negative margins let the 64px mark ride
+   slightly over the header line without fattening the whole bar. */
 .shell-logo {
-  width: 44px;
-  height: 44px;
+  width: 64px;
+  height: 64px;
+  margin: -10px 0;
   object-fit: contain;
-  filter: drop-shadow(0 0 12px rgba(152,70,234,0.55)) drop-shadow(0 0 26px rgba(9,206,222,0.25));
+  filter: drop-shadow(0 0 16px rgba(152,70,234,0.6)) drop-shadow(0 0 36px rgba(9,206,222,0.3));
   transition: filter var(--transition-slow), transform var(--transition-slow);
 }
 .shell-brand:hover .shell-logo {
@@ -2195,7 +2198,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   transform: scale(1.05);
 }
 .shell-name {
-  font-size: 21px;
+  font-size: 28px;
   font-weight: 800;
   letter-spacing: -0.02em;
   white-space: nowrap;
@@ -3386,7 +3389,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 }
 /* The front door: the logo carries the name, so no wordmark text is needed. */
 .intro-logo {
-  width: min(148px, 38vw);
+  width: min(240px, 52vw);
   height: auto;
   margin: 0 auto;
   display: block;
@@ -3587,7 +3590,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   .intro-how { width: 100%; }
   .intro-step { min-width: 0; }
   .intro-step-d, .intro-step-t { min-width: 0; overflow-wrap: break-word; }
-  .intro-logo { width: min(112px, 34vw); }
+  .intro-logo { width: min(170px, 46vw); }
   .intro-title { font-size: clamp(26px, 8vw, 38px); line-height: 1.1; }
   .intro-sub { font-size: 13px; line-height: 1.5; }
   .intro-modes { grid-template-columns: 1fr; gap: 8px; width: 100%; }
@@ -3610,7 +3613,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
     gap: 8px;
     padding: 8px 10px;
   }
-  .shell-logo { width: 36px; height: 36px; }
+  .shell-logo { width: 52px; height: 52px; margin: -8px 0; }
   .mode-switch { padding: 2px; gap: 2px; justify-self: center; }
   .mode-btn {
     padding: 6px 15px;
