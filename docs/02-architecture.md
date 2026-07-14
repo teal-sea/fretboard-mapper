@@ -3,9 +3,13 @@
 ## Stack & boundaries
 
 - **React 18** function components + hooks. **Vite 6** dev/build. **TypeScript**.
-  **Vitest** for tests. No other runtime deps.
-- **No backend, no persistence, no network.** The app is a single-page bundle
-  served statically (Vercel). State is in memory and resets on reload.
+  **Vitest** for tests (~305 across nine files). No other runtime deps
+  (Playwright is a dev-only dependency for real-WebKit mobile checks).
+- **No backend, no network.** The app is a single-page bundle served statically
+  (Vercel; `main` auto-deploys to modalruns.com). `AppState` persists to
+  **localStorage** via `utils/persist.ts`; owned sounds (`concepts.ts`, key
+  `fm.ownedSounds`) and Walk claims (`progress.ts`, key `mr.progress`) persist
+  separately.
 - Three clean layers, with a strict boundary between them:
 
 ```
@@ -26,16 +30,27 @@
 **The boundary that matters:** `musicTheory.ts` is a pure library — no React, no
 audio, no DOM. `audioEngine.ts` is pure side-effect — no React, no theory tables.
 `App.tsx` is the only place they meet. Keep it that way; it's what makes the
-theory testable (67 tests) and the audio swappable.
+theory testable and the audio swappable.
+
+The pure-library side has grown beyond `musicTheory.ts` — same rules apply
+(pure, deterministic, tested, no React/audio/DOM):
+`concepts.ts` (Flow's concept catalog + owned-sounds persistence),
+`walk.ts` (the walk-the-neck game state machine), `runner.ts` (the run player),
+`modes.ts` (same-notes-different-home relationships), `theory.ts` (prose
+insights), `arpeggios.ts` (run shapes), `progress.ts` (Walk-claim persistence),
+`persist.ts` (AppState persistence), `pitchDetect.ts` (pitch DSP).
+`micInput.ts` sits with `audioEngine.ts` on the side-effect side.
 
 ## Data flow (unidirectional)
 
-1. **Source of truth:** one `AppState` object in `App.tsx`
-   (`const [state, setState] = useState<AppState>(initialState)`).
+1. **Source of truth:** one `AppState` object in `App.tsx`, initialized as
+   `{ ...initialState, ...loadPersistedState() }` and written back to
+   localStorage on every change.
 2. **Mutation:** exactly one updater — `up(partial)` — merges a partial into
-   state. Every control calls `up({...})`. (Two audio-only booleans, `metronomeOn`
-   and `droneOn`, use their own local `useState` because they don't affect what's
-   drawn.)
+   state. Every control calls `up({...})`. (Audio side-effect flags —
+   `droneOn`, `listening`, `metronomeOn` — plus per-session game state like
+   `walkState`/`runState` use local `useState` because they shouldn't persist
+   or don't change what's drawn from `AppState`.)
 3. **Derivation:** everything shown is computed from `state` with `useMemo` —
    `activeNotes`, `board` (via `computeFretboard`), `diatonicChords`,
    `scalePositions`, `techniquePositions`, labels, etc. No derived value is stored
@@ -74,7 +89,10 @@ compute a partial and call `up()`. See [03-state](03-state.md).
 - **`KeyMapView.tsx` is currently dead code** — not imported anywhere. It's a
   functional alternate "key map" view wired to real APIs but unmounted. Either
   adopt it or delete it; don't assume it's live. See [06-components](06-components.md).
-- **State does not persist.** Reload = back to `initialState` (A aeolian). Adding
-  localStorage is a small, self-contained task ([08-roadmap](08-roadmap.md)).
-- **No routing.** Single view; "pages" are conditional panels toggled by state
-  (`advancedMode`, `activeTab`, `settingsOpen`).
+- **No routing.** The Study/Flow split is `AppState.appMode`, not a route;
+  "pages" are conditional panels toggled by state (`appMode`, `advancedMode`,
+  `activeTab`, `settingsOpen`).
+- **Mobile is checked against real WebKit**, not a resized desktop window —
+  Playwright + `devices['iPhone 13']` emulation (a resized Chrome missed real
+  rendering bugs that shipped). Run scripts with
+  `NODE_PATH=<project>/node_modules node <script>` from a scratch dir.

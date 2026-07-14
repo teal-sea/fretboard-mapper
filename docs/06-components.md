@@ -30,16 +30,23 @@ domain state (only `containerWidth` from the observer).
 | `zoomToPosition?` | `boolean` | With `posRange`, crop viewBox to that position. |
 | `chordToneNotes?` | `Set<number> \| null` | Chord-tone pitch classes → chord-tone overlay mode. |
 | `chordRootIndex?` | `number \| null` | Chord root pitch class → relabels dots with chord-relative intervals. |
-| `highlightedPositions?` | `Set<string> \| null` | `"stringIndex-fret"` keys → technique overlay mode. |
+| `highlightedPositions?` | `Set<string> \| null` | `"stringIndex-fret"` keys → technique overlay mode. Also how a selected **chord grip** (`getChordVoicings` + `chordPosition`) renders. |
 | `nextChordToneNotes?` | `Set<number> \| null` | Next chord's tones as dashed anticipation rings. |
+| `heardMidi?` | `number \| null` | Live mic pitch — every location producing that pitch gets a "heard" ring (white = in scale, red = off the map). |
+| `focusInterval?` / `focusColor?` | `string \| null` / `string` | Flow mode — the hunted interval burns, everything else recedes (light, not grey paint). |
+| `runNotes?` | `RunNoteMark[] \| null` | Run player — numbered steps (`done/current/todo`) walking the player through an arpeggio. |
 
-### Three mutually-exclusive note-render modes (chosen by props)
+### Mutually-exclusive note-render modes (chosen by props, in code precedence order)
 1. **Chord-tone overlay** (`chordToneNotes` set) — chord tones glow, other scale
-   notes fade to passing tones; optional dashed `nextChordToneNotes` rings; a
-   dashed path connects in-position chord tones.
+   notes fade to passing tones; optional dashed `nextChordToneNotes` rings.
+   Because this outranks the technique overlay, `App.tsx` **suppresses it when
+   a grip is selected** so the voicing can render instead.
 2. **Technique overlay** (`highlightedPositions` set) — only those `string-fret`
-   cells highlighted, everything else dimmed.
-3. **Normal** — all in-scale notes, roots emphasized.
+   cells highlighted, everything else dimmed. Used by 3NPS/sweep/tapping AND
+   chord-grip browsing.
+3. **Run mode** (`runNotes` set) — numbered walkthrough.
+4. **Focus mode** (`focusInterval` set) — Flow's one-instruction neck.
+5. **Normal** — all in-scale notes, roots emphasized.
 
 `viewBox` is swapped dynamically for zoom-to-position or fret-window cropping.
 Fret numbers are drawn as `<text>` along the bottom.
