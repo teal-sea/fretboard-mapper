@@ -1948,7 +1948,7 @@ export default function App() {
           <div className="drawer-section">
             <span className="drawer-label">DRONE</span>
             <DrawerSlider
-              label="Volume" value={state.droneVolume} max={1.5}
+              label="Volume" value={state.droneVolume} max={3}
               onChange={v => up({ droneVolume: v })}
             />
             <DrawerSlider
@@ -1964,7 +1964,7 @@ export default function App() {
           <div className="drawer-section">
             <span className="drawer-label">PAD</span>
             <DrawerSlider
-              label="Volume" value={state.padVolume} max={1.5}
+              label="Volume" value={state.padVolume} max={3}
               onChange={v => up({ padVolume: v })}
             />
             <DrawerSlider
