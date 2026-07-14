@@ -39,6 +39,10 @@ const HARMONY_ROWS = [
 
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
 
+// Scale ceiling for the mic level meter — chosen so a loudly-picked bass
+// string fills most of the bar without a quiet treble note being invisible.
+const METER_MAX = 0.12
+
 const ROOT_HUES: Record<string, number> = {
   'C': 210, 'C#': 240, 'D': 270, 'D#': 300, 'E': 330,
   'F': 0, 'F#': 30, 'G': 55, 'G#': 80, 'A': 120,
@@ -1424,9 +1428,15 @@ export default function App() {
               </span>
             )}
             {listening && (
-              <span className="mic-level-readout" title="raw mic level / the floor a signal has to clear">
-                lvl {micLevel.rms.toFixed(3)} / gate {micLevel.gate.toFixed(3)}
-              </span>
+              <div className="mic-meter" title="Mic level — play louder if the bar isn't reaching the line">
+                <div className="mic-meter-track">
+                  <div
+                    className={`mic-meter-fill ${micLevel.rms >= micLevel.gate ? 'clearing' : ''}`}
+                    style={{ width: `${Math.min(100, (micLevel.rms / METER_MAX) * 100)}%` }}
+                  />
+                  <div className="mic-meter-gate" style={{ left: `${Math.min(100, (micLevel.gate / METER_MAX) * 100)}%` }} />
+                </div>
+              </div>
             )}
           </footer>
 
