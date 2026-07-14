@@ -23,11 +23,23 @@ export function getCtx(): AudioContext {
 
     reverbNode = createReverb(ctx)
 
+    // Volume knobs go well above unity now (raised ceiling below), so
+    // without a limiter that's just hard digital clipping at the top of
+    // the range instead of "loud". This is the thing that makes turning
+    // it up actually work.
+    const limiter = ctx.createDynamicsCompressor()
+    limiter.threshold.value = -6
+    limiter.knee.value = 4
+    limiter.ratio.value = 16
+    limiter.attack.value = 0.002
+    limiter.release.value = 0.15
+
     masterGain.connect(dryGain)
     masterGain.connect(reverbNode)
     reverbNode.connect(wetGain)
-    dryGain.connect(ctx.destination)
-    wetGain.connect(ctx.destination)
+    dryGain.connect(limiter)
+    wetGain.connect(limiter)
+    limiter.connect(ctx.destination)
   }
   if (ctx.state === 'suspended') ctx.resume()
   return ctx
@@ -84,11 +96,11 @@ let padTone = 0.5
 const clampPad = (v: number, max = 1.5) => Math.max(0, Math.min(max, v))
 
 export function setPadVolume(v: number): void {
-  padVolume = clampPad(v)
+  padVolume = clampPad(v, 3)
   if (currentPad && ctx) currentPad.volumeGain.gain.setTargetAtTime(padVolume, ctx.currentTime, 0.1)
 }
 export function setPadSpread(v: number): void {
-  padSpread = clampPad(v)
+  padSpread = clampPad(v, 1.5)
   if (currentPad && ctx) {
     const now = ctx.currentTime
     for (const { node, basePan } of currentPad.panners) {
@@ -552,14 +564,14 @@ let droneTone = 0.5    // 0–1, where the breathing lowpass sits (dark → brig
 const clamp01 = (v: number, max = 1.5) => Math.max(0, Math.min(max, v))
 
 export function setDroneVolume(v: number): void {
-  droneVolume = clamp01(v)
+  droneVolume = clamp01(v, 3)
   if (currentDrone && ctx) {
     currentDrone.volumeGain.gain.setTargetAtTime(droneVolume, ctx.currentTime, 0.1)
   }
 }
 
 export function setDroneSpread(v: number): void {
-  droneSpread = clamp01(v)
+  droneSpread = clamp01(v, 1.5)
   if (currentDrone && ctx) {
     const now = ctx.currentTime
     for (const { node, basePan } of currentDrone.panners) {

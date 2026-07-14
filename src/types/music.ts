@@ -74,10 +74,10 @@ export interface AppState {
 
   // Audio
   padLatched: boolean
-  droneVolume: number  // 0–1.5
+  droneVolume: number  // 0–3
   droneSpread: number  // 0–1.5, stereo width multiplier
   droneTone: number    // 0–1, dark → bright
-  padVolume: number    // 0–1.5
+  padVolume: number    // 0–3
   padSpread: number    // 0–1.5, stereo width multiplier
   padTone: number       // 0–1, dark → bright
   backingMode: 'drone' | 'chord' | 'arp' // what Play triggers underneath the mode
