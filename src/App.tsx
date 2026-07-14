@@ -19,6 +19,7 @@ import { getScaleInsight, getChordInsight, chordsInScale, getObjective, PRIMER }
 import { getSameNoteModes, recontextualise, type SiblingMode } from './utils/modes'
 import { loadPersistedState, savePersistedState } from './utils/persist'
 import { displayNote, LANGUAGES } from './utils/noteNames'
+import { t as translate } from './utils/i18n'
 import { nextFlowHome, describeFlowShift, describeFlowSession } from './utils/flowEngine'
 import FlowCanvas, { type FlowPulse } from './components/FlowCanvas'
 import { familyId, getClaims, claimMode, markCompleted, totalClaimed } from './utils/progress'
@@ -164,6 +165,10 @@ export default function App() {
   const tuning = TUNINGS[state.tuningKey]
   const keyScale = SCALES[state.keyQuality]
   const flats = useFlats(state.keyRoot)
+
+  // UI text in the user's language; missing translations fall back to
+  // English inside t(), so this can never break a render.
+  const T = useCallback((s: string) => translate(s, state.language), [state.language])
 
   // Display-only note naming: the engine speaks letters forever; dn() turns
   // a letter spelling into what the user's language calls it (C → Do) at
@@ -799,7 +804,7 @@ export default function App() {
             onClick={() => up({ backingMode: m.key })}
             title={m.title}
           >
-            {m.label}
+            {T(m.label)}
           </button>
         ))}
       </div>}
@@ -816,7 +821,7 @@ export default function App() {
         onClick={() => (tunerOpen ? closeTuner() : openTuner())}
         title={tunerOpen ? 'Close the tuner' : 'Tune up'}
         aria-label="Tuner"
-      >Tune</button>
+      >{T('Tune')}</button>
       {(state.backingMode === 'arp' || metronomeOn) && (
         <div className="backing-bpm">
           <button type="button" className="backing-bpm-btn"
@@ -980,7 +985,7 @@ export default function App() {
       const to = nextFlowHome(state.flowEvolve, flowStepRef.current, sameNoteModes, state.flowChords)
       if (!to) return
       selectSibling(to)
-      setFlowWhisper(describeFlowShift(to))
+      setFlowWhisper(describeFlowShift(to, state.language, displayNote(to.root, state.noteStyle, state.language)))
       setFlowWave(w => w + 1)
       flowHomesRef.current.add(to.root)
     }, state.flowPaceSec * 1000)
@@ -1018,7 +1023,7 @@ export default function App() {
         minutes,
         notesHeard: flowNotesRef.current,
         homesVisited: flowHomesRef.current.size,
-      }))
+      }, state.language))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowSoundOn, state.appMode])
@@ -1151,8 +1156,8 @@ export default function App() {
   }, [heardMidi, isWalk, walkPos, listening, scalePcs])
 
   const walkProg = useMemo(
-    () => (walkPos ? walkProgress(walkState, walkPos) : null),
-    [walkState, walkPos]
+    () => (walkPos ? walkProgress(walkState, walkPos, state.language, dn(walkPos.tonic)) : null),
+    [walkState, walkPos, state.language, dn]
   )
 
   // Step to a position: the notes on the neck do NOT move. Only home does.
@@ -1237,8 +1242,8 @@ export default function App() {
   }, [currentRun, runState])
 
   const runResult = useMemo(
-    () => (currentRun ? scoreRun(currentRun, runState) : null),
-    [currentRun, runState]
+    () => (currentRun ? scoreRun(currentRun, runState, state.language) : null),
+    [currentRun, runState, state.language]
   )
 
   // The payoff: same shape, move the drone, and it means something else entirely.
@@ -1382,10 +1387,10 @@ export default function App() {
           {/* The internal appMode values keep their old names (study/learn/
               flow) — these labels are product-facing and cheap to re-cut. */}
           <button className={`mode-btn tab-modes ${!isLearn && !isFlow ? 'active' : ''}`} onClick={goStudy}>
-            Modes
+            {T('Modes')}
           </button>
           <button className={`mode-btn tab-explore ${isLearn ? 'active' : ''}`} onClick={goLearn}>
-            Explore
+            {T('Explore')}
           </button>
           <button className={`mode-btn tab-flow ${isFlow ? 'active' : ''}`} onClick={goFlow}>
             Flow
@@ -1431,14 +1436,13 @@ export default function App() {
       {/* ═════════ LEARN — the lesson list ═════════ */}
       {isLearn && !currentConcept && (
         <main className="lessons-stage">
-          <h2 className="lessons-title">Lessons</h2>
+          <h2 className="lessons-title">{T('Lessons')}</h2>
 
           <div className="lesson-card">
-            <span className="lesson-num">Lesson 1</span>
-            <h3 className="lesson-name">The seven modes of one scale</h3>
+            <span className="lesson-num">{T('Lesson 1')}</span>
+            <h3 className="lesson-name">{T('The seven modes of one scale')}</h3>
             <p className="lesson-desc">
-              One parent scale contains seven modes — the same notes, a different home
-              each time. Walk the neck position by position and claim each mode by ear.
+              {T('One parent scale contains seven modes — the same notes, a different home each time. Walk the neck position by position and claim each mode by ear.')}
             </p>
             <div className="lesson-actions">
               <select className="key-select" value={lessonKey.root}
@@ -1447,21 +1451,20 @@ export default function App() {
               </select>
               <select className="key-select" value={lessonKey.quality}
                 onChange={e => setLessonKey(k => ({ ...k, quality: e.target.value }))}>
-                <option value="ionian">Major</option>
-                <option value="aeolian">Minor</option>
+                <option value="ionian">{T('Major')}</option>
+                <option value="aeolian">{T('Minor')}</option>
               </select>
               <button className="flow-ctl primary" onClick={() => startWalk(lessonKey.root, lessonKey.quality)}>
-                Start →
+                {T('Start')} →
               </button>
             </div>
           </div>
 
           <div className="lesson-card">
-            <span className="lesson-num">Drills</span>
-            <h3 className="lesson-name">One sound at a time</h3>
+            <span className="lesson-num">{T('Drills')}</span>
+            <h3 className="lesson-name">{T('One sound at a time')}</h3>
             <p className="lesson-desc">
-              Short ear-hunts: each one is a single characteristic note against the
-              drone. Owned means the app actually heard you land it.
+              {T('Short ear-hunts: each one is a single characteristic note against the drone. Owned means the app actually heard you land it.')}
             </p>
             <div className="collection-grid">
               {CONCEPTS.filter(c => !c.walk).map(c => {
@@ -1728,16 +1731,16 @@ export default function App() {
             ) : (
               <>
                 <button className={`flow-ctl primary ${focusFound ? 'beckon' : ''}`} onClick={nextConcept}>
-                  {focusFound ? 'Next sound' : 'Next idea'} {'→'}
+                  {focusFound ? T('Next sound') : T('Next idea')} {'→'}
                 </button>
                 {/* The centrepiece must always be one press away. */}
                 <button className="flow-ctl walk-entry" onClick={() => startWalk()}>
-                  Walk the neck
+                  {T('Walk the neck')}
                 </button>
-                <button className="flow-ctl" onClick={shiftPosition}>Shift position</button>
+                <button className="flow-ctl" onClick={shiftPosition}>{T('Shift position')}</button>
               </>
             )}
-            <button className="flow-ctl" onClick={() => up({ conceptId: null })}>‹ Lessons</button>
+            <button className="flow-ctl" onClick={() => up({ conceptId: null })}>‹ {T('Lessons')}</button>
             {renderBackingControls()}
             <button
               key={justTapped}
@@ -1778,8 +1781,7 @@ export default function App() {
           {!isPlaying && !micError && (
             <p className="flow-coach">
               <span className="flow-pip" />
-              Hit <b>&nbsp;play&nbsp;</b> and play anything — a note, a whistle, a hum.
-              The neck shows you what it heard.
+              {T('Hit')} <b>&nbsp;{T('play')}&nbsp;</b> {T('and play anything — a note, a whistle, a hum. The neck shows you what it heard.')}
             </p>
           )}
 
@@ -1828,19 +1830,19 @@ export default function App() {
           {!isPlaying && (
             <div className="jam-setup">
               <div className="jam-setup-row">
-                <span className="study-bar-label">Key</span>
+                <span className="study-bar-label">{T('Key')}</span>
                 <select className="key-select" value={state.keyRoot}
                   onChange={e => up({ keyRoot: e.target.value, selectedScaleRoot: e.target.value, selectedScaleKey: state.keyQuality })}>
                   {NOTE_NAMES.map(n => <option key={n} value={n}>{dn(n)}</option>)}
                 </select>
                 <select className="key-select" value={state.keyQuality}
                   onChange={e => up({ keyQuality: e.target.value, selectedScaleKey: e.target.value })}>
-                  {KEY_QUALITIES.map(q => <option key={q.key} value={q.key}>{q.label}</option>)}
+                  {KEY_QUALITIES.map(q => <option key={q.key} value={q.key}>{T(q.label)}</option>)}
                 </select>
               </div>
 
               <div className="jam-setup-row">
-                <span className="study-bar-label">Jam</span>
+                <span className="study-bar-label">{T('Jam')}</span>
                 <div className="backing-switch" role="group" aria-label="How to improvise">
                   {([
                     ['modes', 'Modes', 'Modal playing — the harmony sits still (or drifts over minutes) and you color inside it'],
@@ -1848,14 +1850,14 @@ export default function App() {
                   ] as const).map(([key, label, title]) => (
                     <button key={key} type="button" title={title}
                       className={`backing-switch-btn ${state.flowJam === key ? 'active' : ''}`}
-                      onClick={() => up({ flowJam: key })}>{label}</button>
+                      onClick={() => up({ flowJam: key })}>{T(label)}</button>
                   ))}
                 </div>
               </div>
 
               {state.flowJam === 'modes' && (
               <div className="jam-setup-row">
-                <span className="study-bar-label">Evolve</span>
+                <span className="study-bar-label">{T('Evolve')}</span>
                 <div className="backing-switch" role="group" aria-label="How the backing evolves">
                   {([
                     ['static', 'Stay', 'One home, the whole session'],
@@ -1864,7 +1866,7 @@ export default function App() {
                   ] as const).map(([key, label, title]) => (
                     <button key={key} type="button" title={title}
                       className={`backing-switch-btn ${state.flowEvolve === key ? 'active' : ''}`}
-                      onClick={() => up({ flowEvolve: key })}>{label}</button>
+                      onClick={() => up({ flowEvolve: key })}>{T(label)}</button>
                   ))}
                 </div>
               </div>
@@ -1882,7 +1884,7 @@ export default function App() {
                     ))}
                   </div>
                   <div className="jam-chord-seq">
-                    {state.flowChords.length === 0 && <span className="jam-chord-hint">tap chords above to build the order</span>}
+                    {state.flowChords.length === 0 && <span className="jam-chord-hint">{T('tap chords above to build the order')}</span>}
                     {state.flowChords.map((deg, i) => {
                       const dc = primaryChords[deg]
                       return (
@@ -1899,12 +1901,12 @@ export default function App() {
 
               {state.flowJam === 'modes' && state.flowEvolve !== 'static' && (
                 <div className="jam-setup-row">
-                  <span className="study-bar-label">Pace</span>
+                  <span className="study-bar-label">{T('Pace')}</span>
                   <div className="backing-switch" role="group" aria-label="Evolution pace">
                     {([[240, 'Slow'], [120, 'Medium'], [60, 'Fast']] as const).map(([sec, label]) => (
                       <button key={sec} type="button"
                         className={`backing-switch-btn ${state.flowPaceSec === sec ? 'active' : ''}`}
-                        onClick={() => up({ flowPaceSec: sec })}>{label}</button>
+                        onClick={() => up({ flowPaceSec: sec })}>{T(label)}</button>
                     ))}
                   </div>
                 </div>
@@ -1912,7 +1914,7 @@ export default function App() {
 
               {state.flowJam === 'changes' && (
                 <div className="jam-setup-row">
-                  <span className="study-bar-label">Tempo</span>
+                  <span className="study-bar-label">{T('Tempo')}</span>
                   <div className="backing-bpm">
                     <button type="button" className="backing-bpm-btn"
                       onClick={() => up({ progressionBpm: Math.max(40, state.progressionBpm - 5) })}>&minus;</button>
@@ -1920,7 +1922,7 @@ export default function App() {
                     <button type="button" className="backing-bpm-btn"
                       onClick={() => up({ progressionBpm: Math.min(200, state.progressionBpm + 5) })}>+</button>
                   </div>
-                  <span className="study-bar-label">Bars each</span>
+                  <span className="study-bar-label">{T('Bars each')}</span>
                   <div className="backing-switch" role="group" aria-label="Bars per chord">
                     {([1, 2, 4] as const).map(n => (
                       <button key={n} type="button"
@@ -1936,9 +1938,9 @@ export default function App() {
           {isPlaying && (
             <p className="jam-home">
               {flowChanges && state.selectedChordRoot ? (
-                <>now — <b>{chordLabel}</b>{nextChordInfo && <> · next — {nextChordInfo.name}</>}</>
+                <>{T('now')} — <b>{chordLabel}</b>{nextChordInfo && <> · {T('next')} — {nextChordInfo.name}</>}</>
               ) : (
-                <>home — <b>{dn(state.selectedScaleRoot || state.keyRoot)}</b></>
+                <>{T('home')} — <b>{dn(state.selectedScaleRoot || state.keyRoot)}</b></>
               )}
               {flowWhisper && <span className="jam-whisper"> · {flowWhisper}</span>}
             </p>
@@ -1989,7 +1991,7 @@ export default function App() {
           {!isPlaying && flowSummary && <p className="jam-summary">{flowSummary}</p>}
           {!isPlaying && !flowSummary && !micError && (
             <p className="flow-coach"><span className="flow-pip" />
-              Hit <b>&nbsp;play&nbsp;</b> and just improvise. No tasks. The sound moves; your hands don't have to.
+              {T('Hit')} <b>&nbsp;{T('play')}&nbsp;</b> {T('and just improvise. No tasks. The sound moves; your hands don’t have to.')}
             </p>
           )}
         </main>
@@ -2002,7 +2004,7 @@ export default function App() {
         <div className="study-bar">
           {/* LEFT — quick look: any scale or chord, by root, without touching
               the key. The glossary path. */}
-          <span className="study-bar-label">Quick look</span>
+          <span className="study-bar-label">{T('Quick look')}</span>
           <select className="key-select"
             value={(quickType === 'scale' ? state.selectedScaleRoot : state.selectedChordRoot) || state.keyRoot}
             onChange={e => {
@@ -2017,9 +2019,9 @@ export default function App() {
           </select>
           <div className="backing-switch" role="group" aria-label="Quick look type">
             <button type="button" className={`backing-switch-btn ${quickType === 'scale' ? 'active' : ''}`}
-              onClick={() => setQuickType('scale')}>Scale</button>
+              onClick={() => setQuickType('scale')}>{T('Scale')}</button>
             <button type="button" className={`backing-switch-btn ${quickType === 'chord' ? 'active' : ''}`}
-              onClick={() => setQuickType('chord')}>Chord</button>
+              onClick={() => setQuickType('chord')}>{T('Chord')}</button>
           </div>
           {quickType === 'scale' ? (
             <select className="type-select" value={state.selectedScaleKey || state.keyQuality}
@@ -2045,14 +2047,14 @@ export default function App() {
 
           {/* MIDDLE — the key: pick one and go all the way (diatonic harmony,
               tiers, positions). The deep-dive path. */}
-          <span className="study-bar-label">Key</span>
+          <span className="study-bar-label">{T('Key')}</span>
           <select className="key-select" value={state.keyRoot}
             onChange={e => up({ keyRoot: e.target.value, selectedScaleRoot: e.target.value, selectedScaleKey: state.keyQuality, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })}>
             {NOTE_NAMES.map(n => <option key={n} value={n}>{dn(n)}</option>)}
           </select>
           <select className="key-select" value={state.keyQuality}
             onChange={e => up({ keyQuality: e.target.value, selectedScaleKey: e.target.value, selectedScaleRoot: state.keyRoot, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })}>
-            {KEY_QUALITIES.map(q => <option key={q.key} value={q.key}>{q.label}</option>)}
+            {KEY_QUALITIES.map(q => <option key={q.key} value={q.key}>{T(q.label)}</option>)}
           </select>
 
           <span className="study-bar-sep" />
@@ -2074,7 +2076,7 @@ export default function App() {
                 : '···'}
             </span>
           )}
-          <button className="intro-open-btn" onClick={() => setIntroOpen(true)}>What is this?</button>
+          <button className="intro-open-btn" onClick={() => setIntroOpen(true)}>{T('What is this?')}</button>
         </div>
 
         {micError && <p className="mic-error study-mic-error">{micError}</p>}
@@ -2165,15 +2167,15 @@ export default function App() {
           <button
             className={`display-mode-btn ${state.showNoteNames && !state.showIntervals ? 'active' : ''}`}
             onClick={() => up({ showNoteNames: true, showIntervals: false })}
-          >Notes</button>
+          >{T('Notes')}</button>
           <button
             className={`display-mode-btn ${!state.showNoteNames && state.showIntervals ? 'active' : ''}`}
             onClick={() => up({ showNoteNames: false, showIntervals: true })}
-          >Intervals</button>
+          >{T('Intervals')}</button>
           <button
             className={`display-mode-btn ${state.showNoteNames && state.showIntervals ? 'active' : ''}`}
             onClick={() => up({ showNoteNames: true, showIntervals: true })}
-          >Both</button>
+          >{T('Both')}</button>
         </div>
 
         {/* Fret window — zoom into a fret range so high frets aren't cramped */}
@@ -2182,7 +2184,7 @@ export default function App() {
           const MAX_FRET = 24
           return (
             <div className="fret-range-bar">
-              <span className="fret-range-label">Frets</span>
+              <span className="fret-range-label">{T('Frets')}</span>
               <select className="fret-range-select" value={lo}
                 onChange={e => {
                   const newLo = Number(e.target.value)
@@ -2257,7 +2259,7 @@ export default function App() {
             ) : (
               <>
                 <button className={`pos-btn ${state.scalePosition === null ? 'active' : ''}`}
-                  onClick={() => up({ scalePosition: null })}>All</button>
+                  onClick={() => up({ scalePosition: null })}>{T('All')}</button>
                 {scalePositions.map((_, i) => (
                   <button key={i}
                     className={`pos-btn ${state.scalePosition === i + 1 ? 'active' : ''}`}
@@ -2275,7 +2277,7 @@ export default function App() {
           </div>
           <button className="advanced-toggle" onClick={() => up({ advancedMode: !state.advancedMode })}>
             <span className={`advanced-arrow ${state.advancedMode ? 'open' : ''}`}>&#9656;</span>
-            More
+            {T('More')}
           </button>
         </div>
 
@@ -2445,7 +2447,7 @@ export default function App() {
         <div className="tuner-overlay" onClick={closeTuner}>
           <div className="tuner-panel" onClick={e => e.stopPropagation()}>
             <div className="drawer-header">
-              <span className="drawer-title">Tuner</span>
+              <span className="drawer-title">{T('Tuner')}</span>
               <button className="drawer-close" onClick={closeTuner}>&times;</button>
             </div>
             {micError && <p className="mic-error">{micError}</p>}
@@ -2468,7 +2470,7 @@ export default function App() {
               <span className="tuner-sharp">&#9839;</span>
             </div>
             <div className="tuner-cents">
-              {tunerPitch ? `${tunerPitch.cents > 0 ? '+' : ''}${Math.round(tunerPitch.cents)}¢` : 'play a string'}
+              {tunerPitch ? `${tunerPitch.cents > 0 ? '+' : ''}${Math.round(tunerPitch.cents)}¢` : T('play a string')}
             </div>
             <div className="tuner-strings">
               {tuning.notes.map((midi, i) => {
@@ -2488,7 +2490,7 @@ export default function App() {
       {/* Settings Drawer */}
       <div className={`settings-drawer ${settingsOpen ? 'open' : ''}`}>
         <div className="drawer-header">
-          <span className="drawer-title">Settings</span>
+          <span className="drawer-title">{T('Settings')}</span>
           <button className="drawer-close" onClick={() => setSettingsOpen(false)}>&times;</button>
         </div>
         <div className="drawer-body">
@@ -2508,7 +2510,7 @@ export default function App() {
                   earning its select. guitarModel stays in AppState pinned to
                   'strat'; the renderer still supports both if it returns. */}
               <div className="drawer-half">
-                <span className="drawer-label">TUNING</span>
+                <span className="drawer-label">{T('TUNING')}</span>
                 <select className="type-select" value={state.tuningKey}
                   onChange={e => up({ tuningKey: e.target.value })}>
                   {Object.entries(TUNINGS).map(([key, t]) => (
@@ -2549,17 +2551,17 @@ export default function App() {
           </div>
 
           <div className="drawer-section">
-            <span className="drawer-label">DRONE</span>
+            <span className="drawer-label">{T('DRONE')}</span>
             <DrawerSlider
-              label="Volume" value={state.droneVolume} max={3}
+              label={T('Volume')} value={state.droneVolume} max={3}
               onChange={v => up({ droneVolume: v })}
             />
             <DrawerSlider
-              label="Spread" value={state.droneSpread} max={1.5}
+              label={T('Spread')} value={state.droneSpread} max={1.5}
               onChange={v => up({ droneSpread: v })}
             />
             <DrawerSlider
-              label="Tone" value={state.droneTone} max={1}
+              label={T('Tone')} value={state.droneTone} max={1}
               onChange={v => up({ droneTone: v })}
             />
           </div>
@@ -2567,15 +2569,15 @@ export default function App() {
           <div className="drawer-section">
             <span className="drawer-label">PAD</span>
             <DrawerSlider
-              label="Volume" value={state.padVolume} max={3}
+              label={T('Volume')} value={state.padVolume} max={3}
               onChange={v => up({ padVolume: v })}
             />
             <DrawerSlider
-              label="Spread" value={state.padSpread} max={1.5}
+              label={T('Spread')} value={state.padSpread} max={1.5}
               onChange={v => up({ padSpread: v })}
             />
             <DrawerSlider
-              label="Tone" value={state.padTone} max={1}
+              label={T('Tone')} value={state.padTone} max={1}
               onChange={v => up({ padTone: v })}
             />
           </div>
