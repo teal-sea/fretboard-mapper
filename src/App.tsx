@@ -673,48 +673,6 @@ export default function App() {
 
   const backingNoun = state.backingMode === 'chord' ? 'the chord' : state.backingMode === 'arp' ? 'the arpeggiator' : 'the drone'
 
-  // Drone / Chord / Arp switch, shown right beside Play in both Flow and
-  // Study — same markup either place so they can't drift apart.
-  const backingControls = (
-    <div className="backing-controls">
-      <div className="backing-switch" role="group" aria-label="Backing sound">
-        {BACKING_MODES.map(m => (
-          <button
-            key={m.key}
-            type="button"
-            className={`backing-switch-btn ${state.backingMode === m.key ? 'active' : ''}`}
-            onClick={() => up({ backingMode: m.key })}
-            title={m.title}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
-      <button
-        type="button"
-        className={`backing-metro-btn ${metronomeOn ? 'active' : ''}`}
-        onClick={toggleMetronome}
-        title={metronomeOn ? 'Stop the metronome' : 'Start the metronome'}
-        aria-label="Metronome"
-      >♩</button>
-      {(state.backingMode === 'arp' || metronomeOn) && (
-        <div className="backing-bpm">
-          <button type="button" className="backing-bpm-btn"
-            onClick={() => up({ progressionBpm: Math.max(40, state.progressionBpm - 5) })}>&minus;</button>
-          <span className="backing-bpm-val">{state.progressionBpm}</span>
-          <button type="button" className="backing-bpm-btn"
-            onClick={() => up({ progressionBpm: Math.min(200, state.progressionBpm + 5) })}>+</button>
-        </div>
-      )}
-    </div>
-  )
-
-  // BPM changes retime a running click immediately — without this the stepper
-  // only applied on the next metronome start.
-  useEffect(() => {
-    if (metronomeOn) startMetronome(state.progressionBpm)
-  }, [state.progressionBpm, metronomeOn])
-
   // ─── Tuner ───
   // The pitch pipe already reports cents-off-nearest-note; the tuner is just
   // that number with a needle. It borrows the mic if Play already has it
@@ -766,6 +724,55 @@ export default function App() {
     }, 80)
     return () => clearInterval(t)
   }, [tunerOpen])
+
+  // Drone / Chord / Arp switch, shown right beside Play in both Flow and
+  // Study — same markup either place so they can't drift apart.
+  const backingControls = (
+    <div className="backing-controls">
+      <div className="backing-switch" role="group" aria-label="Backing sound">
+        {BACKING_MODES.map(m => (
+          <button
+            key={m.key}
+            type="button"
+            className={`backing-switch-btn ${state.backingMode === m.key ? 'active' : ''}`}
+            onClick={() => up({ backingMode: m.key })}
+            title={m.title}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        className={`backing-metro-btn ${metronomeOn ? 'active' : ''}`}
+        onClick={toggleMetronome}
+        title={metronomeOn ? 'Stop the metronome' : 'Start the metronome'}
+        aria-label="Metronome"
+      >♩</button>
+      <button
+        type="button"
+        className={`backing-metro-btn backing-tuner-btn ${tunerOpen ? 'active' : ''}`}
+        onClick={() => (tunerOpen ? closeTuner() : openTuner())}
+        title={tunerOpen ? 'Close the tuner' : 'Tune up'}
+        aria-label="Tuner"
+      >Tune</button>
+      {(state.backingMode === 'arp' || metronomeOn) && (
+        <div className="backing-bpm">
+          <button type="button" className="backing-bpm-btn"
+            onClick={() => up({ progressionBpm: Math.max(40, state.progressionBpm - 5) })}>&minus;</button>
+          <span className="backing-bpm-val">{state.progressionBpm}</span>
+          <button type="button" className="backing-bpm-btn"
+            onClick={() => up({ progressionBpm: Math.min(200, state.progressionBpm + 5) })}>+</button>
+        </div>
+      )}
+    </div>
+  )
+
+  // BPM changes retime a running click immediately — without this the stepper
+  // only applied on the next metronome start.
+  useEffect(() => {
+    if (metronomeOn) startMetronome(state.progressionBpm)
+  }, [state.progressionBpm, metronomeOn])
 
   // Poll the detector ~20×/s. A note must be heard twice in a row to commit
   // (kills flicker from transients); it lingers ~500ms after you stop (kills
@@ -1236,13 +1243,6 @@ export default function App() {
         </div>
 
         <div className="shell-actions">
-          <button
-            className={`icon-btn ${tunerOpen ? 'active' : ''}`}
-            onClick={() => (tunerOpen ? closeTuner() : openTuner())}
-            title="Tuner"
-          >
-            &#9833;
-          </button>
           <button className="icon-btn" onClick={() => setSettingsOpen(true)} title="Settings">
             &#9881;
           </button>
