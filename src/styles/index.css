@@ -2174,16 +2174,23 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   gap: 10px;
   min-width: 0;
 }
+/* The mark is the best asset the product has — it gets real size and a
+   real glow, not a favicon-in-the-corner treatment. */
 .shell-logo {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
-  filter: drop-shadow(0 0 8px rgba(152,70,234,0.45));
+  filter: drop-shadow(0 0 12px rgba(152,70,234,0.55)) drop-shadow(0 0 26px rgba(9,206,222,0.25));
+  transition: filter var(--transition-slow), transform var(--transition-slow);
+}
+.shell-brand:hover .shell-logo {
+  filter: drop-shadow(0 0 16px rgba(152,70,234,0.8)) drop-shadow(0 0 34px rgba(247,73,162,0.4));
+  transform: scale(1.05);
 }
 .shell-name {
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   white-space: nowrap;
   background: var(--brand-grad);
   -webkit-background-clip: text;
@@ -3582,7 +3589,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
     gap: 8px;
     padding: 8px 10px;
   }
-  .shell-logo { width: 24px; height: 24px; }
+  .shell-logo { width: 36px; height: 36px; }
   .mode-switch { padding: 2px; gap: 2px; justify-self: center; }
   .mode-btn {
     padding: 6px 15px;

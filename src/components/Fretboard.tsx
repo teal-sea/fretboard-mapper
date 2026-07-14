@@ -256,17 +256,22 @@ export default function Fretboard({
               stroke="rgba(255,255,255,0.015)" strokeWidth={0.5} />
           ))}
 
-          {/* Position highlight */}
-          {posRange && (
-            <rect
-              x={posRange[0] === 0 ? nutX - 5 : nutX + fretPos[posRange[0]]}
-              y={paddingTop - 14}
-              width={(nutX + fretPos[posRange[1]]) - (posRange[0] === 0 ? nutX - 5 : nutX + fretPos[posRange[0]])}
-              height={fretboardHeight + 28}
-              fill="rgba(212,160,23,0.08)" rx={2}
-              className="pos-highlight"
-            />
-          )}
+          {/* Position bounds — two quiet vertical ticks, not a wash. The old
+              translucent gold rect tinted the whole window mustard and read
+              as a rendering artifact; the ghosted notes outside the window
+              already communicate where the position lives. */}
+          {posRange && (() => {
+            const x0 = posRange[0] === 0 ? nutX - 5 : nutX + fretPos[posRange[0]]
+            const x1 = nutX + fretPos[posRange[1]]
+            return (
+              <g className="pos-highlight">
+                <rect x={x0 - 1} y={paddingTop - 14} width={2} height={fretboardHeight + 28}
+                  fill="rgba(255,255,255,0.16)" rx={1} />
+                <rect x={x1 - 1} y={paddingTop - 14} width={2} height={fretboardHeight + 28}
+                  fill="rgba(255,255,255,0.16)" rx={1} />
+              </g>
+            )
+          })()}
 
           {/* Inlays */}
           {inlayStyle === 'dots' && (

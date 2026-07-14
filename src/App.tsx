@@ -99,13 +99,13 @@ const THEME_OPTIONS: { key: AppState['colorTheme']; label: string; accent: strin
 ]
 
 const initialState: AppState = {
-  keyRoot: 'A',
-  keyQuality: 'aeolian',
+  keyRoot: 'C',
+  keyQuality: 'ionian',
   viewMode: 'scales',
   selectedChordRoot: null,
   selectedChordKey: null,
-  selectedScaleRoot: 'A',
-  selectedScaleKey: 'aeolian',
+  selectedScaleRoot: 'C',
+  selectedScaleKey: 'ionian',
   tuningKey: 'standard',
   inlayStyle: 'dots',
   showNoteNames: true,
@@ -340,6 +340,10 @@ export default function App() {
     }
     return cats
   }, [])
+
+  // Quick look — the glossary path: grab any scale or chord by root without
+  // touching the key. The key path (middle of the bar) is the deep dive.
+  const [quickType, setQuickType] = useState<'scale' | 'chord'>('scale')
 
   const chordsByCategory = useMemo(() => {
     const cats: Record<string, [string, { name: string; suffix: string }][]> = {}
@@ -964,7 +968,12 @@ export default function App() {
   }, [state.appMode, state.flowJam, droneOn, state.flowEvolve, state.flowPaceSec, state.flowChords, sameNoteModes, selectSibling])
 
   // Session bookkeeping: counters reset on Play, summary written on Stop.
+  // The drift is ambience, not a decision — when the session stops, home
+  // goes back to the key the player actually chose, so Study (and the next
+  // load, via persistence) never inherits whatever mode the timer wandered
+  // into mid-jam.
   const flowSoundOn = droneOn || state.progressionPlaying
+  const flowStartKeyRef = useRef<{ root: string; quality: string } | null>(null)
   useEffect(() => {
     if (state.appMode !== 'flow') return
     if (flowSoundOn) {
@@ -972,11 +981,19 @@ export default function App() {
       flowNotesRef.current = 0
       flowStepRef.current = 0
       flowHomesRef.current = new Set([state.keyRoot])
+      flowStartKeyRef.current = { root: state.keyRoot, quality: state.keyQuality }
       setFlowSummary(null)
       setFlowWhisper(null)
     } else if (flowStartRef.current !== null) {
       const minutes = (Date.now() - flowStartRef.current) / 60000
       flowStartRef.current = null
+      const startKey = flowStartKeyRef.current
+      if (startKey && (startKey.root !== state.keyRoot || startKey.quality !== state.keyQuality)) {
+        up({
+          keyRoot: startKey.root, keyQuality: startKey.quality,
+          selectedScaleRoot: startKey.root, selectedScaleKey: startKey.quality,
+        })
+      }
       setFlowSummary(describeFlowSession({
         minutes,
         notesHeard: flowNotesRef.current,
@@ -1335,7 +1352,7 @@ export default function App() {
       {/* ─── The shell: one switch between two first-class modes ─── */}
       <header className="shell-header">
         <div className="shell-brand">
-          <img className="shell-logo" src="/mark.png" alt="" width={28} height={28} />
+          <img className="shell-logo" src="/mark.png" alt="Modal Runs" width={44} height={44} />
           <span className="shell-name">modalruns</span>
         </div>
 
@@ -1936,26 +1953,59 @@ export default function App() {
       <main className="study-stage">
         {/* One toolbar instead of four stacked strips */}
         <div className="study-bar">
-          <span className="study-bar-label">Key</span>
-          <select className="key-select" value={state.keyRoot}
-            onChange={e => up({ keyRoot: e.target.value, selectedScaleRoot: e.target.value, selectedScaleKey: state.keyQuality })}>
+          {/* LEFT — quick look: any scale or chord, by root, without touching
+              the key. The glossary path. */}
+          <span className="study-bar-label">Quick look</span>
+          <select className="key-select"
+            value={(quickType === 'scale' ? state.selectedScaleRoot : state.selectedChordRoot) || state.keyRoot}
+            onChange={e => {
+              const root = e.target.value
+              if (quickType === 'scale') {
+                up({ selectedScaleRoot: root, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })
+              } else {
+                up({ selectedChordRoot: root, selectedChordKey: state.selectedChordKey || 'major', viewMode: 'chords', chordPosition: null })
+              }
+            }}>
             {NOTE_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
           </select>
-          <select className="key-select" value={state.keyQuality}
-            onChange={e => up({ keyQuality: e.target.value, selectedScaleKey: e.target.value })}>
-            {KEY_QUALITIES.map(q => <option key={q.key} value={q.key}>{q.label}</option>)}
-          </select>
+          <div className="backing-switch" role="group" aria-label="Quick look type">
+            <button type="button" className={`backing-switch-btn ${quickType === 'scale' ? 'active' : ''}`}
+              onClick={() => setQuickType('scale')}>Scale</button>
+            <button type="button" className={`backing-switch-btn ${quickType === 'chord' ? 'active' : ''}`}
+              onClick={() => setQuickType('chord')}>Chord</button>
+          </div>
+          {quickType === 'scale' ? (
+            <select className="type-select" value={state.selectedScaleKey || state.keyQuality}
+              onChange={e => up({ selectedScaleKey: e.target.value, selectedScaleRoot: state.selectedScaleRoot || state.keyRoot, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })}>
+              {Object.entries(scalesByCategory).map(([cat, scales]) => (
+                <optgroup key={cat} label={cat}>
+                  {scales.map(([key, s]) => <option key={key} value={key}>{s.name}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          ) : (
+            <select className="type-select" value={state.selectedChordKey || 'major'}
+              onChange={e => up({ selectedChordKey: e.target.value, selectedChordRoot: state.selectedChordRoot || state.keyRoot, viewMode: 'chords', chordPosition: null })}>
+              {Object.entries(chordsByCategory).map(([cat, chords]) => (
+                <optgroup key={cat} label={cat}>
+                  {chords.map(([key, ch]) => <option key={key} value={key}>{ch.name}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          )}
 
           <span className="study-bar-sep" />
 
-          <span className="study-bar-label">Scale</span>
-          <select className="type-select" value={state.selectedScaleKey || state.keyQuality}
-            onChange={e => up({ selectedScaleKey: e.target.value, selectedScaleRoot: state.keyRoot, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })}>
-            {Object.entries(scalesByCategory).map(([cat, scales]) => (
-              <optgroup key={cat} label={cat}>
-                {scales.map(([key, s]) => <option key={key} value={key}>{s.name}</option>)}
-              </optgroup>
-            ))}
+          {/* MIDDLE — the key: pick one and go all the way (diatonic harmony,
+              tiers, positions). The deep-dive path. */}
+          <span className="study-bar-label">Key</span>
+          <select className="key-select" value={state.keyRoot}
+            onChange={e => up({ keyRoot: e.target.value, selectedScaleRoot: e.target.value, selectedScaleKey: state.keyQuality, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })}>
+            {NOTE_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+          <select className="key-select" value={state.keyQuality}
+            onChange={e => up({ keyQuality: e.target.value, selectedScaleKey: e.target.value, selectedScaleRoot: state.keyRoot, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })}>
+            {KEY_QUALITIES.map(q => <option key={q.key} value={q.key}>{q.label}</option>)}
           </select>
 
           <span className="study-bar-sep" />
