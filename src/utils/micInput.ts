@@ -29,13 +29,15 @@ let rmsGate = BASE_RMS_GATE
 let calibrateTimer: ReturnType<typeof setInterval> | null = null
 
 // Bleed can be quasi-periodic (the drone is), so the gate matters more than
-// clarity. 2.5× ambient keeps casual bleed out without eating soft playing.
-const CALIBRATION_MARGIN = 2.5
-// Never gate so high that normal playing can't get through — this was the
-// other half of "only bass strings register": in a slightly noisy room,
-// calibration could push the gate up to a level a quietly-picked high
-// string couldn't clear even though the low strings still could.
-const MAX_GATE = 0.07
+// clarity. Confirmed from a real device: with 2.5x/0.07 the gate calibrated
+// to ~0.06 against drone bleed, bass strings cleared it, and treble strings
+// came in "way under" — nowhere close. Trebles are just quieter at the mic
+// than a loud drone bleeding through speakers; margin and ceiling both had
+// to come down hard, biased toward "hear real playing" over "reject bleed
+// perfectly". If drone bleed becomes the problem again, the fix is turning
+// the Drone/Pad Volume down (or using headphones), not tightening this back.
+const CALIBRATION_MARGIN = 1.6
+const MAX_GATE = 0.02
 
 export function recalibrateMic(): void {
   if (!analyser || !sampleBuf) return
