@@ -126,10 +126,18 @@ export function isMicRunning(): boolean {
   return stream !== null
 }
 
+// Raw level of the last read, regardless of whether it cleared the gate —
+// a diagnostic window into why a real note isn't registering (level? or
+// something past the level check).
+let lastRms = 0
+export function getLastRms(): number { return lastRms }
+export function getRmsGate(): number { return rmsGate }
+
 // Grab the current buffer and run pitch detection on it, gated above the
 // calibrated ambient floor.
 export function readPitch(): PitchResult | null {
   if (!analyser || !sampleBuf) return null
   analyser.getFloatTimeDomainData(sampleBuf)
+  lastRms = measureRms(sampleBuf)
   return detectPitch(sampleBuf, getCtx().sampleRate, rmsGate)
 }
