@@ -145,7 +145,7 @@ describe('recontextualise — the payoff', () => {
     const r = recontextualise('A', CHORDS['min7'].intervals, 'F')
     expect(r.newTonic).toBe('F')
     expect(r.intervals).toEqual(['3', '5', '7', '2'])
-    expect(r.sentence).toContain("Don't move your hands")
+    expect(r.sentence).toContain('Don’t move your hands')
     expect(r.sentence).toContain('F')
   })
 

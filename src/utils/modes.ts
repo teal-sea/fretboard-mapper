@@ -16,6 +16,8 @@
 
 import { SCALES, noteIndex, noteName, useFlats, getScaleNotes, intervalName } from './musicTheory'
 import { plainScaleName } from './theory'
+import type { Language } from './noteNames'
+import { tf } from './i18n'
 
 export interface SiblingMode {
   root: string        // the tonic that makes this mode
@@ -109,8 +111,11 @@ export interface Recontext {
 export function recontextualise(
   chordRoot: string,
   chordIntervals: number[],
-  newTonic: string
+  newTonic: string,
+  lang: Language = 'en',
+  noteLabel?: (n: string) => string
 ): Recontext {
+  const dn = noteLabel ?? ((n: string) => n)
   const chordPc = noteIndex(chordRoot)
   const tonicPc = noteIndex(newTonic)
   const flats = useFlats(newTonic)
@@ -121,14 +126,14 @@ export function recontextualise(
   })
 
   const notes = chordIntervals
-    .map(i => noteName((chordPc + i) % 12, flats))
+    .map(i => dn(noteName((chordPc + i) % 12, flats)))
     .join(', ')
 
-  const sentence =
-    `Don't move your hands. The drone is now on ${newTonic}. Those same notes — ` +
-    `${notes} — are no longer a ${chordRoot} chord sitting at home; against ${newTonic} ` +
-    `they're the ${intervals.join(', ')}. Identical shape. Completely different meaning. ` +
-    `That is what a mode actually is.`
+  const sentence = tf(
+    'Don’t move your hands. The drone is now on {tonic}. Those same notes — {notes} — are no longer a {chordRoot} chord sitting at home; against {tonic} they’re the {intervals}. Identical shape. Completely different meaning. That is what a mode actually is.',
+    lang,
+    { tonic: dn(newTonic), notes, chordRoot: dn(chordRoot), intervals: intervals.join(', ') }
+  )
 
   return { newTonic, intervals, sentence }
 }

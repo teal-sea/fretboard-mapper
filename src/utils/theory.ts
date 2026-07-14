@@ -11,6 +11,8 @@ import {
   noteIndex, noteName, intervalName, useFlats,
 } from './musicTheory'
 import type { DiatonicChord } from './musicTheory'
+import type { Language } from './noteNames'
+import { t, tf } from './i18n'
 
 export interface Insight {
   eyebrow: string        // the kind of thing this is
@@ -38,36 +40,37 @@ const PLAIN: Record<string, string> = {
   blues: 'the 5-note solo scale plus one deliberately "wrong" note',
 }
 
-export function plainScaleName(scaleKey: string): string | null {
-  return PLAIN[scaleKey] ?? null
+export function plainScaleName(scaleKey: string, lang: Language = 'en'): string | null {
+  const plain = PLAIN[scaleKey]
+  return plain ? t(plain, lang) : null
 }
 
 // The objective, in words a beginner can act on. Every value is passed in,
-// so this can't drift out of sync with what's on the neck.
+// so this can't drift out of sync with what's on the neck. Note labels
+// (root/focusNote) arrive already display-converted by the caller.
 export function getObjective(opts: {
   root: string
   scaleKey: string
   focusInterval: string
   focusNote: string
   hasShape: boolean
-}): string {
+}, lang: Language = 'en'): string {
   const { root, scaleKey, focusInterval, focusNote, hasShape } = opts
   const plain = PLAIN[scaleKey]
-  const scaleName = SCALES[scaleKey]?.name ?? scaleKey
+  const scaleName = t(SCALES[scaleKey]?.name ?? scaleKey, lang)
 
   const what = plain
-    ? `${root} ${scaleName} is ${plain}.`
-    : `You're playing ${root} ${scaleName}.`
+    ? tf('{root} {scale} is {plain}.', lang, { root, scale: scaleName, plain: t(plain, lang) })
+    : tf('You’re playing {root} {scale}.', lang, { root, scale: scaleName })
 
   const shape = hasShape
-    ? ' The white-outlined notes are a shape you can sweep through.'
+    ? t(' The white-outlined notes are a shape you can sweep through.', lang)
     : ''
 
-  return (
-    `${what} A drone is holding ${root} underneath you, so every note you play ` +
-    `is heard against it.${shape} Your job: play around and land on ${focusNote} — ` +
-    `the glowing notes. That's the ${focusInterval}, the one note that gives this ` +
-    `scale its character. When the app hears you hit it, it'll tell you.`
+  return tf(
+    '{what} A drone is holding {root} underneath you, so every note you play is heard against it.{shape} Your job: play around and land on {note} — the glowing notes. That’s the {interval}, the one note that gives this scale its character. When the app hears you hit it, it’ll tell you.',
+    lang,
+    { what, root, shape, note: focusNote, interval: focusInterval }
   )
 }
 
@@ -95,6 +98,10 @@ export const PRIMER: { q: string; a: string }[] = [
     a: 'Your microphone. Play, whistle, or hum. It works out which note you produced and lights it up on the neck. When you land the glowing note, you own that sound.',
   },
 ]
+
+export function getPrimer(lang: Language = 'en'): { q: string; a: string }[] {
+  return PRIMER.map(p => ({ q: t(p.q, lang), a: t(p.a, lang) }))
+}
 
 // ─── What makes each scale itself ───
 // The one note that, if you changed it, would make it a different mode.
@@ -161,22 +168,28 @@ const CHARACTER: Record<string, { focus: string; title: string; body: string }> 
   },
 }
 
-export function getScaleInsight(root: string, scaleKey: string): Insight | null {
+export function getScaleInsight(
+  root: string,
+  scaleKey: string,
+  lang: Language = 'en',
+  noteLabel?: (n: string) => string  // display conversion (solfège); identity if absent
+): Insight | null {
   const scale = SCALES[scaleKey]
   const c = CHARACTER[scaleKey]
   if (!scale || !c) return null
 
+  const dn = noteLabel ?? ((n: string) => n)
   const flats = useFlats(root)
   const semis = scale.intervals.find(i => intervalName(i % 12) === c.focus)
   const focusNote =
     semis !== undefined ? noteName((noteIndex(root) + semis) % 12, flats) : null
 
   return {
-    eyebrow: 'The sound',
-    title: c.title,
+    eyebrow: t('The sound', lang),
+    title: t(c.title, lang),
     body: focusNote
-      ? `${c.body} In ${root}, that note is ${focusNote}.`
-      : c.body,
+      ? t(c.body, lang) + tf(' In {root}, that note is {note}.', lang, { root: dn(root), note: dn(focusNote) })
+      : t(c.body, lang),
     focus: c.focus,
   }
 }
@@ -187,11 +200,14 @@ export function getChordInsight(
   keyRoot: string,
   keyQuality: string,
   dc: DiatonicChord,
-  tonicChord: DiatonicChord | null
+  tonicChord: DiatonicChord | null,
+  lang: Language = 'en',
+  noteLabel?: (n: string) => string
 ): Insight | null {
   const scale = SCALES[keyQuality]
   if (!scale) return null
 
+  const dn = noteLabel ?? ((n: string) => n)
   const flats = useFlats(keyRoot)
   const keyIdx = noteIndex(keyRoot)
   const chordTones = getChordNotes(dc.root, dc.chordDef)
@@ -218,33 +234,37 @@ export function getChordInsight(
       : null
   const colourIv = colourSemis !== undefined ? intervalName(colourSemis % 12) : null
 
+  const chordName = dn(dc.root) + dc.chordDef.suffix
   const parts: string[] = []
 
-  parts.push(
-    `${dc.fullName} is the ${dc.romanNumeral} of ${keyRoot} ${scale.name.replace(/\s*\(.*\)/, '')}.`
-  )
+  parts.push(tf('{chord} is the {roman} of {key} {scale}.', lang, {
+    chord: chordName,
+    roman: dc.romanNumeral,
+    key: dn(keyRoot),
+    scale: t(scale.name, lang).replace(/\s*\(.*\)/, ''),
+  }))
 
   if (sharedNames.length >= 2) {
-    parts.push(
-      `It shares ${sharedNames.slice(0, 3).join(' and ')} with your home chord — that overlap is why it can wander this far and still sound like it belongs.`
-    )
+    parts.push(tf('It shares {notes} with your home chord — that overlap is why it can wander this far and still sound like it belongs.', lang, {
+      notes: sharedNames.slice(0, 3).map(dn).join(t(' and ', lang)),
+    }))
   } else if (sharedNames.length === 1) {
-    parts.push(
-      `Its only anchor to home is ${sharedNames[0]} — which is exactly why it feels like it's pulling away.`
-    )
+    parts.push(tf('Its only anchor to home is {note} — which is exactly why it feels like it’s pulling away.', lang, {
+      note: dn(sharedNames[0]),
+    }))
   }
 
   if (colourNote && colourIv) {
-    parts.push(
-      `The note doing the work is ${colourNote}, its ${colourIv} — that's the ${degreeOf(noteIndex(colourNote))} of the key.`
-    )
+    parts.push(tf('The note doing the work is {note}, its {iv} — that’s the {deg} of the key.', lang, {
+      note: dn(colourNote), iv: colourIv, deg: degreeOf(noteIndex(colourNote)),
+    }))
   }
 
-  parts.push(`Play the scale, but aim at the lit-up chord tones. They land; everything else is passing through.`)
+  parts.push(t('Play the scale, but aim at the lit-up chord tones. They land; everything else is passing through.', lang))
 
   return {
-    eyebrow: 'Why it works',
-    title: `${dc.fullName} over ${keyRoot}`,
+    eyebrow: t('Why it works', lang),
+    title: tf('{chord} over {key}', lang, { chord: chordName, key: dn(keyRoot) }),
     body: parts.join(' '),
     focus: colourIv ?? undefined,
   }

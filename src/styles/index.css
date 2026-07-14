@@ -2287,10 +2287,12 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   filter: drop-shadow(0 0 16px rgba(152,70,234,0.8)) drop-shadow(0 0 34px rgba(247,73,162,0.4));
   transform: scale(1.05);
 }
+/* Same face and cut as the original wordmark — only the SIZE grew. The
+   800-weight experiment read as a different font; 700 is the brand. */
 .shell-name {
   font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  letter-spacing: -0.025em;
   white-space: nowrap;
   background: var(--brand-grad);
   -webkit-background-clip: text;
