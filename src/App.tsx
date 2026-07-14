@@ -676,8 +676,10 @@ export default function App() {
   )
 
   // Poll the detector ~20×/s. A note must be heard twice in a row to commit
-  // (kills flicker from transients); it lingers ~200ms after you stop (kills
-  // strobing between notes). State only changes when the NOTE changes.
+  // (kills flicker from transients); it lingers ~500ms after you stop (kills
+  // strobing between notes, and gives a fast-decaying high string the same
+  // satisfying on-screen hang time a sustained bass note gets for free).
+  // State only changes when the NOTE changes.
   const lastRawRef = useRef<number | null>(null)
   const emptyCountRef = useRef(0)
   // Live level/gate readout — diagnostic surface for "why isn't it hearing
@@ -702,7 +704,7 @@ export default function App() {
       } else {
         lastRawRef.current = null
         emptyCountRef.current++
-        if (emptyCountRef.current >= 4) {
+        if (emptyCountRef.current >= 10) {
           setHeardMidi(cur => (cur === null ? cur : null))
         }
       }
