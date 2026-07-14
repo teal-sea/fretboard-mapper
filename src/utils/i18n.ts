@@ -10,6 +10,7 @@
 // Note NAMES (C → Do) are a separate system: utils/noteNames.ts.
 
 import type { Language } from './noteNames'
+import { CONTENT } from './i18nContent'
 
 type Entry = Partial<Record<Language, string>>
 
@@ -107,6 +108,30 @@ const STRINGS: Record<string, Entry> = {
   'Walk the neck':  { es: 'Recorre el mástil', fr: 'Parcours le manche', it: 'Percorri il manico', pt: 'Percorra o braço' },
   'Shift position': { es: 'Cambiar posición', fr: 'Changer de position', it: 'Cambia posizione', pt: 'Mudar posição' },
 
+  // ─── Learn-session chrome ───
+  'sounds you own': { es: 'sonidos tuyos', fr: 'sons à toi', it: 'suoni tuoi', pt: 'sons seus' },
+  'Find every {note} — the glowing notes': {
+    es: 'Encuentra cada {note} — las notas que brillan',
+    fr: 'Trouve chaque {note} — les notes qui brillent',
+    it: 'Trova ogni {note} — le note che brillano',
+    pt: 'Encontre cada {note} — as notas brilhando',
+  },
+  'find these': { es: 'encuentra estas', fr: 'trouve celles-ci', it: 'trova queste', pt: 'encontre estas' },
+  'safe to play': { es: 'seguras de tocar', fr: 'sans risque', it: 'sicure da suonare', pt: 'seguras de tocar' },
+  'what it hears you play': { es: 'lo que te oye tocar', fr: 'ce qu’il t’entend jouer', it: 'quello che ti sente suonare', pt: 'o que ele ouve você tocar' },
+
+  // ─── Theory layer chrome ───
+  'the': { es: 'el', fr: 'le', it: 'il', pt: 'o' },
+  'hide': { es: 'ocultar', fr: 'masquer', it: 'nascondi', pt: 'ocultar' },
+  'show the theory': { es: 'mostrar la teoría', fr: 'afficher la théorie', it: 'mostra la teoria', pt: 'mostrar a teoria' },
+  'There are': { es: 'Hay', fr: 'Il y a', it: 'Ci sono', pt: 'Há' },
+  'chords that fit entirely inside this scale. Every one of them is a place you can land.': {
+    es: 'acordes que caben por completo dentro de esta escala. Cada uno de ellos es un lugar donde puedes aterrizar.',
+    fr: 'accords qui tiennent entièrement dans cette gamme. Chacun d’eux est un endroit où tu peux te poser.',
+    it: 'accordi che stanno interamente dentro questa scala. Ognuno di loro è un posto dove puoi atterrare.',
+    pt: 'acordes que cabem inteiramente dentro desta escala. Cada um deles é um lugar onde você pode pousar.',
+  },
+
   // ─── Settings drawer ───
   'Settings': { es: 'Ajustes', fr: 'Réglages', it: 'Impostazioni', pt: 'Ajustes' },
   'DRONE':  { es: 'BORDÓN', fr: 'BOURDON', it: 'BORDONE', pt: 'BORDÃO' },
@@ -191,7 +216,7 @@ const STRINGS: Record<string, Entry> = {
 
 export function t(key: string, lang: Language): string {
   if (lang === 'en') return key
-  return STRINGS[key]?.[lang] ?? key
+  return STRINGS[key]?.[lang] ?? CONTENT[key]?.[lang] ?? key
 }
 
 export function tf(key: string, lang: Language, vars: Record<string, string | number>): string {

@@ -15,11 +15,11 @@ import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome,
 import { CONCEPTS, getNextConcept, markSeen, loadOwned, markOwned, type Concept } from './utils/concepts'
 import { startMic, stopMic, readPitch, recalibrateMic, getMicError, getLastRms, getRmsGate, isMicRunning } from './utils/micInput'
 import { intervalSemitones } from './utils/musicTheory'
-import { getScaleInsight, getChordInsight, chordsInScale, getObjective, PRIMER } from './utils/theory'
+import { getScaleInsight, getChordInsight, chordsInScale, getObjective, getPrimer } from './utils/theory'
 import { getSameNoteModes, recontextualise, type SiblingMode } from './utils/modes'
 import { loadPersistedState, savePersistedState } from './utils/persist'
 import { displayNote, LANGUAGES } from './utils/noteNames'
-import { t as translate } from './utils/i18n'
+import { t as translate, tf } from './utils/i18n'
 import { nextFlowHome, describeFlowShift, describeFlowSession } from './utils/flowEngine'
 import FlowCanvas, { type FlowPulse } from './components/FlowCanvas'
 import { familyId, getClaims, claimMode, markCompleted, totalClaimed } from './utils/progress'
@@ -329,11 +329,11 @@ export default function App() {
     ? `${dn(state.selectedChordRoot)}${CHORDS[state.selectedChordKey]?.suffix || ''}`
     : null
   const scaleLabel = state.viewMode === 'scales' && state.selectedScaleRoot && state.selectedScaleKey
-    ? `${dn(state.selectedScaleRoot)} ${SCALES[state.selectedScaleKey]?.name || ''}`
-    : `${dn(state.keyRoot)} ${keyScale?.name || ''}`
+    ? `${dn(state.selectedScaleRoot)} ${T(SCALES[state.selectedScaleKey]?.name || '')}`
+    : `${dn(state.keyRoot)} ${T(keyScale?.name || '')}`
 
   const activeLabel = state.activeTab === 'technique'
-    ? `${dn(state.keyRoot)} ${keyScale?.name || ''}`
+    ? `${dn(state.keyRoot)} ${T(keyScale?.name || '')}`
     : state.viewMode === 'chords' && chordLabel
       ? `${chordLabel} over ${scaleLabel}`
       : scaleLabel
@@ -919,15 +919,15 @@ export default function App() {
       const dc = diatonicChords
         .flat()
         .find(c => c.root === state.selectedChordRoot && c.chordKey === state.selectedChordKey)
-      if (dc) return getChordInsight(state.keyRoot, state.keyQuality, dc, primaryChords[0] ?? null)
+      if (dc) return getChordInsight(state.keyRoot, state.keyQuality, dc, primaryChords[0] ?? null, state.language, dn)
     }
     const sKey = state.selectedScaleKey || state.keyQuality
     const sRoot = state.selectedScaleRoot || state.keyRoot
-    return getScaleInsight(sRoot, sKey)
+    return getScaleInsight(sRoot, sKey, state.language, dn)
   }, [
     state.viewMode, state.selectedChordRoot, state.selectedChordKey,
     state.selectedScaleKey, state.selectedScaleRoot, state.keyRoot, state.keyQuality,
-    diatonicChords, primaryChords,
+    diatonicChords, primaryChords, state.language, dn,
   ])
 
   // ─── Modal relativity: the same notes, a different home ───
@@ -1164,7 +1164,7 @@ export default function App() {
   const goToPosition = useCallback((i: number) => {
     const p = walkPositions[i]
     if (!p) return
-    setWalkStory(describeStep(walkPos, p))
+    setWalkStory(describeStep(walkPos, p, state.language, { tonic: dn(p.tonic), from: walkPos ? dn(walkPos.tonic) : undefined }))
     setWalkState(enterPosition)
     up({
       keyRoot: p.tonic,
@@ -1253,7 +1253,7 @@ export default function App() {
     if (!currentConcept?.run || !twistTonic) return null
     const chord = CHORDS[currentConcept.run.chordKey]
     if (!chord) return null
-    return recontextualise(currentConcept.root, chord.intervals, twistTonic)
+    return recontextualise(currentConcept.root, chord.intervals, twistTonic, state.language, dn)
   }, [currentConcept, twistTonic])
 
   // Where can we move home to and still keep every note of the shape in key?
@@ -1282,8 +1282,8 @@ export default function App() {
       focusInterval: currentConcept.focus,
       focusNote: focusNoteName,
       hasShape: Boolean(currentConcept.technique),
-    })
-  }, [currentConcept, focusNoteName])
+    }, state.language)
+  }, [currentConcept, focusNoteName, state.language])
 
   // ─── Render ───
   return (
@@ -1303,75 +1303,57 @@ export default function App() {
           <div className="intro">
             <img className="intro-logo" src="/logo.png" alt="Modal Runs" />
             <h1 className="intro-title">
-              It <em>listens while you play,</em> and answers on the neck.
+              {T('It')} <em>{T('listens while you play,')}</em> {T('and answers on the neck.')}
             </h1>
             <p className="intro-sub">
-              In 1959, Miles Davis walked into a studio bored of chasing chord changes and cut
-              an album built on almost none. <em>Kind of Blue</em> — still the best-selling
-              jazz record ever made — runs on scales instead of progressions. He called it
-              modal jazz: hold one note underneath (a <b>drone</b>), improvise inside a single
-              scale (a <b>mode</b>), and let the mode do the emotional work a wall of chords
-              usually does.
+              {T('In 1959, Miles Davis walked into a studio bored of chasing chord changes and cut an album built on almost none.')}{' '}
+              <em>Kind of Blue</em>{' '}
+              {T('— still the best-selling jazz record ever made — runs on scales instead of progressions. He called it modal jazz: hold one note underneath (a drone), improvise inside a single scale (a mode), and let the mode do the emotional work a wall of chords usually does.')}
             </p>
             <p className="intro-sub">
-              That's this app, on a fretboard. Hold a drone in any key and the neck fills with
-              the notes that work over it. Play, and Modal Runs hears you through the mic — it
-              lights up what you just played and tells you the moment you land the note it's
-              hunting for. Move the tonic and the same seven notes turn from A Aeolian into D
-              Dorian — same frets, same notes, just a different one as home. Seven different
-              moods out of one shape. You find them by ear, the way Miles did — not off a chart.
+              {T('That’s this app, on a fretboard. Hold a drone in any key and the neck fills with the notes that work over it. Play, and Modal Runs hears you through the mic — it lights up what you just played and tells you the moment you land the note it’s hunting for. Move the tonic and the same seven notes turn from A Aeolian into D Dorian — same frets, same notes, just a different one as home. Seven different moods out of one shape. You find them by ear, the way Miles did — not off a chart.')}
             </p>
 
             {/* The thesis, made concrete — the thing a textbook can't do. */}
             <div className="intro-how">
               <div className="intro-step">
                 <span className="intro-step-n">1</span>
-                <span className="intro-step-t">Set the key</span>
+                <span className="intro-step-t">{T('Set the key')}</span>
                 <span className="intro-step-d">
-                  The neck fills with the notes that belong to it. Each one is coloured by
-                  its interval rather than its name, so you read what a note <em>does</em>{' '}
-                  against the tonic, not merely what it's called. The root is amber.
+                  {T('The neck fills with the notes that belong to it. Each one is coloured by its interval rather than its name, so you read what a note does against the tonic, not merely what it’s called. The root is amber.')}
                 </span>
               </div>
               <div className="intro-step">
                 <span className="intro-step-n">2</span>
-                <span className="intro-step-t">Start the drone</span>
+                <span className="intro-step-t">{T('Start the drone')}</span>
                 <span className="intro-step-d">
-                  It sustains the tonic underneath you, so every note you play finally has
-                  something to lean against. The b6 aches against it; the natural 6 opens up.
-                  Intervals stop being arithmetic and start being sounds.
+                  {T('It sustains the tonic underneath you, so every note you play finally has something to lean against. The b6 aches against it; the natural 6 opens up. Intervals stop being arithmetic and start being sounds.')}
                 </span>
               </div>
               <div className="intro-step">
                 <span className="intro-step-n">3</span>
-                <span className="intro-step-t">Move the tonic</span>
+                <span className="intro-step-t">{T('Move the tonic')}</span>
                 <span className="intro-step-d">
-                  Tap <b>Dorian</b> in the same-notes strip. Same frets, same notes — the
-                  drone simply moves home to D, and the app names the one note that
-                  separates it from where you just were.
+                  {T('Tap Dorian in the same-notes strip. Same frets, same notes — the drone simply moves home to D, and the app names the one note that separates it from where you just were.')}
                 </span>
               </div>
             </div>
 
             <div className="intro-modes">
               <button className="intro-mode" onClick={() => { up({ onboarded: true, appMode: 'study' }); setIntroOpen(false) }}>
-                <span className="intro-mode-name">Modes</span>
+                <span className="intro-mode-name">{T('Modes')}</span>
                 <span className="intro-mode-desc">
-                  Any key, any mode. Chords laid over scales, arpeggios, positions, the whole
-                  fretboard at once — and the theory that accounts for what you're looking at,
-                  written for someone who wants to understand it rather than recite it.
+                  {T('Any key, any mode. Chords laid over scales, arpeggios, positions, the whole fretboard at once — and the theory that accounts for what you’re looking at, written for someone who wants to understand it rather than recite it.')}
                 </span>
               </button>
               <button className="intro-mode" onClick={() => { up({ onboarded: true }); setIntroOpen(false); goFlow() }}>
-                <span className="intro-mode-name">Just play</span>
+                <span className="intro-mode-name">{T('Just play')}</span>
                 <span className="intro-mode-desc">
-                  One idea, chosen for you, with the shape already sitting on the neck. Start
-                  the drone and play over it; if you let it listen through your mic, it will
-                  tell you when you land the note it asked for.
+                  {T('One idea, chosen for you, with the shape already sitting on the neck. Start the drone and play over it; if you let it listen through your mic, it will tell you when you land the note it asked for.')}
                 </span>
               </button>
             </div>
-            <button className="intro-skip" onClick={() => { up({ onboarded: true }); setIntroOpen(false) }}>Close</button>
+            <button className="intro-skip" onClick={() => { up({ onboarded: true }); setIntroOpen(false) }}>{T('Close')}</button>
           </div>
         </div>
       )}
@@ -1501,7 +1483,7 @@ export default function App() {
             title="See every sound you've landed by ear"
           >
             <span className="flow-owned-n">{soundsOwned}</span>
-            <span>sounds you own</span>
+            <span>{T('sounds you own')}</span>
           </button>
 
           <header className="flow-idea">
@@ -1528,7 +1510,7 @@ export default function App() {
                         title={`Position ${p.index} — ${p.tonic} ${p.modeName}`}
                       >
                         <span className="rung-tonic">{p.tonic}</span>
-                        <span className="rung-mode">{p.modeName}</span>
+                        <span className="rung-mode">{T(p.modeName)}</span>
                         <span className="rung-mark">{claimed ? '✓' : here ? '●' : ''}</span>
                       </button>
                     )
@@ -1550,7 +1532,7 @@ export default function App() {
                     <p className="walk-here">
                       <span className="walk-here-pos">Position {walkPos.index}</span>
                       home is <b>{walkPos.tonic}</b> — so this is{' '}
-                      <b>{walkPos.tonic} {walkPos.modeName}</b>
+                      <b>{dn(walkPos.tonic)} {T(walkPos.modeName)}</b>
                       {walkPos.plain && <span className="walk-plain">{walkPos.plain}</span>}
                     </p>
 
@@ -1581,8 +1563,8 @@ export default function App() {
                     : <>This is an exercise: play the numbered notes in order.
                       <b> Hit play</b> and the app will follow your hands through it.</>}
                 </p>
-                <h2 className="flow-hook">{currentConcept.hook}</h2>
-                <p className="flow-listen">{currentConcept.listenFor}</p>
+                <h2 className="flow-hook">{T(currentConcept.hook)}</h2>
+                <p className="flow-listen">{T(currentConcept.listenFor)}</p>
 
                 <div className="run-bar">
                   <span className="run-name">{currentRun.name}</span>
@@ -1604,14 +1586,14 @@ export default function App() {
               /* ═══ A SOUND: hunt the note that defines the mode ═══ */
               <>
                 <p className="flow-objective">{objective}</p>
-                <h2 className="flow-hook">{currentConcept.hook}</h2>
-                <p className="flow-listen">{currentConcept.listenFor}</p>
+                <h2 className="flow-hook">{T(currentConcept.hook)}</h2>
+                <p className="flow-listen">{T(currentConcept.listenFor)}</p>
                 <div className={`flow-target ${focusFound ? 'found' : ''}`}>
                   <b>{currentConcept.focus}</b>
                   <span>
                     {focusFound
                       ? `You found it — that's the sound of ${soundName}`
-                      : `Find every ${focusNoteName ?? currentConcept.focus} — the glowing notes`}
+                      : tf('Find every {note} — the glowing notes', state.language, { note: focusNoteName ?? currentConcept.focus })}
                   </span>
                 </div>
               </>
@@ -1651,7 +1633,7 @@ export default function App() {
           {/* The whole game explained, for anyone who's never seen this before */}
           {primerOpen && (
             <div className="primer">
-              {PRIMER.map(p => (
+              {getPrimer(state.language).map(p => (
                 <div className="primer-item" key={p.q}>
                   <div className="primer-q">{p.q}</div>
                   <div className="primer-a">{p.a}</div>
@@ -1692,7 +1674,7 @@ export default function App() {
               <>
                 <span><i className="flow-sw target" style={{ background: state.intervalColors['R'] }} /> home — {walkPos.tonic}</span>
                 <span><i className="flow-sw scale" /> the same seven notes, everywhere</span>
-                <span><i className="flow-sw heard" /> what it hears you play</span>
+                <span><i className="flow-sw heard" /> {T('what it hears you play')}</span>
               </>
             ) : currentRun ? (
               <>
@@ -1700,14 +1682,14 @@ export default function App() {
                 <span><i className="flow-sw done" /> already played</span>
                 <span><i className="flow-sw todo" /> still to come</span>
                 <span><i className="flow-sw roll" /> roll your finger, don't lift it</span>
-                <span><i className="flow-sw heard" /> what it hears you play</span>
+                <span><i className="flow-sw heard" /> {T('what it hears you play')}</span>
               </>
             ) : (
               <>
-                <span><i className="flow-sw target" style={{ background: state.intervalColors[currentConcept.focus] }} /> find these ({focusNoteName})</span>
+                <span><i className="flow-sw target" style={{ background: state.intervalColors[currentConcept.focus] }} /> {T('find these')} ({focusNoteName})</span>
                 <span><i className="flow-sw root" style={{ background: state.intervalColors['R'] }} /> home ({currentConcept.root})</span>
-                <span><i className="flow-sw scale" /> safe to play</span>
-                <span><i className="flow-sw heard" /> what it hears you play</span>
+                <span><i className="flow-sw scale" /> {T('safe to play')}</span>
+                <span><i className="flow-sw heard" /> {T('what it hears you play')}</span>
               </>
             )}
           </div>
@@ -1774,7 +1756,7 @@ export default function App() {
           {micError && (
             <p className="flow-coach mic-error">
               <span className="flow-pip" />
-              {micError}
+              {micError && T(micError)}
             </p>
           )}
 
@@ -1789,7 +1771,7 @@ export default function App() {
             <div className="collection-overlay" onClick={() => setCollectionOpen(false)}>
               <div className="collection-panel" onClick={e => e.stopPropagation()}>
                 <div className="drawer-header">
-                  <span className="drawer-title">{soundsOwned} / {CONCEPTS.length} sounds you own</span>
+                  <span className="drawer-title">{soundsOwned} / {CONCEPTS.length} {T('sounds you own')}</span>
                   <button className="drawer-close" onClick={() => setCollectionOpen(false)}>&times;</button>
                 </div>
                 <p className="collection-sub">
@@ -2004,20 +1986,23 @@ export default function App() {
         <div className="study-bar">
           {/* LEFT — quick look: any scale or chord, by root, without touching
               the key. The glossary path. */}
-          <span className="study-bar-label">{T('Quick look')}</span>
+          {/* ONE selector, deliberately ambiguous: pick a tonic and a scale
+              and it IS the key — the diatonic chords, tiers, grips and
+              positions all derive from it. Flip to Chord to look up any
+              voicing over that same tonic. No separate "Key" section. */}
           <select className="key-select"
             value={(quickType === 'scale' ? state.selectedScaleRoot : state.selectedChordRoot) || state.keyRoot}
             onChange={e => {
               const root = e.target.value
               if (quickType === 'scale') {
-                up({ selectedScaleRoot: root, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })
+                up({ keyRoot: root, selectedScaleRoot: root, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })
               } else {
                 up({ selectedChordRoot: root, selectedChordKey: state.selectedChordKey || 'major', viewMode: 'chords', chordPosition: null })
               }
             }}>
             {NOTE_NAMES.map(n => <option key={n} value={n}>{dn(n)}</option>)}
           </select>
-          <div className="backing-switch" role="group" aria-label="Quick look type">
+          <div className="backing-switch" role="group" aria-label="Scale or chord">
             <button type="button" className={`backing-switch-btn ${quickType === 'scale' ? 'active' : ''}`}
               onClick={() => setQuickType('scale')}>{T('Scale')}</button>
             <button type="button" className={`backing-switch-btn ${quickType === 'chord' ? 'active' : ''}`}
@@ -2025,10 +2010,16 @@ export default function App() {
           </div>
           {quickType === 'scale' ? (
             <select className="type-select" value={state.selectedScaleKey || state.keyQuality}
-              onChange={e => up({ selectedScaleKey: e.target.value, selectedScaleRoot: state.selectedScaleRoot || state.keyRoot, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })}>
+              onChange={e => up({
+                keyQuality: e.target.value,
+                selectedScaleKey: e.target.value,
+                selectedScaleRoot: state.selectedScaleRoot || state.keyRoot,
+                keyRoot: state.selectedScaleRoot || state.keyRoot,
+                viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null,
+              })}>
               {Object.entries(scalesByCategory).map(([cat, scales]) => (
                 <optgroup key={cat} label={cat}>
-                  {scales.map(([key, s]) => <option key={key} value={key}>{s.name}</option>)}
+                  {scales.map(([key, s]) => <option key={key} value={key}>{T(s.name)}</option>)}
                 </optgroup>
               ))}
             </select>
@@ -2037,25 +2028,11 @@ export default function App() {
               onChange={e => up({ selectedChordKey: e.target.value, selectedChordRoot: state.selectedChordRoot || state.keyRoot, viewMode: 'chords', chordPosition: null })}>
               {Object.entries(chordsByCategory).map(([cat, chords]) => (
                 <optgroup key={cat} label={cat}>
-                  {chords.map(([key, ch]) => <option key={key} value={key}>{ch.name}</option>)}
+                  {chords.map(([key, ch]) => <option key={key} value={key}>{T(ch.name)}</option>)}
                 </optgroup>
               ))}
             </select>
           )}
-
-          <span className="study-bar-sep" />
-
-          {/* MIDDLE — the key: pick one and go all the way (diatonic harmony,
-              tiers, positions). The deep-dive path. */}
-          <span className="study-bar-label">{T('Key')}</span>
-          <select className="key-select" value={state.keyRoot}
-            onChange={e => up({ keyRoot: e.target.value, selectedScaleRoot: e.target.value, selectedScaleKey: state.keyQuality, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })}>
-            {NOTE_NAMES.map(n => <option key={n} value={n}>{dn(n)}</option>)}
-          </select>
-          <select className="key-select" value={state.keyQuality}
-            onChange={e => up({ keyQuality: e.target.value, selectedScaleKey: e.target.value, selectedScaleRoot: state.keyRoot, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })}>
-            {KEY_QUALITIES.map(q => <option key={q.key} value={q.key}>{T(q.label)}</option>)}
-          </select>
 
           <span className="study-bar-sep" />
 
@@ -2289,15 +2266,14 @@ export default function App() {
           <div className="theory-card">
             <div className="theory-eyebrow">
               <span>{insight.eyebrow}</span>
-              {insight.focus && <span>{'·'} the {insight.focus}</span>}
-              <button className="theory-toggle" onClick={() => up({ showTheory: false })}>hide</button>
+              {insight.focus && <span>{'·'} {T('the')} {insight.focus}</span>}
+              <button className="theory-toggle" onClick={() => up({ showTheory: false })}>{T('hide')}</button>
             </div>
             <div className="theory-title">{insight.title}</div>
             <p className="theory-body">
               {insight.body}
               {state.viewMode !== 'chords' && playableChords > 0 && (
-                <>{' '}There are <b>{playableChords}</b> chords that fit entirely inside this scale.
-                Every one of them is a place you can land.</>
+                <>{' '}{T('There are')} <b>{playableChords}</b> {T('chords that fit entirely inside this scale. Every one of them is a place you can land.')}</>
               )}
             </p>
           </div>
@@ -2305,7 +2281,7 @@ export default function App() {
         {!state.showTheory && (
           <button className="theory-toggle" style={{ margin: '0 auto' }}
             onClick={() => up({ showTheory: true })}>
-            + show the theory
+            + {T('show the theory')}
           </button>
         )}
 
