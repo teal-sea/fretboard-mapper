@@ -582,11 +582,11 @@ export default function Fretboard({
 
               return (
                 <g key={`n${si}-${fn.fret}`} className={`note-group ${inPos ? '' : 'ghosted'}`}>
-                  {isRoot && inPos && <circle cx={cx} cy={y} r={r + 4} fill={color} opacity={0.25} />}
+                  {isRoot && inPos && <circle className="root-halo" cx={cx} cy={y} r={r + 5} fill={color} opacity={0.3} />}
                   <circle cx={cx} cy={y} r={r} fill={color}
-                    stroke={isRoot && inPos ? '#fff' : 'rgba(255,255,255,0.14)'}
-                    strokeWidth={isRoot && inPos ? 2 : 1}
-                    style={inPos ? { filter: `drop-shadow(0 0 ${isRoot ? 8 : 4}px ${color}${isRoot ? '' : 'b0'})` } : undefined} />
+                    stroke={isRoot && inPos ? '#fff' : 'rgba(255,255,255,0.3)'}
+                    strokeWidth={isRoot && inPos ? 2.2 : 1.2}
+                    style={inPos ? { filter: `drop-shadow(0 0 ${isRoot ? 14 : 9}px ${color})` } : undefined} />
                   {inPos && (displayMode === 'notes' || displayMode === 'both') && (
                     <text x={cx} y={displayMode === 'both' ? y - 4.5 : y + 0.5}
                       textAnchor="middle" dominantBaseline="central" className="note-label"
