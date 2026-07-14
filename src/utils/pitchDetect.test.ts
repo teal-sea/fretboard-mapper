@@ -84,6 +84,15 @@ describe('detectPitch', () => {
     expect(detectPitch(sine(220, 0.004), SR)).toBeNull()
   })
 
+  it('detects a quietly-picked high string, not just loud bass strings', () => {
+    // Thin strings move less air at the mic even when played normally —
+    // this is the amplitude a quiet B3/E4 pluck realistically registers at,
+    // well under the guitarish() default of 0.4 used everywhere else here.
+    const r = detectPitch(guitarish(246.94, 0.08), SR) // B3
+    expect(r).not.toBeNull()
+    expect(r!.midi).toBe(59)
+  })
+
   it('returns null on noise (table drumming is not a pitch)', () => {
     expect(detectPitch(noise(), SR)).toBeNull()
   })

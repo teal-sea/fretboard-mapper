@@ -31,8 +31,11 @@ let calibrateTimer: ReturnType<typeof setInterval> | null = null
 // Bleed can be quasi-periodic (the drone is), so the gate matters more than
 // clarity. 2.5× ambient keeps casual bleed out without eating soft playing.
 const CALIBRATION_MARGIN = 2.5
-// Never gate so high that normal playing can't get through.
-const MAX_GATE = 0.12
+// Never gate so high that normal playing can't get through — this was the
+// other half of "only bass strings register": in a slightly noisy room,
+// calibration could push the gate up to a level a quietly-picked high
+// string couldn't clear even though the low strings still could.
+const MAX_GATE = 0.07
 
 export function recalibrateMic(): void {
   if (!analyser || !sampleBuf) return

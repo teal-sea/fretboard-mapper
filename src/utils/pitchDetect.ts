@@ -23,10 +23,17 @@ const MAX_FREQ = 4500
 // Below this RMS the buffer is silence/room noise, not a note.
 // This is the FLOOR — callers raise it after calibrating against ambient
 // bleed (e.g. the app's own drone coming back through the speakers).
-export const BASE_RMS_GATE = 0.008
+// A thin high string picked normally is physically quieter at the mic than
+// a low string (less string mass moving air) even though it's not actually
+// played softer — a flat amplitude gate tuned against the bass strings was
+// silently swallowing real high-string notes. Lowered so a quiet high note
+// still clears it; "returns null below the level gate" below still holds.
+export const BASE_RMS_GATE = 0.005
 // Below this clarity the signal isn't periodic enough to trust (strums,
-// percussive transients, the neighbour's dog).
-const CLARITY_GATE = 0.8
+// percussive transients, the neighbour's dog). Also loosened a notch — real
+// mic signal is noisier than the synthetic waveforms below, and thinner
+// strings are the ones most likely to sit near this boundary.
+const CLARITY_GATE = 0.7
 
 export function measureRms(buf: Float32Array): number {
   let sumSq = 0
