@@ -13,7 +13,7 @@ import { DEFAULT_INTERVAL_COLORS, ALL_INTERVALS } from './utils/defaultColors'
 import Fretboard from './components/Fretboard'
 import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome, startDrone, stopDrone, startArpeggio, stopArpeggio, setArpBpm, setDroneVolume, setDroneSpread, setDroneTone, setPadVolume, setPadSpread, setPadTone } from './utils/audioEngine'
 import { CONCEPTS, getNextConcept, markSeen, loadOwned, markOwned, type Concept } from './utils/concepts'
-import { startMic, stopMic, readPitch, recalibrateMic, getMicError, getLastRms, getRmsGate } from './utils/micInput'
+import { startMic, stopMic, readPitch, recalibrateMic, getMicError, getLastRms, getRmsGate, isMicRunning } from './utils/micInput'
 import { intervalSemitones } from './utils/musicTheory'
 import { getScaleInsight, getChordInsight, chordsInScale, getObjective, PRIMER } from './utils/theory'
 import { getSameNoteModes, describeModalShift, contrastWithKey, recontextualise, type SiblingMode } from './utils/modes'
@@ -690,7 +690,14 @@ export default function App() {
           </button>
         ))}
       </div>
-      {state.backingMode === 'arp' && (
+      <button
+        type="button"
+        className={`backing-metro-btn ${metronomeOn ? 'active' : ''}`}
+        onClick={toggleMetronome}
+        title={metronomeOn ? 'Stop the metronome' : 'Start the metronome'}
+        aria-label="Metronome"
+      >♩</button>
+      {(state.backingMode === 'arp' || metronomeOn) && (
         <div className="backing-bpm">
           <button type="button" className="backing-bpm-btn"
             onClick={() => up({ progressionBpm: Math.max(40, state.progressionBpm - 5) })}>&minus;</button>
@@ -701,6 +708,64 @@ export default function App() {
       )}
     </div>
   )
+
+  // BPM changes retime a running click immediately — without this the stepper
+  // only applied on the next metronome start.
+  useEffect(() => {
+    if (metronomeOn) startMetronome(state.progressionBpm)
+  }, [state.progressionBpm, metronomeOn])
+
+  // ─── Tuner ───
+  // The pitch pipe already reports cents-off-nearest-note; the tuner is just
+  // that number with a needle. It borrows the mic if Play already has it
+  // running, and only stops the mic on close if it was the one that started it.
+  const [tunerOpen, setTunerOpen] = useState(false)
+  const [tunerPitch, setTunerPitch] = useState<{ midi: number; cents: number } | null>(null)
+  const tunerCentsBuf = useRef<number[]>([])
+  const tunerLastMidi = useRef<number | null>(null)
+  const tunerOwnsMic = useRef(false)
+
+  const openTuner = useCallback(async () => {
+    setTunerOpen(true)
+    if (!isMicRunning()) {
+      setMicError(null)
+      const ok = await startMic()
+      tunerOwnsMic.current = ok
+      if (!ok) setMicError(getMicError())
+    }
+  }, [])
+
+  const closeTuner = useCallback(() => {
+    setTunerOpen(false)
+    setTunerPitch(null)
+    tunerCentsBuf.current = []
+    tunerLastMidi.current = null
+    if (tunerOwnsMic.current && !listening) stopMic()
+    tunerOwnsMic.current = false
+  }, [listening])
+
+  useEffect(() => {
+    if (!tunerOpen) return
+    const t = setInterval(() => {
+      const p = readPitch()
+      if (p) {
+        // Smooth cents over the last few readings, but never across a note
+        // change — averaging E's cents into A's would swing the needle wild.
+        if (p.midi !== tunerLastMidi.current) tunerCentsBuf.current = []
+        tunerLastMidi.current = p.midi
+        const buf = tunerCentsBuf.current
+        buf.push(p.cents)
+        if (buf.length > 5) buf.shift()
+        const cents = buf.reduce((a, b) => a + b, 0) / buf.length
+        setTunerPitch({ midi: p.midi, cents })
+      } else {
+        tunerCentsBuf.current = []
+        tunerLastMidi.current = null
+        setTunerPitch(cur => (cur === null ? cur : null))
+      }
+    }, 80)
+    return () => clearInterval(t)
+  }, [tunerOpen])
 
   // Poll the detector ~20×/s. A note must be heard twice in a row to commit
   // (kills flicker from transients); it lingers ~500ms after you stop (kills
@@ -1171,6 +1236,13 @@ export default function App() {
         </div>
 
         <div className="shell-actions">
+          <button
+            className={`icon-btn ${tunerOpen ? 'active' : ''}`}
+            onClick={() => (tunerOpen ? closeTuner() : openTuner())}
+            title="Tuner"
+          >
+            &#9833;
+          </button>
           <button className="icon-btn" onClick={() => setSettingsOpen(true)} title="Settings">
             &#9881;
           </button>
@@ -1952,6 +2024,51 @@ export default function App() {
         )}
 
       </main>
+      )}
+
+      {/* Tuner */}
+      {tunerOpen && (
+        <div className="tuner-overlay" onClick={closeTuner}>
+          <div className="tuner-panel" onClick={e => e.stopPropagation()}>
+            <div className="drawer-header">
+              <span className="drawer-title">Tuner</span>
+              <button className="drawer-close" onClick={closeTuner}>&times;</button>
+            </div>
+            {micError && <p className="mic-error">{micError}</p>}
+            <div className={`tuner-note ${tunerPitch && Math.abs(tunerPitch.cents) <= 5 ? 'in-tune' : ''}`}>
+              {tunerPitch
+                ? <>{noteName(tunerPitch.midi % 12, flats)}<sub>{Math.floor(tunerPitch.midi / 12) - 1}</sub></>
+                : '···'}
+            </div>
+            <div className="tuner-meter-row">
+              <span className="tuner-flat">&#9837;</span>
+              <div className="tuner-track">
+                <div className="tuner-center" />
+                {tunerPitch && (
+                  <div
+                    className={`tuner-needle ${Math.abs(tunerPitch.cents) <= 5 ? 'in-tune' : Math.abs(tunerPitch.cents) > 25 ? 'far' : ''}`}
+                    style={{ left: `${50 + Math.max(-50, Math.min(50, tunerPitch.cents))}%` }}
+                  />
+                )}
+              </div>
+              <span className="tuner-sharp">&#9839;</span>
+            </div>
+            <div className="tuner-cents">
+              {tunerPitch ? `${tunerPitch.cents > 0 ? '+' : ''}${Math.round(tunerPitch.cents)}¢` : 'play a string'}
+            </div>
+            <div className="tuner-strings">
+              {tuning.notes.map((midi, i) => {
+                const heard = tunerPitch !== null && ((tunerPitch.midi - midi) % 12 + 12) % 12 === 0
+                const inTune = heard && tunerPitch !== null && Math.abs(tunerPitch.cents) <= 5
+                return (
+                  <span key={i} className={`tuner-string ${heard ? 'heard' : ''} ${inTune ? 'in-tune' : ''}`}>
+                    {tuning.labels[i]}<sub>{Math.floor(midi / 12) - 1}</sub>
+                  </span>
+                )
+              })}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Settings Drawer */}

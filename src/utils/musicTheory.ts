@@ -135,6 +135,9 @@ export const TUNINGS: Record<string, Tuning> = {
   'open_e':       { name: 'Open E',           notes: [40,47,52,56,59,64],   labels: ['E','B','E','G#','B','E'] },
   'dadgad':       { name: 'DADGAD',           notes: [38,45,50,55,57,62],   labels: ['D','A','D','G','A','D'] },
   'half_step_dn': { name: 'Half Step Down',   notes: [39,44,49,54,58,63],   labels: ['Eb','Ab','Db','Gb','Bb','Eb'] },
+  'standard_7':   { name: '7-String Standard', notes: [35,40,45,50,55,59,64], labels: ['B','E','A','D','G','B','E'] },
+  'bass_4':       { name: 'Bass (4-String)',   notes: [28,33,38,43],          labels: ['E','A','D','G'] },
+  'bass_5':       { name: 'Bass (5-String)',   notes: [23,28,33,38,43],       labels: ['B','E','A','D','G'] },
   'full_step_dn': { name: 'Full Step Down',   notes: [38,43,48,53,57,62],   labels: ['D','G','C','F','A','D'] },
 }
 

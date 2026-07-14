@@ -63,7 +63,9 @@ function fretPositions(numFrets: number, scaleLength: number): number[] {
   return positions
 }
 
-const STRING_GAUGES_PX = [1.2, 1.6, 2.2, 3.0, 3.8, 4.6]
+// Indexed high string → low; entry 7 covers a 7-string's low B. Extra
+// strings beyond the table fall back to 2.5 in the renderer.
+const STRING_GAUGES_PX = [1.2, 1.6, 2.2, 3.0, 3.8, 4.6, 5.2]
 const SINGLE_DOTS = [3, 5, 7, 9, 15, 17, 19, 21]
 const DOUBLE_DOTS = [12, 24]
 const BLOCK_FRETS = [3, 5, 7, 9, 12, 15, 17, 19, 21, 24]
