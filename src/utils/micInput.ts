@@ -72,11 +72,18 @@ export async function startMic(): Promise<boolean> {
   }
 
   try {
-    // Music-appropriate constraints: the browser's voice-call processing
-    // (echo cancellation, noise suppression, auto gain) mangles instruments.
+    // echoCancellation ON, on purpose, unlike noiseSuppression/autoGainControl
+    // below. This app plays audio (drone/pad/arp) out the same speakers the
+    // mic is listening through, so the mic hears its own backing track —
+    // gating on level alone can't tell "loud backing bleed" from "loud
+    // playing" apart, because it genuinely isn't a level problem. AEC exists
+    // specifically to cancel audio a device knows it's outputting itself,
+    // which is exactly this. noiseSuppression/autoGainControl stay off —
+    // those reshape level/dynamics in ways that fight pitch detection with
+    // no equivalent upside here.
     stream = await navigator.mediaDevices.getUserMedia({
       audio: {
-        echoCancellation: false,
+        echoCancellation: true,
         noiseSuppression: false,
         autoGainControl: false,
       },
