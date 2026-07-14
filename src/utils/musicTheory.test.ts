@@ -4,7 +4,7 @@ import {
   SCALES, CHORDS, TUNINGS,
   getScaleNotes, getChordNotes, computeFretboard,
   getDiatonicChords, getCompatibleScales, getRelatedModes,
-  getScalePositions, getChordPositions, compute3NPSPattern, computeSweepShape, computeTappingPattern,
+  getScalePositions, getChordVoicings, compute3NPSPattern, computeSweepShape, computeTappingPattern,
   formulaString, chordIntervalsForScale,
 } from './musicTheory'
 
@@ -293,39 +293,80 @@ describe('getScalePositions', () => {
   })
 })
 
-describe('getChordPositions', () => {
+describe('getChordVoicings', () => {
   const stdTuning = TUNINGS['standard']
 
-  describe('A min7 (4-note chord)', () => {
-    const positions = getChordPositions('A', CHORDS['min7'], stdTuning, 15)
-
-    it('produces one position per chord tone', () => {
-      expect(positions.length).toBe(4)
-    })
-
-    it('Position 1 starts near the root fret (A = fret 5)', () => {
-      expect(positions[0][0]).toBeLessThanOrEqual(5)
-      expect(positions[0][0]).toBeGreaterThanOrEqual(4)
-    })
-
-    it('all positions are at least 3 frets wide', () => {
-      for (const [lo, hi] of positions) {
-        expect(hi - lo).toBeGreaterThanOrEqual(3)
-      }
-    })
-
-    it('all positions stay within fret range', () => {
-      for (const [lo, hi] of positions) {
-        expect(lo).toBeGreaterThanOrEqual(0)
-        expect(hi).toBeLessThanOrEqual(15)
-      }
-    })
+  it('finds the open C major grip (x32010)', () => {
+    const voicings = getChordVoicings('C', CHORDS['major'], stdTuning, 15)
+    const shapes = voicings.map(v => v.frets.map(f => (f === null ? 'x' : f)).join(''))
+    expect(shapes).toContain('x32010')
   })
 
-  it('produces one position per chord tone for a triad too', () => {
-    const positions = getChordPositions('E', CHORDS['minor'], stdTuning, 15)
-    expect(positions.length).toBe(3)
+  it('finds the open E minor grip (022000)', () => {
+    const voicings = getChordVoicings('E', CHORDS['minor'], stdTuning, 15)
+    const shapes = voicings.map(v => v.frets.map(f => (f === null ? 'x' : f)).join(''))
+    expect(shapes).toContain('022000')
   })
+
+  it('finds the open A major grip (x02220)', () => {
+    const voicings = getChordVoicings('A', CHORDS['major'], stdTuning, 15)
+    const shapes = voicings.map(v => v.frets.map(f => (f === null ? 'x' : f)).join(''))
+    expect(shapes).toContain('x02220')
+  })
+
+  // The properties that make a voicing a GRIP rather than scattered tones —
+  // if any of these fail, we're back to lighting up an arpeggio region.
+  const GRIP_CASES: [string, string][] = [
+    ['C', 'major'], ['A', 'minor'], ['G', 'dom7'], ['D', 'min7'], ['F#', 'major'],
+  ]
+  for (const [root, chordKey] of GRIP_CASES) {
+    describe(`${root} ${chordKey} grips`, () => {
+      const chord = CHORDS[chordKey]
+      const voicings = getChordVoicings(root, chord, stdTuning, 15)
+      const rootPc = noteIndex(root)
+      const chordPcs = new Set(chord.intervals.map(iv => (rootPc + iv) % 12))
+
+      it('produces at least one grip', () => {
+        expect(voicings.length).toBeGreaterThan(0)
+      })
+
+      for (const check of [
+        ['every grip has the root in the bass', (v: ReturnType<typeof getChordVoicings>[0]) => {
+          const bass = v.frets.findIndex(f => f !== null)
+          expect((stdTuning.notes[bass] + v.frets[bass]!) % 12).toBe(rootPc)
+        }],
+        ['every grip covers every chord tone and nothing else', (v: ReturnType<typeof getChordVoicings>[0]) => {
+          const pcs = new Set(
+            v.frets.flatMap((f, si) => (f === null ? [] : [(stdTuning.notes[si] + f) % 12]))
+          )
+          expect(pcs).toEqual(chordPcs)
+        }],
+        ['every grip fits one hand (fretted span ≤ 3)', (v: ReturnType<typeof getChordVoicings>[0]) => {
+          const fretted = v.frets.filter((f): f is number => f !== null && f > 0)
+          if (fretted.length > 1) {
+            expect(Math.max(...fretted) - Math.min(...fretted)).toBeLessThanOrEqual(3)
+          }
+        }],
+        ['mutes only as a bottom-consecutive prefix', (v: ReturnType<typeof getChordVoicings>[0]) => {
+          const firstSounded = v.frets.findIndex(f => f !== null)
+          for (let i = firstSounded; i < v.frets.length; i++) {
+            expect(v.frets[i]).not.toBeNull()
+          }
+        }],
+      ] as const) {
+        const [name, assert] = check
+        it(name as string, () => {
+          for (const v of voicings) assert(v)
+        })
+      }
+
+      it('grips ascend the neck', () => {
+        for (let i = 1; i < voicings.length; i++) {
+          expect(voicings[i].baseFret).toBeGreaterThanOrEqual(voicings[i - 1].baseFret)
+        }
+      })
+    })
+  }
 })
 
 // ─── Sweep Arpeggios ───────────────────────────────────────────────

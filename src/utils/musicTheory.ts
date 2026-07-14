@@ -312,17 +312,98 @@ export function getScalePositions(
   return intervalPositions(root, scale.intervals, tuning, numFrets)
 }
 
-// The same idea, one fret window per chord tone instead of per scale degree —
-// Position 1 is the shape anchored at the root, Position 2 at the 3rd, and so
-// on, so the SAME chord can be seen as a few separate, playable hand-shapes
-// walking up the neck instead of every occurrence of its notes lit up at once.
-export function getChordPositions(
+// ─── Chord voicings: actual playable grips ───────────────────────────
+// A chord "shape" is a specific grip — one fret per string (or a muted
+// string), everything reachable by one hand, root in the bass. NOT a fret
+// window with the chord's tones scattered inside it; that's an arpeggio
+// region, not a chord anyone can strum.
+//
+// Deterministic search, one window at a time up the neck:
+//   - candidates per string: frets inside a 4-fret hand span (open strings
+//     allowed only near the nut, where real open shapes live)
+//   - muted strings only as a bottom-consecutive prefix (x32010, xx0232 —
+//     the shapes people actually play; no swiss-cheese voicings)
+//   - lowest sounded string must be the root (root-position grips)
+//   - every chord tone must be present
+// Best grip per window wins (more strings > tighter span), duplicates drop.
+
+export interface ChordVoicing {
+  frets: (number | null)[] // per string, low to high; null = muted
+  baseFret: number         // lowest fretted (non-open) fret, 0 for open shapes
+}
+
+const VOICING_SPAN = 4  // frets a hand covers without stretching
+
+export function getChordVoicings(
   root: string,
   chord: ChordDef,
   tuning: Tuning,
   numFrets: number = 15
-): [number, number][] {
-  return intervalPositions(root, chord.intervals, tuning, numFrets)
+): ChordVoicing[] {
+  const rootPc = noteIndex(root)
+  const chordPcs = new Set(chord.intervals.map(iv => (rootPc + iv) % 12))
+  const strings = tuning.notes
+  const minSounded = Math.min(Math.max(chordPcs.size, 3), strings.length)
+
+  const byShape = new Map<string, ChordVoicing & { score: number }>()
+
+  for (let base = 0; base <= Math.min(numFrets - (VOICING_SPAN - 1), 11); base++) {
+    // Per-string candidates for this window
+    const candidates: number[][] = strings.map(open => {
+      const c: number[] = []
+      for (let f = base; f < base + VOICING_SPAN && f <= numFrets; f++) {
+        if (chordPcs.has((open + f) % 12)) c.push(f)
+      }
+      // Open strings only join near the nut — a barre shape at fret 7 with
+      // a stray open string is not a grip anyone teaches.
+      if (base > 0 && base <= 2 && chordPcs.has(open % 12) && !c.includes(0)) c.unshift(0)
+      return c
+    })
+
+    let best: (ChordVoicing & { score: number }) | null = null
+
+    const walk = (si: number, frets: (number | null)[], anySounded: boolean) => {
+      if (si === strings.length) {
+        const sounded = frets
+          .map((f, i) => (f === null ? null : { pc: (strings[i] + f) % 12, fret: f }))
+          .filter((x): x is { pc: number; fret: number } => x !== null)
+        if (sounded.length < minSounded) return
+        if (sounded[0].pc !== rootPc) return
+        const pcs = new Set(sounded.map(s => s.pc))
+        if (pcs.size !== chordPcs.size) return
+        const fretted = sounded.filter(s => s.fret > 0).map(s => s.fret)
+        const span = fretted.length ? Math.max(...fretted) - Math.min(...fretted) : 0
+        const score = sounded.length * 100 - span * 10 - fretted.length
+        if (!best || score > best.score) {
+          best = {
+            frets: [...frets],
+            baseFret: fretted.length ? Math.min(...fretted) : 0,
+            score,
+          }
+        }
+        return
+      }
+      // Mute — only while nothing below has sounded yet
+      if (!anySounded) {
+        frets.push(null); walk(si + 1, frets, false); frets.pop()
+      }
+      for (const f of candidates[si]) {
+        frets.push(f); walk(si + 1, frets, true); frets.pop()
+      }
+    }
+    walk(0, [], false)
+
+    if (best !== null) {
+      const b: ChordVoicing & { score: number } = best
+      const key = b.frets.map(f => (f === null ? 'x' : f)).join(',')
+      if (!byShape.has(key)) byShape.set(key, b)
+    }
+  }
+
+  return [...byShape.values()]
+    .sort((a, b) => a.baseFret - b.baseFret)
+    .slice(0, 5)
+    .map(({ frets, baseFret }) => ({ frets, baseFret }))
 }
 
 // ─── Compatible scales for a chord ───────────────────────────────────
