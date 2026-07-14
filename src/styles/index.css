@@ -2048,6 +2048,56 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   .jam-neck .fretboard-svg { min-width: 0; max-height: min(40vh, 380px); }
 }
 
+/* ─── Brand system — the identity beyond the lockup ─────────────────────
+   Branding is a system, not a logo on a button: the signature gradient as
+   a hairline under the chrome, the mark ghosted into the stages, text
+   selection and scrollbars in brand color. Small touches, everywhere. */
+.shell-header::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: -2px;
+  height: 2px;
+  background: var(--brand-grad);
+  opacity: 0.7;
+  pointer-events: none;
+}
+::selection { background: rgba(247,73,162,0.35); color: #fff; }
+* { scrollbar-width: thin; scrollbar-color: var(--neon-purple) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--neon-blue), var(--neon-purple), var(--neon-pink));
+  border-radius: 999px;
+}
+/* The mark, ghosted into the stages — presence without noise */
+.jam-stage::before,
+.lessons-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('/mark.png') center 38% / min(50vmin, 460px) no-repeat;
+  opacity: 0.05;
+  pointer-events: none;
+}
+.lessons-stage { position: relative; }
+.lessons-stage > * { position: relative; }
+
+/* ─── Landscape phones ──────────────────────────────────────────────────
+   A phone on its side is ~850px wide × ~390px tall, so it sails past the
+   620px-width mobile breakpoint and gets the DESKTOP layout — which locks
+   Explore and Flow to height:100dvh with overflow hidden. 390px of locked
+   height crushes everything. Short viewport = let it scroll, same cure the
+   portrait media query applies, keyed on height instead of width. */
+@media (max-height: 500px) {
+  .app.mode-learn, .app.mode-flow { height: auto; min-height: 100dvh; overflow: visible; }
+  .flow-stage, .jam-stage { height: auto; overflow: visible; }
+  /* justify-content:center + content taller than the viewport = the top
+     half overflows UPWARD where no scroll can reach it */
+  .jam-stage { justify-content: flex-start; }
+  .flow-neck, .jam-neck { height: 72vh; max-height: 72vh; flex-shrink: 0; }
+  .flow-neck .fretboard-svg, .jam-neck .fretboard-svg { min-width: 0; max-height: min(66vh, 400px); }
+}
+
 /* ─── Learn — the lesson list ───────────────────────────────────────── */
 .lessons-stage {
   flex: 1;
