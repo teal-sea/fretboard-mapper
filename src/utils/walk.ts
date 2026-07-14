@@ -17,6 +17,8 @@
 // which is exactly why guitarists learn the shapes and never hear the modes.
 
 import type { Tuning } from '../types/music'
+import type { Language } from './noteNames'
+import { tf } from './i18n'
 import { SCALES, noteIndex } from './musicTheory'
 import { getSameNoteModes } from './modes'
 import { plainScaleName } from './theory'
@@ -167,16 +169,22 @@ export interface WalkProgress {
   instruction: string
 }
 
-export function walkProgress(state: WalkState, position: WalkPosition): WalkProgress {
+export function walkProgress(
+  state: WalkState,
+  position: WalkPosition,
+  lang: Language = 'en',
+  tonicLabel?: string  // display name (letters or solfège); caller owns naming
+): WalkProgress {
   const claimed = state.claimed.includes(position.tonic)
   const explored = state.explored.length
   const readyToResolve = explored >= NOTES_TO_EXPLORE
+  const tonic = tonicLabel ?? position.tonic
 
   const instruction = claimed
-    ? `${position.tonic} ${position.modeName} is yours. Play it for the joy of it, or move up the neck.`
+    ? tf('{tonic} {mode} is yours. Play it for the joy of it, or move up the neck.', lang, { tonic, mode: position.modeName })
     : readyToResolve
-      ? `Now come home — land on ${position.tonic} and this mode is yours.`
-      : `Improvise in this position. Play ${NOTES_TO_EXPLORE - explored} more of its notes, then resolve to ${position.tonic}.`
+      ? tf('Now come home — land on {tonic} and this mode is yours.', lang, { tonic })
+      : tf('Improvise in this position. Play {n} more of its notes, then resolve to {tonic}.', lang, { n: NOTES_TO_EXPLORE - explored, tonic })
 
   return { explored, needed: NOTES_TO_EXPLORE, readyToResolve, claimed, instruction }
 }
