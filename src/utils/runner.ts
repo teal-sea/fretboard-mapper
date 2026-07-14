@@ -6,6 +6,8 @@
 // whether you've advanced.
 
 import type { Run, RunStep } from './arpeggios'
+import type { Language } from './noteNames'
+import { t } from './i18n'
 
 export interface RunState {
   index: number        // which step you're on
@@ -70,7 +72,7 @@ export interface RunResult {
   verdict: string
 }
 
-export function scoreRun(run: Run, state: RunState): RunResult | null {
+export function scoreRun(run: Run, state: RunState, lang: Language = 'en'): RunResult | null {
   if (!state.done || state.startedAt === null || state.finishedAt === null) return null
 
   const seconds = Math.max((state.finishedAt - state.startedAt) / 1000, 0.001)
@@ -79,11 +81,11 @@ export function scoreRun(run: Run, state: RunState): RunResult | null {
 
   const verdict = clean
     ? notesPerSecond > 4
-      ? 'Clean, and fast. That shape is yours.'
-      : 'Clean. Every note where it should be — now do it faster.'
+      ? t('Clean, and fast. That shape is yours.', lang)
+      : t('Clean. Every note where it should be — now do it faster.', lang)
     : state.mistakes <= 2
-      ? 'You got it. A couple of stray notes — run it again and they’ll go.'
-      : 'Landed it. It was messy, so slow it right down and run it once more — speed is a by-product of accuracy, never the other way round.'
+      ? t('You got it. A couple of stray notes — run it again and they’ll go.', lang)
+      : t('Landed it. It was messy, so slow it right down and run it once more — speed is a by-product of accuracy, never the other way round.', lang)
 
   return { seconds, notesPerSecond, clean, verdict }
 }

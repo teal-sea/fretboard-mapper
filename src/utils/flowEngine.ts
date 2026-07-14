@@ -7,6 +7,8 @@
 
 import type { FlowEvolve } from '../types/music'
 import type { SiblingMode } from './modes'
+import type { Language } from './noteNames'
+import { t, tf } from './i18n'
 
 // Where does home go on step N? Returns the sibling to move to, or null to
 // stay put (static mode, no siblings to walk, or an empty custom order).
@@ -34,9 +36,10 @@ export function nextFlowHome(
 }
 
 // The one line whispered when home moves. No instruction, no task — just
-// telling the player what they're already hearing.
-export function describeFlowShift(to: SiblingMode): string {
-  return `home is now ${to.root} — same notes, new gravity`
+// telling the player what they're already hearing. `rootLabel` is the
+// display name (letters or solfège) — the caller owns note naming.
+export function describeFlowShift(to: SiblingMode, lang: Language = 'en', rootLabel?: string): string {
+  return tf('home is now {root} — same notes, new gravity', lang, { root: rootLabel ?? to.root })
 }
 
 export interface FlowSummary {
@@ -46,9 +49,11 @@ export interface FlowSummary {
 }
 
 // No fail state, no score — the summary is a mirror, not a grade.
-export function describeFlowSession(s: FlowSummary): string {
-  const mins = s.minutes < 1 ? 'under a minute' : `${Math.round(s.minutes)} min`
-  if (s.notesHeard === 0) return `${mins} of sound.`
-  const homes = s.homesVisited > 1 ? ` across ${s.homesVisited} homes` : ''
-  return `${mins} · ${s.notesHeard} notes heard${homes}.`
+export function describeFlowSession(s: FlowSummary, lang: Language = 'en'): string {
+  if (s.minutes < 1 && s.notesHeard === 0) return t('under a minute of sound.', lang)
+  if (s.notesHeard === 0) return t('under a minute of sound.', lang)
+  const mins = s.minutes < 1 ? 1 : Math.round(s.minutes)
+  const base = tf('{mins} min · {notes} notes heard', lang, { mins, notes: s.notesHeard })
+  const homes = s.homesVisited > 1 ? tf(' across {homes} homes', lang, { homes: s.homesVisited }) : ''
+  return `${base}${homes}.`
 }
