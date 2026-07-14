@@ -87,10 +87,14 @@ export interface AppState {
   padTone: number       // 0–1, dark → bright
   backingMode: 'drone' | 'chord' | 'arp' // what Play triggers underneath the mode
 
-  // Flow (the endless jam) — how the backing evolves while you play
-  flowEvolve: FlowEvolve   // stay put, drift through the sibling modes, or follow your own chord order
-  flowChords: number[]     // custom order: diatonic degree indices (0–6), duplicates allowed
-  flowPaceSec: number      // seconds between evolution steps
+  // Flow (the endless jam) — the two ways to improvise:
+  //   'modes'   — modal playing: harmony sits still (or drifts over minutes)
+  //   'changes' — playing the changes: a progression loops at tempo, bars
+  //               per chord, and your lines track each chord as it arrives
+  flowJam: 'modes' | 'changes'
+  flowEvolve: FlowEvolve   // modes: stay put, drift through the sibling modes, or follow your own chord order
+  flowChords: number[]     // chord order: diatonic degree indices (0–6), duplicates allowed
+  flowPaceSec: number      // modes: seconds between evolution steps
 
   // Two first-class modes sharing one shell:
   //   'study' — the full fretboard mapper: whole neck, any key, chords over
