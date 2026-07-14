@@ -1,9 +1,16 @@
 # LAUNCH CHECKLIST — modalruns.com
 
-Production is currently **hidden from search engines on purpose**, so we can deploy and
-test on the real domain before the site is publicly ready.
+> **STATUS: LAUNCHED 2026-07-14.** All three noindex locations are removed
+> (`vercel.json` was deleted entirely — it held nothing but the header),
+> `robots.txt` allows crawling, and `public/sitemap.xml` exists. Remaining
+> manual step: request indexing in Google Search Console — removing the block
+> does not retroactively index the site. The sections below are kept as the
+> historical record of what the block was and how to re-apply it if ever needed.
 
-Going public is a find-and-remove job across **three files**. Grep for `TODO: LAUNCH`
+Production was **hidden from search engines on purpose**, so we could deploy and
+test on the real domain before the site was publicly ready.
+
+Going public was a find-and-remove job across **three files**. Grep for `TODO: LAUNCH`
 to find two of them; the third (`vercel.json`) is pure JSON and cannot carry a comment,
 so it is listed here instead.
 
@@ -59,9 +66,10 @@ search engines are told.
 
 ---
 
-## Still to do before launch
+## Launch items (historical)
 
-- [ ] DNS: add the GoDaddy records so `modalruns.com` resolves (A `@` → `76.76.21.21`, CNAME `www` → `cname.vercel-dns.com`)
-- [ ] Remove the three noindex locations above
-- [ ] Persistence — the app currently forgets everything on refresh
+- [x] DNS: `modalruns.com` resolves and serves production
+- [x] Remove the three noindex locations above (2026-07-14)
+- [x] Persistence — `AppState` persists via `utils/persist.ts`
 - [ ] Confirm the OG card renders correctly when the link is pasted (Slack/X/Discord)
+- [ ] Request indexing in Google Search Console (manual, needs account access)

@@ -1,14 +1,4 @@
-# ═══════════════════════════════════════════════════════════════
-# TODO: LAUNCH — REPLACE THIS FILE TO GO PUBLIC
-# Blocks all crawling while modalruns.com is tested in production.
-# Paired with: index.html (robots meta) + vercel.json (X-Robots-Tag)
-# See LAUNCH_CHECKLIST.md
-#
-# At launch, this whole file becomes:
-#   User-agent: *
-#   Allow: /
-#   Sitemap: https://modalruns.com/sitemap.xml
-# ═══════════════════════════════════════════════════════════════
-
 User-agent: *
-Disallow: /
+Allow: /
+
+Sitemap: https://modalruns.com/sitemap.xml
