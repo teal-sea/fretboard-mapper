@@ -2973,6 +2973,12 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   transition: all var(--transition);
 }
 .flow-readout sub { font-size: 9px; color: var(--text-3); }
+.mic-level-readout {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
 .flow-readout.hit {
   color: var(--ember);
   border-color: var(--ember);

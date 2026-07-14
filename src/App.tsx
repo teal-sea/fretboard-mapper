@@ -13,7 +13,7 @@ import { DEFAULT_INTERVAL_COLORS, ALL_INTERVALS } from './utils/defaultColors'
 import Fretboard from './components/Fretboard'
 import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome, startDrone, stopDrone, startArpeggio, stopArpeggio, setArpBpm, setDroneVolume, setDroneSpread, setDroneTone, setPadVolume, setPadSpread, setPadTone } from './utils/audioEngine'
 import { CONCEPTS, getNextConcept, markSeen, loadOwned, markOwned, type Concept } from './utils/concepts'
-import { startMic, stopMic, readPitch, recalibrateMic, getMicError } from './utils/micInput'
+import { startMic, stopMic, readPitch, recalibrateMic, getMicError, getLastRms, getRmsGate } from './utils/micInput'
 import { intervalSemitones } from './utils/musicTheory'
 import { getScaleInsight, getChordInsight, chordsInScale, getObjective, PRIMER } from './utils/theory'
 import { getSameNoteModes, describeModalShift, contrastWithKey, recontextualise, type SiblingMode } from './utils/modes'
@@ -676,10 +676,19 @@ export default function App() {
   // strobing between notes). State only changes when the NOTE changes.
   const lastRawRef = useRef<number | null>(null)
   const emptyCountRef = useRef(0)
+  // Live level/gate readout — diagnostic surface for "why isn't it hearing
+  // me", updated a lot slower than the poll itself so it doesn't hammer
+  // re-renders 20x/sec.
+  const [micLevel, setMicLevel] = useState({ rms: 0, gate: 0 })
+  const levelTickRef = useRef(0)
   useEffect(() => {
     if (!listening) return
     const timer = setInterval(() => {
       const p = readPitch()
+      levelTickRef.current++
+      if (levelTickRef.current % 4 === 0) {
+        setMicLevel({ rms: getLastRms(), gate: getRmsGate() })
+      }
       if (p !== null) {
         emptyCountRef.current = 0
         if (p.midi === lastRawRef.current) {
@@ -1412,6 +1421,11 @@ export default function App() {
                 {heardMidi !== null
                   ? <>{noteName(heardMidi % 12, flats)}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
                   : '···'}
+              </span>
+            )}
+            {listening && (
+              <span className="mic-level-readout" title="raw mic level / the floor a signal has to clear">
+                lvl {micLevel.rms.toFixed(3)} / gate {micLevel.gate.toFixed(3)}
               </span>
             )}
           </footer>
