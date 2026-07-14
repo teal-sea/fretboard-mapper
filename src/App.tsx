@@ -1828,13 +1828,21 @@ export default function App() {
                 <button className={`pos-btn ${state.chordPosition === null ? 'active' : ''}`}
                   onClick={() => up({ chordPosition: null })}
                   title="The chord over the key \u2014 every chord tone in context">All</button>
-                {chordVoicings.map((v, i) => (
-                  <button key={i}
-                    className={`pos-btn ${state.chordPosition === i + 1 ? 'active' : ''}`}
-                    onClick={() => up({ chordPosition: i + 1 })}
-                    title={`One playable grip \u2014 ${v.baseFret === 0 ? 'open position' : `around fret ${v.baseFret}`}`}
-                  >{v.baseFret === 0 ? 'Op' : `fr${v.baseFret}`}</button>
-                ))}
+                {chordVoicings.map((v, i) => {
+                  // Two different grips can legitimately share a base fret
+                  // (their roots sit on different strings) \u2014 suffix the
+                  // repeats so the bar never shows two identical buttons.
+                  const dupIdx = chordVoicings.slice(0, i).filter(o => o.baseFret === v.baseFret).length
+                  const base = v.baseFret === 0 ? 'Op' : `fr${v.baseFret}`
+                  const label = dupIdx === 0 ? base : `${base}\u00b7${dupIdx + 1}`
+                  return (
+                    <button key={i}
+                      className={`pos-btn ${state.chordPosition === i + 1 ? 'active' : ''}`}
+                      onClick={() => up({ chordPosition: i + 1 })}
+                      title={`One playable grip \u2014 ${v.baseFret === 0 ? 'open position' : `around fret ${v.baseFret}`}`}
+                    >{label}</button>
+                  )
+                })}
               </>
             ) : (
               <>
