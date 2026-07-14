@@ -8,13 +8,16 @@ UI is a pure function of this one object.
 
 ```ts
 // App.tsx
-const [state, setState] = useState<AppState>(initialState)
+const [state, setState] = useState<AppState>(() => ({ ...initialState, ...loadPersistedState() }))
 const up = useCallback((p: Partial<AppState>) => setState(s => ({ ...s, ...p })), [])
 ```
 
-`up(partial)` is the **only** way state changes. Want the neck to show A Dorian,
-position 5, with the m9 arpeggio and the drone running in that key? You don't
-navigate a UI — you write the state:
+`up(partial)` is the **only** way state changes. State **persists to
+localStorage** (`utils/persist.ts`) via a `useEffect` on every change and is
+merged over `initialState` on load.
+
+Want the neck to show A Dorian, position 5, with the backing sound in that key?
+You don't navigate a UI — you write the state:
 
 ```ts
 up({
@@ -25,8 +28,10 @@ up({
   viewMode: 'scales',
   scalePosition: 5,
 })
-// audio is imperative, not state:
-startDrone(noteIndex('A'), SCALES['dorian'].intervals)
+// The backing sound follows automatically: a useEffect on `droneTuning`
+// retunes whatever is playing. Whether anything plays at all is the local
+// `droneOn` flag, driven by the unified Play button (togglePlay), which
+// starts the selected backing mode AND the mic together.
 ```
 
 Everything re-derives. This is the seam every future feature plugs into.
@@ -55,6 +60,14 @@ driving layer will most often set.
 > as chord tones. Deselecting a chord (`selectedChord* = null`, `viewMode:'scales'`)
 > returns to the pure scale. See the `activeNotes` `useMemo` in `App.tsx`.
 
+### App shell: Study vs Flow
+| Field | Type | Meaning |
+|---|---|---|
+| **`appMode`** | `'study' \| 'flow'` | The two first-class modes sharing one shell. `'study'` = the full mapper; `'flow'` = the session engine (one concept, the shape, the backing sound, listening). |
+| **`conceptId`** | `string \| null` | Active Flow concept (key into `CONCEPTS` in `utils/concepts.ts`). `applyConcept()` writes a whole `up()` partial from it. |
+| `showTheory` | `boolean` | Theory layer visibility. |
+| `onboarded` | `boolean` | First-run intro dismissed (persisted). |
+
 ### View / technique mode
 | Field | Type | Meaning |
 |---|---|---|
@@ -68,6 +81,7 @@ driving layer will most often set.
 |---|---|---|
 | `tuningKey` | `string` | Key into `TUNINGS`. |
 | **`scalePosition`** | `number \| null` | 1-based CAGED position window; `null` = whole neck. |
+| **`chordPosition`** | `number \| null` | 1-based index into `getChordVoicings` — isolates one playable grip of the selected chord; `null` = the normal chord-over-scale view. Reset to `null` when the chord changes. |
 | `zoomToPosition` | `boolean` | Crop the SVG to the active position. |
 | `numFrets` | `number` | Frets rendered (12–24). |
 | `fretRange` | `[number,number] \| null` | Visible fret window `[lo,hi]`; `null` = whole neck. |
@@ -83,22 +97,29 @@ driving layer will most often set.
 ### Audio / progression stepper
 | Field | Type | Meaning |
 |---|---|---|
+| **`backingMode`** | `'drone' \| 'chord' \| 'arp'` | What Play triggers underneath the mode: a pedal-tone drone, the mode's parent chord held on the pad, or that chord arpeggiated at `progressionBpm`. The chord comes from the concept's `chordKey` (Flow) or `chordIntervalsForScale` (Study). Kept as a list (`BACKING_MODES`) so a 4th option is a one-line add. |
+| `droneVolume` / `droneSpread` / `droneTone` | `number` | Drone sound-design knobs (0–3 / 0–1.5 / 0–1); synced to the engine via `useEffect`s. Settings → DRONE. |
+| `padVolume` / `padSpread` / `padTone` | `number` | Same for the pad (the arpeggiator reuses these). Settings → PAD. |
 | `padLatched` | `boolean` | Whether the chord pad sustains indefinitely when a chord plays. |
 | `progression` | `number[]` | Sequence of diatonic degree indices (0–6), duplicates allowed. |
 | `progressionIndex` | `number` | Current step (`-1` = stopped). |
 | `progressionPlaying` | `boolean` | Stepper running. |
-| `progressionBpm` | `number` | 40–200. |
+| `progressionBpm` | `number` | 40–200. Also the arpeggiator's tempo. |
 | `progressionBarsPerChord` | `number` | 1, 2, or 4 bars per chord. |
 
-> **Not in `AppState`:** `metronomeOn` and `droneOn` are local `useState` in
-> `App.tsx` — they're audio side-effect flags that don't change what's rendered.
-> If you add persistence, decide deliberately whether these belong.
+> **Not in `AppState`:** `droneOn`, `listening`, `metronomeOn`, `micError`,
+> `heardMidi`, `micLevel`, and the Flow-session ephemera (`focusFound`,
+> `walkState`, `runState`, `collectionOpen`…) are local `useState` in `App.tsx`
+> — side-effect flags and per-session game state that shouldn't persist.
+> Separately-persisted progress lives in `utils/concepts.ts` (`fm.ownedSounds`)
+> and `utils/progress.ts` (`mr.progress`), not in `AppState`.
 
 ## `initialState`
 
 Defaults to **A aeolian** (natural minor), scales view, standard tuning, 15 frets,
-dark/obsidian, progression `[0,3,4]` (i–iv–v) at 80 BPM. Full literal at the top
-of `App.tsx`.
+dark theme, backing mode `'drone'`, progression `[0,3,4]` (i–iv–v) at 80 BPM.
+Full literal at the top of `App.tsx` — but remember the *effective* initial
+state is `{ ...initialState, ...loadPersistedState() }`.
 
 ## Recipes for driving the app
 

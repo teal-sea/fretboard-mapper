@@ -12,7 +12,7 @@ be read by both humans and LLM agents. If you're an agent starting a task, read
 | 02 | [Architecture](02-architecture.md) | You need the *shape* — stack, data flow, render pipeline, boundaries. |
 | 03 | [State: the `AppState` contract](03-state.md) | You're changing behavior or **driving the app programmatically**. The most important page. |
 | 04 | [Music theory engine](04-music-theory.md) | You're touching notes, scales, chords, positions, or technique patterns. |
-| 05 | [Audio engine](05-audio-engine.md) | You're touching sound — pad, metronome, drone. |
+| 05 | [Audio engine](05-audio-engine.md) | You're touching sound — pad, drone, arpeggiator, metronome, the backing-mode system, or the mic/pitch-detection loop. |
 | 06 | [Components](06-components.md) | You're rendering the neck or a subview. |
 | 07 | [Conventions & workflow](07-conventions.md) | You're about to write code, tests, or open a PR. |
 | 08 | [Roadmap](08-roadmap.md) | You're deciding *what to build next* and how it should slot in. |

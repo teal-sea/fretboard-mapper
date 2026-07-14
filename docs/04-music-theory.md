@@ -1,8 +1,9 @@
 # 04 · Music theory engine (`src/utils/musicTheory.ts`)
 
 A **pure, deterministic, tested** library. No React, no audio, no DOM. This is
-the source of truth for every note and position on the neck. Its 67 tests live in
-`musicTheory.test.ts` — treat them as the contract and keep them green.
+the source of truth for every note and position on the neck. Its tests live in
+`musicTheory.test.ts` (the app suite is ~305 tests across nine files) — treat
+them as the contract and keep them green.
 
 ## Note representation (project-wide)
 
@@ -93,6 +94,39 @@ getDiatonicChords(root, scale): DiatonicChord[][]   // ← see structure note
 getCompatibleScales(chordRoot, chord): { key:string; name:string }[]
 getRelatedModes(root, scaleKey): RelatedMode[]      // modes with identical pitch-class set
 ```
+
+**Backing harmony**
+```ts
+chordIntervalsForScale(scaleKey): number[]
+  // The chord a mode is idiomatically played against — tertian stacking of the
+  // scale's own 1-3-5-7 degrees (Dorian → min7, Lydian → maj7, Locrian →
+  // half-dim7, Harmonic/Melodic Minor → min-maj7). Pentatonics/blues use a
+  // small override table. Powers backing modes 'chord'/'arp' in Study; Flow
+  // concepts override it with their hand-picked `chordKey`.
+```
+
+**Chord voicings (playable grips)**
+```ts
+interface ChordVoicing { frets: (number|null)[]; baseFret: number } // null = muted
+getChordVoicings(root, chord, tuning, numFrets = 15): ChordVoicing[]
+```
+Deterministic search for **actual grips** — one fret per string, muted strings
+only as a bottom-consecutive prefix, root in the bass (E/A/D strings only),
+everything inside a 4-fret window, and **at most four fingers where a barre
+across the lowest fretted fret counts as one**. That last constraint is what
+makes the search converge on the **CAGED system by itself** — the test suite
+asserts all five major forms and the E/A/D minor forms for **all twelve roots**,
+derived from anchor-fret math, not a per-key table.
+
+Hard-learned invariants, each guarding a real regression:
+- Keep the best voicing **per bass string per window**, not per window — for
+  some roots two CAGED forms share a fret window (B major's G-form and C-form).
+- **Open strings only in the nut window.** Injected into higher windows they
+  create barre+stray-open hybrids that outscore every real barre by one point.
+- **No result cap** — a top-5 cut was silently dropping the D-form (~fret 10).
+
+Drives `chordPosition` / the position bar's grip browsing in `App.tsx` (the
+grip renders via `Fretboard`'s `highlightedPositions` technique overlay).
 
 **Positions & technique**
 ```ts
