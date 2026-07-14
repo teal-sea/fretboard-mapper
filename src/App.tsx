@@ -6,7 +6,7 @@ import {
   noteIndex, noteName, useFlats, intervalName,
   getDiatonicChords, getCompatibleScales, getRelatedModes,
   compute3NPSPattern, computeSweepShape, computeTappingPattern,
-  getScalePositions, chordIntervalsForScale,
+  getScalePositions, getChordPositions, chordIntervalsForScale,
 } from './utils/musicTheory'
 import type { DiatonicChord, FretPosition } from './utils/musicTheory'
 import { DEFAULT_INTERVAL_COLORS, ALL_INTERVALS } from './utils/defaultColors'
@@ -111,6 +111,7 @@ const initialState: AppState = {
   highlightRoot: true,
   showLeftHanded: false,
   scalePosition: null,
+  chordPosition: null,
   numFrets: 15,
   fretRange: null,
   intervalColors: { ...DEFAULT_INTERVAL_COLORS },
@@ -260,11 +261,28 @@ export default function App() {
     return getScalePositions(scaleRoot, scale, tuning, state.numFrets)
   }, [state.viewMode, state.selectedScaleKey, state.keyQuality, state.selectedScaleRoot, state.keyRoot, tuning, state.numFrets])
 
+  // Chord positions: the SAME chord as a few separate hand-shapes up the
+  // neck (one window per chord tone) instead of every occurrence of its
+  // notes lit up across the whole board at once.
+  const chordPositions = useMemo(() => {
+    if (state.viewMode !== 'chords' || !state.selectedChordRoot || !state.selectedChordKey) return []
+    const chord = CHORDS[state.selectedChordKey]
+    if (!chord) return []
+    return getChordPositions(state.selectedChordRoot, chord, tuning, state.numFrets)
+  }, [state.viewMode, state.selectedChordRoot, state.selectedChordKey, tuning, state.numFrets])
+
+  const isChordShapeMode = state.viewMode === 'chords' && chordPositions.length > 0
+
   const activePosRange: [number, number] | null = useMemo(() => {
+    if (isChordShapeMode) {
+      if (state.chordPosition === null) return null
+      const idx = Math.min(state.chordPosition - 1, chordPositions.length - 1)
+      return chordPositions[idx] || null
+    }
     if (state.scalePosition === null || scalePositions.length === 0) return null
     const idx = Math.min(state.scalePosition - 1, scalePositions.length - 1)
     return scalePositions[idx] || null
-  }, [state.scalePosition, scalePositions])
+  }, [isChordShapeMode, state.chordPosition, chordPositions, state.scalePosition, scalePositions])
 
   const displayMode = state.showNoteNames && state.showIntervals ? 'both'
     : state.showNoteNames ? 'notes' : state.showIntervals ? 'intervals' : 'notes'
@@ -390,11 +408,13 @@ export default function App() {
   const handleChordClick = (dc: DiatonicChord) => {
     // Toggle: click same chord again to deselect → back to scale view
     if (state.selectedChordRoot === dc.root && state.selectedChordKey === dc.chordKey) {
-      up({ selectedChordRoot: null, selectedChordKey: null, viewMode: 'scales' })
+      up({ selectedChordRoot: null, selectedChordKey: null, viewMode: 'scales', chordPosition: null })
       stopChordPad()
       return
     }
-    up({ selectedChordRoot: dc.root, selectedChordKey: dc.chordKey, viewMode: 'chords', activeTab: 'explore' })
+    // A new chord's shapes start at "all" — the old chordPosition index
+    // means nothing for a chord with a different number of tones.
+    up({ selectedChordRoot: dc.root, selectedChordKey: dc.chordKey, viewMode: 'chords', activeTab: 'explore', chordPosition: null })
     if (state.padLatched) {
       playChordPad(chordToMidi(noteIndex(dc.root), dc.chordDef.intervals), true)
     }
@@ -928,6 +948,7 @@ export default function App() {
       selectedChordRoot: null,
       selectedChordKey: null,
       scalePosition: null,
+      chordPosition: null,
       fretRange: null,
     })
     // If the drone is already on it follows you home; it does not switch itself on.
@@ -1714,27 +1735,49 @@ export default function App() {
           highlightedPositions={state.activeTab === 'technique' ? highlightedPosSet : null}
           nextChordToneNotes={nextChordInfo?.notes || null}
           guitarModel={state.guitarModel}
-          zoomToPosition={state.zoomToPosition && state.scalePosition !== null}
+          zoomToPosition={state.zoomToPosition && (isChordShapeMode ? state.chordPosition !== null : state.scalePosition !== null)}
           heardMidi={listening ? heardMidi : null}
         />
 
 
-        {/* Position bar + More toggle */}
+        {/* Position bar + More toggle \u2014 browses scale positions normally,
+            or the same chord's shapes up the neck when one's selected. */}
         <div className="bottom-strip">
           <div className="position-bar">
-            <button className={`pos-btn ${state.scalePosition === null ? 'active' : ''}`}
-              onClick={() => up({ scalePosition: null })}>All</button>
-            {scalePositions.map((_, i) => (
-              <button key={i}
-                className={`pos-btn ${state.scalePosition === i + 1 ? 'active' : ''}`}
-                onClick={() => up({ scalePosition: i + 1 })}>{i + 1}</button>
-            ))}
-            {state.scalePosition !== null && (
-              <button
-                className={`pos-btn zoom-btn ${state.zoomToPosition ? 'active' : ''}`}
-                onClick={() => up({ zoomToPosition: !state.zoomToPosition })}
-                title="Zoom to position"
-              >{state.zoomToPosition ? '\u2715' : '\u26F6'}</button>
+            {isChordShapeMode ? (
+              <>
+                <button className={`pos-btn ${state.chordPosition === null ? 'active' : ''}`}
+                  onClick={() => up({ chordPosition: null })}>All</button>
+                {chordPositions.map((_, i) => (
+                  <button key={i}
+                    className={`pos-btn ${state.chordPosition === i + 1 ? 'active' : ''}`}
+                    onClick={() => up({ chordPosition: i + 1 })}>{i + 1}</button>
+                ))}
+                {state.chordPosition !== null && (
+                  <button
+                    className={`pos-btn zoom-btn ${state.zoomToPosition ? 'active' : ''}`}
+                    onClick={() => up({ zoomToPosition: !state.zoomToPosition })}
+                    title="Zoom to shape"
+                  >{state.zoomToPosition ? '\u2715' : '\u26F6'}</button>
+                )}
+              </>
+            ) : (
+              <>
+                <button className={`pos-btn ${state.scalePosition === null ? 'active' : ''}`}
+                  onClick={() => up({ scalePosition: null })}>All</button>
+                {scalePositions.map((_, i) => (
+                  <button key={i}
+                    className={`pos-btn ${state.scalePosition === i + 1 ? 'active' : ''}`}
+                    onClick={() => up({ scalePosition: i + 1 })}>{i + 1}</button>
+                ))}
+                {state.scalePosition !== null && (
+                  <button
+                    className={`pos-btn zoom-btn ${state.zoomToPosition ? 'active' : ''}`}
+                    onClick={() => up({ zoomToPosition: !state.zoomToPosition })}
+                    title="Zoom to position"
+                  >{state.zoomToPosition ? '\u2715' : '\u26F6'}</button>
+                )}
+              </>
             )}
           </div>
           <button className="advanced-toggle" onClick={() => up({ advancedMode: !state.advancedMode })}>

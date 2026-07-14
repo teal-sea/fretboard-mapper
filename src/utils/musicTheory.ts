@@ -260,13 +260,14 @@ export function getDiatonicChords(root: string, scale: ScaleDef): DiatonicChord[
 }
 
 // ─── Scale positions (root-based) ────────────────────────────────────
-// Returns fret ranges for each scale position, where Position 1 starts at the root note.
-// Positions ascend from root; those exceeding numFrets wrap to the lower octave.
-export function getScalePositions(
+// Shared by getScalePositions and getChordPositions: one fret window per
+// interval, anchored on where each tone lands on the low string. Position 1
+// starts at the root; later positions ascend and wrap at the octave.
+function intervalPositions(
   root: string,
-  scale: ScaleDef,
+  intervals: number[],
   tuning: Tuning,
-  numFrets: number = 15
+  numFrets: number
 ): [number, number][] {
   const rootIdx = noteIndex(root)
   const lowString = tuning.notes[0]
@@ -280,8 +281,8 @@ export function getScalePositions(
 
   // Each position starts at rootFret + interval (ascending from root)
   // Wrap at the octave — positions stay within frets 0-11 (fret 12 = fret 0)
-  const starts = scale.intervals.map(iv => {
-    let f = rootFret + iv
+  const starts = intervals.map(iv => {
+    let f = rootFret + (iv % 12)
     if (f >= 12) f -= 12
     return f
   })
@@ -298,6 +299,30 @@ export function getScalePositions(
   }
 
   return positions
+}
+
+// Returns fret ranges for each scale position, where Position 1 starts at the root note.
+// Positions ascend from root; those exceeding numFrets wrap to the lower octave.
+export function getScalePositions(
+  root: string,
+  scale: ScaleDef,
+  tuning: Tuning,
+  numFrets: number = 15
+): [number, number][] {
+  return intervalPositions(root, scale.intervals, tuning, numFrets)
+}
+
+// The same idea, one fret window per chord tone instead of per scale degree —
+// Position 1 is the shape anchored at the root, Position 2 at the 3rd, and so
+// on, so the SAME chord can be seen as a few separate, playable hand-shapes
+// walking up the neck instead of every occurrence of its notes lit up at once.
+export function getChordPositions(
+  root: string,
+  chord: ChordDef,
+  tuning: Tuning,
+  numFrets: number = 15
+): [number, number][] {
+  return intervalPositions(root, chord.intervals, tuning, numFrets)
 }
 
 // ─── Compatible scales for a chord ───────────────────────────────────
