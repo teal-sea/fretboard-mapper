@@ -64,6 +64,7 @@ export interface AppState {
   highlightRoot: boolean
   showLeftHanded: boolean
   scalePosition: number | null
+  chordPosition: number | null // which chord-tone-anchored shape window is showing
   numFrets: number
   fretRange: [number, number] | null // visible fret window [lo, hi]; null = whole neck
   intervalColors: Record<string, string>

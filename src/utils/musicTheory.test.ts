@@ -4,7 +4,7 @@ import {
   SCALES, CHORDS, TUNINGS,
   getScaleNotes, getChordNotes, computeFretboard,
   getDiatonicChords, getCompatibleScales, getRelatedModes,
-  getScalePositions, compute3NPSPattern, computeSweepShape, computeTappingPattern,
+  getScalePositions, getChordPositions, compute3NPSPattern, computeSweepShape, computeTappingPattern,
   formulaString, chordIntervalsForScale,
 } from './musicTheory'
 
@@ -290,6 +290,41 @@ describe('getScalePositions', () => {
     it('Position 1 starts near the root fret', () => {
       expect(positions[0][0]).toBeLessThanOrEqual(5)
     })
+  })
+})
+
+describe('getChordPositions', () => {
+  const stdTuning = TUNINGS['standard']
+
+  describe('A min7 (4-note chord)', () => {
+    const positions = getChordPositions('A', CHORDS['min7'], stdTuning, 15)
+
+    it('produces one position per chord tone', () => {
+      expect(positions.length).toBe(4)
+    })
+
+    it('Position 1 starts near the root fret (A = fret 5)', () => {
+      expect(positions[0][0]).toBeLessThanOrEqual(5)
+      expect(positions[0][0]).toBeGreaterThanOrEqual(4)
+    })
+
+    it('all positions are at least 3 frets wide', () => {
+      for (const [lo, hi] of positions) {
+        expect(hi - lo).toBeGreaterThanOrEqual(3)
+      }
+    })
+
+    it('all positions stay within fret range', () => {
+      for (const [lo, hi] of positions) {
+        expect(lo).toBeGreaterThanOrEqual(0)
+        expect(hi).toBeLessThanOrEqual(15)
+      }
+    })
+  })
+
+  it('produces one position per chord tone for a triad too', () => {
+    const positions = getChordPositions('E', CHORDS['minor'], stdTuning, 15)
+    expect(positions.length).toBe(3)
   })
 })
 
