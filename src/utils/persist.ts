@@ -39,6 +39,9 @@ export function loadPersistedState(): Partial<AppState> | null {
     const { __paletteV, __keyV, ...rest } = parsed
     if ((__paletteV ?? 1) < PALETTE_VERSION) delete rest.intervalColors
     if ((__keyV ?? 1) < KEY_VERSION) for (const f of KEY_FIELDS) delete rest[f]
+    // The guitar-model option was retired (Les Paul render wasn't earning
+    // it) — anyone who persisted 'lespaul' falls back to the default.
+    delete rest.guitarModel
     return { ...rest, ...TRANSIENT_RESET }
   } catch {
     return null

@@ -18,6 +18,7 @@ import { intervalSemitones } from './utils/musicTheory'
 import { getScaleInsight, getChordInsight, chordsInScale, getObjective, PRIMER } from './utils/theory'
 import { getSameNoteModes, recontextualise, type SiblingMode } from './utils/modes'
 import { loadPersistedState, savePersistedState } from './utils/persist'
+import { displayNote, LANGUAGES } from './utils/noteNames'
 import { nextFlowHome, describeFlowShift, describeFlowSession } from './utils/flowEngine'
 import FlowCanvas, { type FlowPulse } from './components/FlowCanvas'
 import { familyId, getClaims, claimMode, markCompleted, totalClaimed } from './utils/progress'
@@ -120,6 +121,8 @@ const initialState: AppState = {
   theme: 'dark',
   colorTheme: 'obsidian',
   guitarModel: 'strat',
+  language: 'en',
+  noteStyle: 'letters',
   zoomToPosition: false,
   padLatched: false,
   droneVolume: 1,
@@ -161,6 +164,22 @@ export default function App() {
   const tuning = TUNINGS[state.tuningKey]
   const keyScale = SCALES[state.keyQuality]
   const flats = useFlats(state.keyRoot)
+
+  // Display-only note naming: the engine speaks letters forever; dn() turns
+  // a letter spelling into what the user's language calls it (C → Do) at
+  // render time, so no memo ever depends on the naming preference.
+  const dn = useCallback(
+    (n: string) => displayNote(n, state.noteStyle, state.language),
+    [state.noteStyle, state.language]
+  )
+  // The fretboard renders its own labels from FretNote.note — hand it a
+  // lookup table instead of a callback so the SVG loop stays dumb.
+  const noteMap = useMemo(() => {
+    if (state.noteStyle === 'letters') return null
+    const m: Record<string, string> = {}
+    for (const n of ['C','C#','Db','D','D#','Eb','E','F','F#','Gb','G','G#','Ab','A','A#','Bb','B']) m[n] = dn(n)
+    return m
+  }, [state.noteStyle, dn])
 
   // Diatonic chords for current key
   const diatonicChords = useMemo(
@@ -302,14 +321,14 @@ export default function App() {
 
   // Labels
   const chordLabel = state.selectedChordRoot && state.selectedChordKey
-    ? `${state.selectedChordRoot}${CHORDS[state.selectedChordKey]?.suffix || ''}`
+    ? `${dn(state.selectedChordRoot)}${CHORDS[state.selectedChordKey]?.suffix || ''}`
     : null
   const scaleLabel = state.viewMode === 'scales' && state.selectedScaleRoot && state.selectedScaleKey
-    ? `${state.selectedScaleRoot} ${SCALES[state.selectedScaleKey]?.name || ''}`
-    : `${state.keyRoot} ${keyScale?.name || ''}`
+    ? `${dn(state.selectedScaleRoot)} ${SCALES[state.selectedScaleKey]?.name || ''}`
+    : `${dn(state.keyRoot)} ${keyScale?.name || ''}`
 
   const activeLabel = state.activeTab === 'technique'
-    ? `${state.keyRoot} ${keyScale?.name || ''}`
+    ? `${dn(state.keyRoot)} ${keyScale?.name || ''}`
     : state.viewMode === 'chords' && chordLabel
       ? `${chordLabel} over ${scaleLabel}`
       : scaleLabel
@@ -1270,9 +1289,10 @@ export default function App() {
         />
       )}
 
-      {/* ─── First run: what is this, and where do I start? ─── */}
-      {!state.onboarded && (
-        <div className="intro-veil">
+      {/* ─── First run — lives in the Modes tab, not over the whole app.
+             Landing on Flow or Explore never shows it; the tabs stay usable. ─── */}
+      {!state.onboarded && !isLearn && !isFlow && (
+        <div className="intro-veil in-stage">
           <div className="intro">
             <img className="intro-logo" src="/logo.png" alt="Modal Runs" />
             <h1 className="intro-title">
@@ -1371,6 +1391,27 @@ export default function App() {
         </div>
 
         <div className="shell-actions">
+          {/* Language + notation live in the header, not buried in Settings —
+              what a note is CALLED is a first-class preference. */}
+          <select
+            className="key-select lang-select"
+            value={state.language}
+            onChange={e => {
+              const language = e.target.value as AppState['language']
+              const lang = LANGUAGES.find(l => l.key === language)
+              up({ language, noteStyle: lang?.defaultStyle ?? 'letters' })
+            }}
+            title="Language / naming convention"
+          >
+            {LANGUAGES.map(l => <option key={l.key} value={l.key}>{l.key.toUpperCase()}</option>)}
+          </select>
+          <button
+            className="icon-btn notation-toggle"
+            onClick={() => up({ noteStyle: state.noteStyle === 'letters' ? 'solfege' : 'letters' })}
+            title={state.noteStyle === 'letters' ? 'Switch to Do-Re-Mi' : 'Switch to C-D-E'}
+          >
+            {state.noteStyle === 'letters' ? 'C·D·E' : 'Do·Re'}
+          </button>
           <button className="icon-btn" onClick={() => setSettingsOpen(true)} title="Settings">
             &#9881;
           </button>
@@ -1400,7 +1441,7 @@ export default function App() {
             <div className="lesson-actions">
               <select className="key-select" value={lessonKey.root}
                 onChange={e => setLessonKey(k => ({ ...k, root: e.target.value }))}>
-                {NOTE_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
+                {NOTE_NAMES.map(n => <option key={n} value={n}>{dn(n)}</option>)}
               </select>
               <select className="key-select" value={lessonKey.quality}
                 onChange={e => setLessonKey(k => ({ ...k, quality: e.target.value }))}>
@@ -1627,7 +1668,8 @@ export default function App() {
               posRange={isWalk && walkPos ? walkPos.range : activePosRange}
               numFrets={state.numFrets}
               fretRange={state.fretRange}
-              tuningLabels={tuning.labels}
+              tuningLabels={tuning.labels.map(dn)}
+              noteMap={noteMap}
               highlightedPositions={state.activeTab === 'technique' ? highlightedPosSet : null}
               guitarModel={state.guitarModel}
               zoomToPosition={!isWalk && state.scalePosition !== null}
@@ -1707,7 +1749,7 @@ export default function App() {
             {listening && (
               <span className={`flow-readout ${hearingFocus ? 'hit' : ''}`}>
                 {heardMidi !== null
-                  ? <>{noteName(heardMidi % 12, flats)}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
+                  ? <>{dn(noteName(heardMidi % 12, flats))}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
                   : '···'}
               </span>
             )}
@@ -1787,7 +1829,7 @@ export default function App() {
                 <span className="study-bar-label">Key</span>
                 <select className="key-select" value={state.keyRoot}
                   onChange={e => up({ keyRoot: e.target.value, selectedScaleRoot: e.target.value, selectedScaleKey: state.keyQuality })}>
-                  {NOTE_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
+                  {NOTE_NAMES.map(n => <option key={n} value={n}>{dn(n)}</option>)}
                 </select>
                 <select className="key-select" value={state.keyQuality}
                   onChange={e => up({ keyQuality: e.target.value, selectedScaleKey: e.target.value })}>
@@ -1833,7 +1875,7 @@ export default function App() {
                       <button key={deg} type="button" className="jam-chord-btn"
                         title={`Add ${dc.fullName}`}
                         onClick={() => up({ flowChords: [...state.flowChords, deg] })}>
-                        {dc.fullName}
+                        {dn(dc.root)}{dc.chordDef.suffix}
                       </button>
                     ))}
                   </div>
@@ -1845,7 +1887,7 @@ export default function App() {
                         <button key={i} type="button" className="jam-chord-btn seq"
                           title="Remove"
                           onClick={() => up({ flowChords: state.flowChords.filter((_, j) => j !== i) })}>
-                          {dc ? dc.fullName : '?'} ✕
+                          {dc ? `${dn(dc.root)}${dc.chordDef.suffix}` : '?'} ✕
                         </button>
                       )
                     })}
@@ -1894,7 +1936,7 @@ export default function App() {
               {flowChanges && state.selectedChordRoot ? (
                 <>now — <b>{chordLabel}</b>{nextChordInfo && <> · next — {nextChordInfo.name}</>}</>
               ) : (
-                <>home — <b>{state.selectedScaleRoot || state.keyRoot}</b></>
+                <>home — <b>{dn(state.selectedScaleRoot || state.keyRoot)}</b></>
               )}
               {flowWhisper && <span className="jam-whisper"> · {flowWhisper}</span>}
             </p>
@@ -1911,7 +1953,8 @@ export default function App() {
               posRange={null}
               numFrets={state.numFrets}
               fretRange={null}
-              tuningLabels={tuning.labels}
+              tuningLabels={tuning.labels.map(dn)}
+              noteMap={noteMap}
               guitarModel={state.guitarModel}
               chordToneNotes={flowChanges && state.progressionPlaying ? chordToneNotes : null}
               chordRootIndex={flowChanges && state.progressionPlaying ? chordRootIndex : null}
@@ -1934,7 +1977,7 @@ export default function App() {
             {listening && (
               <span className="flow-readout">
                 {heardMidi !== null
-                  ? <>{noteName(heardMidi % 12, flats)}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
+                  ? <>{dn(noteName(heardMidi % 12, flats))}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
                   : '···'}
               </span>
             )}
@@ -1968,7 +2011,7 @@ export default function App() {
                 up({ selectedChordRoot: root, selectedChordKey: state.selectedChordKey || 'major', viewMode: 'chords', chordPosition: null })
               }
             }}>
-            {NOTE_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
+            {NOTE_NAMES.map(n => <option key={n} value={n}>{dn(n)}</option>)}
           </select>
           <div className="backing-switch" role="group" aria-label="Quick look type">
             <button type="button" className={`backing-switch-btn ${quickType === 'scale' ? 'active' : ''}`}
@@ -2003,7 +2046,7 @@ export default function App() {
           <span className="study-bar-label">Key</span>
           <select className="key-select" value={state.keyRoot}
             onChange={e => up({ keyRoot: e.target.value, selectedScaleRoot: e.target.value, selectedScaleKey: state.keyQuality, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })}>
-            {NOTE_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
+            {NOTE_NAMES.map(n => <option key={n} value={n}>{dn(n)}</option>)}
           </select>
           <select className="key-select" value={state.keyQuality}
             onChange={e => up({ keyQuality: e.target.value, selectedScaleKey: e.target.value, selectedScaleRoot: state.keyRoot, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })}>
@@ -2025,7 +2068,7 @@ export default function App() {
           {listening && (
             <span className="heard-readout">
               {heardMidi !== null
-                ? <>{noteName(heardMidi % 12, flats)}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
+                ? <>{dn(noteName(heardMidi % 12, flats))}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
                 : '···'}
             </span>
           )}
@@ -2075,7 +2118,7 @@ export default function App() {
                 onClick={() => handleChordClick(dc)}
               >
                 <span className="chord-roman">{dc.romanNumeral}</span>
-                <span className="chord-name">{dc.fullName}</span>
+                <span className="chord-name">{dn(dc.root)}{dc.chordDef.suffix}</span>
                 <button className="chord-play" onClick={e => { e.stopPropagation(); handlePlayChord(dc) }}>&#9654;</button>
               </button>
             )
@@ -2108,7 +2151,7 @@ export default function App() {
                 <span className="legend-circle" style={{ background: color }}>
                   <span className="legend-iv">{ivName}</span>
                 </span>
-                <span className="legend-note">{note}</span>
+                <span className="legend-note">{dn(note)}</span>
               </div>
             )
           })}
@@ -2171,7 +2214,8 @@ export default function App() {
           posRange={activePosRange}
           numFrets={state.numFrets}
           fretRange={state.fretRange}
-          tuningLabels={tuning.labels}
+          tuningLabels={tuning.labels.map(dn)}
+              noteMap={noteMap}
           chordToneNotes={state.viewMode === 'chords' && state.activeTab !== 'technique' && !chordShapeSet ? chordToneNotes : null}
           chordRootIndex={state.viewMode === 'chords' && state.activeTab !== 'technique' && !chordShapeSet ? chordRootIndex : null}
           highlightedPositions={state.activeTab === 'technique' ? highlightedPosSet : chordShapeSet}
@@ -2293,7 +2337,7 @@ export default function App() {
                       onClick={() => addDegreeToProgression(i)}
                       title={`${dc.fullName} \u2014 click to add`}>
                       <span className="progression-deg-roman">{dc.romanNumeral}</span>
-                      <span className="progression-deg-name">{dc.fullName}</span>
+                      <span className="progression-deg-name">{dn(dc.root)}{dc.chordDef.suffix}</span>
                     </button>
                   )
                 })}
@@ -2404,7 +2448,7 @@ export default function App() {
             {micError && <p className="mic-error">{micError}</p>}
             <div className={`tuner-note ${tunerPitch && Math.abs(tunerPitch.cents) <= 5 ? 'in-tune' : ''}`}>
               {tunerPitch
-                ? <>{noteName(tunerPitch.midi % 12, flats)}<sub>{Math.floor(tunerPitch.midi / 12) - 1}</sub></>
+                ? <>{dn(noteName(tunerPitch.midi % 12, flats))}<sub>{Math.floor(tunerPitch.midi / 12) - 1}</sub></>
                 : '···'}
             </div>
             <div className="tuner-meter-row">
@@ -2429,7 +2473,7 @@ export default function App() {
                 const inTune = heard && tunerPitch !== null && Math.abs(tunerPitch.cents) <= 5
                 return (
                   <span key={i} className={`tuner-string ${heard ? 'heard' : ''} ${inTune ? 'in-tune' : ''}`}>
-                    {tuning.labels[i]}<sub>{Math.floor(midi / 12) - 1}</sub>
+                    {dn(tuning.labels[i])}<sub>{Math.floor(midi / 12) - 1}</sub>
                   </span>
                 )
               })}
@@ -2457,14 +2501,9 @@ export default function App() {
 
           <div className="drawer-section">
             <div className="drawer-row">
-              <div className="drawer-half">
-                <span className="drawer-label">GUITAR</span>
-                <select className="type-select" value={state.guitarModel}
-                  onChange={e => up({ guitarModel: e.target.value as AppState['guitarModel'] })}>
-                  <option value="strat">Strat (25.5")</option>
-                  <option value="lespaul">Les Paul (24.75")</option>
-                </select>
-              </div>
+              {/* Guitar-model choice retired — the Les Paul render wasn't
+                  earning its select. guitarModel stays in AppState pinned to
+                  'strat'; the renderer still supports both if it returns. */}
               <div className="drawer-half">
                 <span className="drawer-label">TUNING</span>
                 <select className="type-select" value={state.tuningKey}

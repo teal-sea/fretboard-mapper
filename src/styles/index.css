@@ -253,6 +253,30 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   color: var(--text);
   box-shadow: 0 0 10px var(--accent-glow);
 }
+/* Language + notation — header residents, always in reach */
+.lang-select {
+  height: 34px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+.notation-toggle {
+  width: auto;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* The welcome as Modes-tab content: still an overlay for presence, but it
+   starts below the header so the tabs stay clickable, and it never covers
+   Explore or Flow. */
+.intro-veil.in-stage {
+  top: 58px;
+  z-index: 30;
+}
 
 /* ─── Main Stage ───────────────────────────────────────────────────── */
 .main-stage {

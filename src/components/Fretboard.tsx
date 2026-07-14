@@ -13,6 +13,8 @@ interface Props {
   numFrets?: number
   fretRange?: [number, number] | null
   tuningLabels: string[]
+  // Display-only note renaming (letters → solfège); null = letters as-is
+  noteMap?: Record<string, string> | null
   guitarModel?: GuitarModel
   zoomToPosition?: boolean
   // Chord tone overlay — when provided, chord tones glow and passing tones dim
@@ -73,6 +75,7 @@ const BLOCK_FRETS = [3, 5, 7, 9, 12, 15, 17, 19, 21, 24]
 export default function Fretboard({
   board, displayMode, inlayStyle, intervalColors,
   highlightRoot, showLeftHanded, posRange, numFrets = 15, fretRange = null, tuningLabels,
+  noteMap = null,
   guitarModel = 'strat',
   zoomToPosition = false,
   chordToneNotes = null, chordRootIndex = null,
@@ -385,7 +388,7 @@ export default function Fretboard({
                         <text x={cx} y={displayMode === 'both' ? y - 4.5 : y + 0.5}
                           textAnchor="middle" dominantBaseline="central" className="note-label"
                           style={showLeftHanded ? { transform: `scaleX(-1)`, transformOrigin: `${cx}px ${y}px` } : undefined}>
-                          {fn.note}
+                          {noteMap?.[fn.note] ?? fn.note}
                         </text>
                       )}
                       {inPos && (displayMode === 'intervals' || displayMode === 'both') && (
@@ -416,7 +419,7 @@ export default function Fretboard({
                         <text x={cx} y={displayMode === 'both' ? y - 3.5 : y + 0.5}
                           textAnchor="middle" dominantBaseline="central" className="note-label"
                           style={{ fontSize: '8.5px', opacity: 0.75, ...(showLeftHanded ? { transform: `scaleX(-1)`, transformOrigin: `${cx}px ${y}px` } : {}) }}>
-                          {fn.note}
+                          {noteMap?.[fn.note] ?? fn.note}
                         </text>
                       )}
                       {inPos && (displayMode === 'intervals' || displayMode === 'both') && (
@@ -448,7 +451,7 @@ export default function Fretboard({
                         <text x={cx} y={displayMode === 'both' ? y - 4.5 : y + 0.5}
                           textAnchor="middle" dominantBaseline="central" className="note-label"
                           style={showLeftHanded ? { transform: `scaleX(-1)`, transformOrigin: `${cx}px ${y}px` } : undefined}>
-                          {fn.note}
+                          {noteMap?.[fn.note] ?? fn.note}
                         </text>
                       )}
                       {(displayMode === 'intervals' || displayMode === 'both') && (
@@ -591,7 +594,7 @@ export default function Fretboard({
                     <text x={cx} y={displayMode === 'both' ? y - 4.5 : y + 0.5}
                       textAnchor="middle" dominantBaseline="central" className="note-label"
                       style={showLeftHanded ? { transform: `scaleX(-1)`, transformOrigin: `${cx}px ${y}px` } : undefined}>
-                      {fn.note}
+                      {noteMap?.[fn.note] ?? fn.note}
                     </text>
                   )}
                   {inPos && (displayMode === 'intervals' || displayMode === 'both') && (
