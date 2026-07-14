@@ -18,7 +18,7 @@
 
 import type { Tuning } from '../types/music'
 import type { Language } from './noteNames'
-import { tf } from './i18n'
+import { t, tf } from './i18n'
 import { SCALES, noteIndex } from './musicTheory'
 import { getSameNoteModes } from './modes'
 import { plainScaleName } from './theory'
@@ -181,7 +181,7 @@ export function walkProgress(
   const tonic = tonicLabel ?? position.tonic
 
   const instruction = claimed
-    ? tf('{tonic} {mode} is yours. Play it for the joy of it, or move up the neck.', lang, { tonic, mode: position.modeName })
+    ? tf('{tonic} {mode} is yours. Play it for the joy of it, or move up the neck.', lang, { tonic, mode: t(position.modeName, lang) })
     : readyToResolve
       ? tf('Now come home — land on {tonic} and this mode is yours.', lang, { tonic })
       : tf('Improvise in this position. Play {n} more of its notes, then resolve to {tonic}.', lang, { n: NOTES_TO_EXPLORE - explored, tonic })
@@ -189,21 +189,26 @@ export function walkProgress(
   return { explored, needed: NOTES_TO_EXPLORE, readyToResolve, claimed, instruction }
 }
 
-// What just happened when you stepped to a new position.
-export function describeStep(from: WalkPosition | null, to: WalkPosition): string {
-  const plain = to.plain ? `, which is ${to.plain}` : ''
+// What just happened when you stepped to a new position. Note labels come in
+// display-converted; `plain` on the position is stored in English and doubles
+// as its own translation key.
+export function describeStep(
+  from: WalkPosition | null,
+  to: WalkPosition,
+  lang: Language = 'en',
+  labels?: { tonic?: string; from?: string }
+): string {
+  const tonic = labels?.tonic ?? to.tonic
+  const plain = to.plain ? tf(', which is {plain}', lang, { plain: t(to.plain, lang) }) : ''
+  const mode = t(to.modeName, lang)
 
   if (!from || from.tonic === to.tonic) {
-    return (
-      `Position ${to.index} begins on ${to.tonic}. That makes home ${to.tonic}, ` +
-      `so these notes are ${to.tonic} ${to.modeName}${plain}.`
-    )
+    return tf('Position {index} begins on {tonic}. That makes home {tonic}, so these notes are {tonic} {mode}{plain}.', lang, {
+      index: to.index, tonic, mode, plain,
+    })
   }
 
-  return (
-    `You moved up the neck and nothing about the notes changed — it's still the ` +
-    `same scale under your fingers. But this position starts on ${to.tonic}, so the ` +
-    `drone moved home from ${from.tonic} to ${to.tonic}. The same notes are now ` +
-    `${to.tonic} ${to.modeName}${plain}. Hear how different they feel.`
-  )
+  return tf('You moved up the neck and nothing about the notes changed — it’s still the same scale under your fingers. But this position starts on {tonic}, so the drone moved home from {from} to {tonic}. The same notes are now {tonic} {mode}{plain}. Hear how different they feel.', lang, {
+    tonic, from: labels?.from ?? from.tonic, mode, plain,
+  })
 }
