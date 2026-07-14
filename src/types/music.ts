@@ -72,6 +72,8 @@ export interface AppState {
   numFrets: number
   fretRange: [number, number] | null // visible fret window [lo, hi]; null = whole neck
   intervalColors: Record<string, string>
+  language: 'en' | 'es' | 'fr' | 'it' | 'pt' // sets the note-naming convention default
+  noteStyle: 'letters' | 'solfege'           // C-D-E vs Do-Re-Mi, user-overridable
   theme: ThemeMode
   colorTheme: ColorTheme
   guitarModel: GuitarModel
