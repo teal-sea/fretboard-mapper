@@ -1328,7 +1328,7 @@ export default function App() {
 
             <div className="intro-modes">
               <button className="intro-mode" onClick={() => up({ onboarded: true, appMode: 'study' })}>
-                <span className="intro-mode-name">Study the neck</span>
+                <span className="intro-mode-name">Modes</span>
                 <span className="intro-mode-desc">
                   Any key, any mode. Chords laid over scales, arpeggios, positions, the whole
                   fretboard at once — and the theory that accounts for what you're looking at,
@@ -1357,13 +1357,15 @@ export default function App() {
         </div>
 
         <div className="mode-switch">
-          <button className={`mode-btn ${!isLearn && !isFlow ? 'active' : ''}`} onClick={goStudy}>
-            Study
+          {/* The internal appMode values keep their old names (study/learn/
+              flow) — these labels are product-facing and cheap to re-cut. */}
+          <button className={`mode-btn tab-modes ${!isLearn && !isFlow ? 'active' : ''}`} onClick={goStudy}>
+            Modes
           </button>
-          <button className={`mode-btn ${isLearn ? 'active' : ''}`} onClick={goLearn}>
-            Learn
+          <button className={`mode-btn tab-explore ${isLearn ? 'active' : ''}`} onClick={goLearn}>
+            Explore
           </button>
-          <button className={`mode-btn ${isFlow ? 'active' : ''}`} onClick={goFlow}>
+          <button className={`mode-btn tab-flow ${isFlow ? 'active' : ''}`} onClick={goFlow}>
             Flow
           </button>
         </div>

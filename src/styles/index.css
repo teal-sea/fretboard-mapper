@@ -561,6 +561,13 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 }
 .note-group { cursor: pointer; transition: opacity 0.4s ease; }
 .note-group:hover circle { filter: brightness(1.15); }
+/* Roots breathe — only the handful of root dots animate, not all ~90 notes,
+   so the neck feels alive without melting the GPU. */
+.root-halo { animation: root-breathe 2.8s ease-in-out infinite; }
+@keyframes root-breathe {
+  0%, 100% { opacity: 0.18; }
+  50%      { opacity: 0.45; }
+}
 /* 0.12 read as muddy; saturate() on top of an already-dim alpha blend
    made it worse, not better — it boosts whatever the blend produced, and a
    dim gold blended toward near-black reads as mustard/brown, so saturating
@@ -2231,13 +2238,27 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   white-space: nowrap;
 }
 .mode-btn:hover { color: var(--text); }
-/* The mode switch is the first thing anyone touches — it gets the actual
-   logo gradient, same as the sibling-mode chip, not a flat accent hue. */
+/* The mode switch is the first thing anyone touches. Each tab owns a slice
+   of the logo spectrum, left to right — Modes the cool cyan/blue end,
+   Explore the purple/magenta middle, Flow the pink/coral tail — so the
+   three together ARE the gradient. */
 .mode-btn.active {
   background: var(--brand-grad);
   color: #fff;
   text-shadow: 0 1px 3px rgba(0,0,0,0.35);
   box-shadow: 0 0 14px rgba(152,70,234,0.35);
+}
+.mode-btn.tab-modes.active {
+  background: linear-gradient(100deg, var(--neon-cyan), var(--neon-blue));
+  box-shadow: 0 0 14px rgba(9,206,222,0.4);
+}
+.mode-btn.tab-explore.active {
+  background: linear-gradient(100deg, var(--neon-blue), var(--neon-purple), var(--neon-magenta));
+  box-shadow: 0 0 14px rgba(152,70,234,0.45);
+}
+.mode-btn.tab-flow.active {
+  background: linear-gradient(100deg, var(--neon-magenta), var(--neon-pink), var(--neon-coral));
+  box-shadow: 0 0 14px rgba(247,73,162,0.45);
 }
 .mode-btn .mode-ico { font-size: 11px; opacity: 0.8; }
 
