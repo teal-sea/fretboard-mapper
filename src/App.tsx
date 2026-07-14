@@ -6,7 +6,7 @@ import {
   noteIndex, noteName, useFlats, intervalName,
   getDiatonicChords, getCompatibleScales, getRelatedModes,
   compute3NPSPattern, computeSweepShape, computeTappingPattern,
-  getScalePositions, getChordPositions, chordIntervalsForScale,
+  getScalePositions, getChordVoicings, chordIntervalsForScale,
 } from './utils/musicTheory'
 import type { DiatonicChord, FretPosition } from './utils/musicTheory'
 import { DEFAULT_INTERVAL_COLORS, ALL_INTERVALS } from './utils/defaultColors'
@@ -261,28 +261,35 @@ export default function App() {
     return getScalePositions(scaleRoot, scale, tuning, state.numFrets)
   }, [state.viewMode, state.selectedScaleKey, state.keyQuality, state.selectedScaleRoot, state.keyRoot, tuning, state.numFrets])
 
-  // Chord positions: the SAME chord as a few separate hand-shapes up the
-  // neck (one window per chord tone) instead of every occurrence of its
-  // notes lit up across the whole board at once.
-  const chordPositions = useMemo(() => {
+  // Chord voicings: the SAME chord as a handful of real, playable grips up
+  // the neck — one fret per string, root in the bass — NOT a fret window
+  // with chord tones scattered inside it. "All" leaves the chord-over-scale
+  // view exactly as it was; picking a number isolates one grip.
+  const chordVoicings = useMemo(() => {
     if (state.viewMode !== 'chords' || !state.selectedChordRoot || !state.selectedChordKey) return []
     const chord = CHORDS[state.selectedChordKey]
     if (!chord) return []
-    return getChordPositions(state.selectedChordRoot, chord, tuning, state.numFrets)
+    return getChordVoicings(state.selectedChordRoot, chord, tuning, state.numFrets)
   }, [state.viewMode, state.selectedChordRoot, state.selectedChordKey, tuning, state.numFrets])
 
-  const isChordShapeMode = state.viewMode === 'chords' && chordPositions.length > 0
+  const isChordShapeMode = state.viewMode === 'chords' && chordVoicings.length > 0
+
+  // The selected grip, as the "string-fret" keys the technique overlay
+  // already knows how to render (bright grip, everything else recedes).
+  const chordShapeSet = useMemo(() => {
+    if (!isChordShapeMode || state.chordPosition === null) return null
+    const v = chordVoicings[Math.min(state.chordPosition - 1, chordVoicings.length - 1)]
+    if (!v) return null
+    const set = new Set<string>()
+    v.frets.forEach((f, si) => { if (f !== null) set.add(`${si}-${f}`) })
+    return set
+  }, [isChordShapeMode, state.chordPosition, chordVoicings])
 
   const activePosRange: [number, number] | null = useMemo(() => {
-    if (isChordShapeMode) {
-      if (state.chordPosition === null) return null
-      const idx = Math.min(state.chordPosition - 1, chordPositions.length - 1)
-      return chordPositions[idx] || null
-    }
     if (state.scalePosition === null || scalePositions.length === 0) return null
     const idx = Math.min(state.scalePosition - 1, scalePositions.length - 1)
     return scalePositions[idx] || null
-  }, [isChordShapeMode, state.chordPosition, chordPositions, state.scalePosition, scalePositions])
+  }, [state.scalePosition, scalePositions])
 
   const displayMode = state.showNoteNames && state.showIntervals ? 'both'
     : state.showNoteNames ? 'notes' : state.showIntervals ? 'intervals' : 'notes'
@@ -1730,12 +1737,12 @@ export default function App() {
           numFrets={state.numFrets}
           fretRange={state.fretRange}
           tuningLabels={tuning.labels}
-          chordToneNotes={state.viewMode === 'chords' && state.activeTab !== 'technique' ? chordToneNotes : null}
-          chordRootIndex={state.viewMode === 'chords' && state.activeTab !== 'technique' ? chordRootIndex : null}
-          highlightedPositions={state.activeTab === 'technique' ? highlightedPosSet : null}
+          chordToneNotes={state.viewMode === 'chords' && state.activeTab !== 'technique' && !chordShapeSet ? chordToneNotes : null}
+          chordRootIndex={state.viewMode === 'chords' && state.activeTab !== 'technique' && !chordShapeSet ? chordRootIndex : null}
+          highlightedPositions={state.activeTab === 'technique' ? highlightedPosSet : chordShapeSet}
           nextChordToneNotes={nextChordInfo?.notes || null}
           guitarModel={state.guitarModel}
-          zoomToPosition={state.zoomToPosition && (isChordShapeMode ? state.chordPosition !== null : state.scalePosition !== null)}
+          zoomToPosition={state.zoomToPosition && state.scalePosition !== null}
           heardMidi={listening ? heardMidi : null}
         />
 
@@ -1747,19 +1754,15 @@ export default function App() {
             {isChordShapeMode ? (
               <>
                 <button className={`pos-btn ${state.chordPosition === null ? 'active' : ''}`}
-                  onClick={() => up({ chordPosition: null })}>All</button>
-                {chordPositions.map((_, i) => (
+                  onClick={() => up({ chordPosition: null })}
+                  title="The chord over the key \u2014 every chord tone in context">All</button>
+                {chordVoicings.map((v, i) => (
                   <button key={i}
                     className={`pos-btn ${state.chordPosition === i + 1 ? 'active' : ''}`}
-                    onClick={() => up({ chordPosition: i + 1 })}>{i + 1}</button>
+                    onClick={() => up({ chordPosition: i + 1 })}
+                    title={`One playable grip \u2014 ${v.baseFret === 0 ? 'open position' : `around fret ${v.baseFret}`}`}
+                  >{v.baseFret === 0 ? 'Op' : `fr${v.baseFret}`}</button>
                 ))}
-                {state.chordPosition !== null && (
-                  <button
-                    className={`pos-btn zoom-btn ${state.zoomToPosition ? 'active' : ''}`}
-                    onClick={() => up({ zoomToPosition: !state.zoomToPosition })}
-                    title="Zoom to shape"
-                  >{state.zoomToPosition ? '\u2715' : '\u26F6'}</button>
-                )}
               </>
             ) : (
               <>
