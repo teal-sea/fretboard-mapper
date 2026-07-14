@@ -699,11 +699,16 @@ export default function App() {
 
   // The soundscape changed — relearn the ambient floor. Delayed so the
   // drone's slow bloom (or fade) has mostly settled before we measure it.
+  // This used to only fire on droneOn/listening, so turning the Volume
+  // slider up (or switching Drone/Chord/Arp, which changes the bleed's
+  // character entirely) left the gate calibrated against a quieter sound
+  // than what's now actually coming out of the speakers — the backing
+  // sound would win over real playing and "hear" itself instead of you.
   useEffect(() => {
     if (!listening) return
     const t = setTimeout(() => recalibrateMic(), 3000)
     return () => clearTimeout(t)
-  }, [droneOn, listening])
+  }, [droneOn, listening, state.backingMode, state.droneVolume, state.padVolume, backingChordMidi])
 
   // Did you find the note the concept told you to listen for?
   const focusPc = useMemo(() => {
