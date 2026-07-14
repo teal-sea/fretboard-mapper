@@ -76,6 +76,11 @@ describe('detectPitch', () => {
     expect(detectPitch(sine(2637), SR)!.midi).toBe(100) // E7
   })
 
+  it('detects bass-register pitches down to a 5-string low B', () => {
+    expect(detectPitch(guitarish(41.2), SR)!.midi).toBe(28)  // bass low E1
+    expect(detectPitch(sine(30.87), SR)!.midi).toBe(23)      // 5-string low B0
+  })
+
   it('returns null on silence', () => {
     expect(detectPitch(new Float32Array(N), SR)).toBeNull()
   })

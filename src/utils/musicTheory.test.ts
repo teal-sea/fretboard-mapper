@@ -711,8 +711,23 @@ describe('data integrity', () => {
   it('all tunings have matching notes and labels', () => {
     for (const [key, tuning] of Object.entries(TUNINGS)) {
       expect(tuning.notes.length).toBe(tuning.labels.length)
-      expect(tuning.notes.length).toBe(6) // standard guitar
+      expect(tuning.notes.length).toBeGreaterThanOrEqual(4)  // bass
+      expect(tuning.notes.length).toBeLessThanOrEqual(7)     // 7-string
     }
+  })
+
+  it('tuning labels agree with their MIDI notes', () => {
+    for (const [key, tuning] of Object.entries(TUNINGS)) {
+      tuning.notes.forEach((midi, i) => {
+        expect(noteIndex(tuning.labels[i]), `${key} string ${i}`).toBe(midi % 12)
+      })
+    }
+  })
+
+  it('extended-range tunings are pitched where they should be', () => {
+    expect(TUNINGS['standard_7'].notes[0]).toBe(35)  // B1 — a fourth below low E
+    expect(TUNINGS['bass_4'].notes).toEqual(TUNINGS['standard'].notes.slice(0, 4).map(n => n - 12))
+    expect(TUNINGS['bass_5'].notes[0]).toBe(23)      // B0
   })
 
   it('scale intervals are ascending and within 0-11', () => {

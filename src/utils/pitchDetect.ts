@@ -16,8 +16,10 @@ export interface PitchResult {
   cents: number    // deviation from that note, -50..+50
 }
 
-// Wide enough for bass low E (41 Hz) through the top of a whistle (~4 kHz).
-const MIN_FREQ = 40
+// Wide enough for a 5-string bass's low B (B0 ≈ 30.9 Hz) through the top of
+// a whistle (~4 kHz). 40 Hz used to be the floor, which put a standard bass's
+// low E (41.2 Hz) right on the edge — no margin is not a floor.
+const MIN_FREQ = 28
 const MAX_FREQ = 4500
 
 // Below this RMS the buffer is silence/room noise, not a note.
