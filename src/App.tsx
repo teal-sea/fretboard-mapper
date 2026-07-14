@@ -16,7 +16,7 @@ import { CONCEPTS, getNextConcept, markSeen, loadOwned, markOwned, type Concept 
 import { startMic, stopMic, readPitch, recalibrateMic, getMicError, getLastRms, getRmsGate, isMicRunning } from './utils/micInput'
 import { intervalSemitones } from './utils/musicTheory'
 import { getScaleInsight, getChordInsight, chordsInScale, getObjective, PRIMER } from './utils/theory'
-import { getSameNoteModes, describeModalShift, contrastWithKey, recontextualise, type SiblingMode } from './utils/modes'
+import { getSameNoteModes, recontextualise, type SiblingMode } from './utils/modes'
 import { loadPersistedState, savePersistedState } from './utils/persist'
 import { nextFlowHome, describeFlowShift, describeFlowSession } from './utils/flowEngine'
 import FlowCanvas, { type FlowPulse } from './components/FlowCanvas'
@@ -912,13 +912,8 @@ export default function App() {
     [state.selectedScaleRoot, state.keyRoot, state.selectedScaleKey, state.keyQuality]
   )
 
-  const [lastShift, setLastShift] = useState<string | null>(null)
-
   const selectSibling = useCallback((s: SiblingMode) => {
-    const prevRoot = state.selectedScaleRoot || state.keyRoot
-    const prevKey = state.selectedScaleKey || state.keyQuality
     if (s.isCurrent) return
-    setLastShift(describeModalShift(prevRoot, prevKey, s.root, s.scaleKey))
     up({
       keyRoot: s.root,
       keyQuality: s.scaleKey,
@@ -1015,19 +1010,6 @@ export default function App() {
     const t = setTimeout(() => setFlowWhisper(null), 6000)
     return () => clearTimeout(t)
   }, [flowWhisper])
-
-  // Explain the mode against the tonic you're ACTUALLY sitting on, not in the
-  // abstract: "You're in A. A Aeolian uses F. A Dorian swaps it for F#."
-  const keyContrast = useMemo(() => {
-    const root = state.selectedScaleRoot || state.keyRoot
-    const sk = state.selectedScaleKey || state.keyQuality
-    const scale = SCALES[sk]
-    if (!scale) return null
-    const isMinorish = scale.intervals.some(i => i % 12 === 3)
-    const base = isMinorish ? 'aeolian' : 'ionian'
-    if (base === sk) return null
-    return contrastWithKey(root, base, sk)
-  }, [state.selectedScaleRoot, state.keyRoot, state.selectedScaleKey, state.keyQuality])
 
   const playableChords = useMemo(
     () => chordsInScale(
@@ -1999,40 +1981,9 @@ export default function App() {
 
         {micError && <p className="mic-error study-mic-error">{micError}</p>}
 
-        {/* ═══ Same notes, different home — the point of the whole thing ═══
-            Every chip below uses the IDENTICAL notes now on the neck. Click one
-            and the drone moves home; the fretboard does not move at all. */}
-        {sameNoteModes.length > 1 && (
-          <div className="modes-strip">
-            <div className="modes-head">
-              <span className="modes-label">Same notes · different home</span>
-              <span className="modes-hint">
-                All of these are the identical {sameNoteModes.length} notes already on your
-                neck, at the same frets. Move the drone and a different one becomes home —
-                the mode changes without a single new note.
-              </span>
-            </div>
-            <div className="modes-row">
-              {sameNoteModes.map(s => (
-                <button
-                  key={`${s.root}-${s.scaleKey}`}
-                  className={`mode-chip ${s.isCurrent ? 'active' : ''}`}
-                  onClick={() => selectSibling(s)}
-                  title={`${s.root} ${s.name} — same notes, home moves to ${s.root}`}
-                >
-                  <span className="mode-chip-root">{s.root}</span>
-                  <span className="mode-chip-name">{s.name}</span>
-                </button>
-              ))}
-            </div>
-            {lastShift && (
-              <p className="modes-shift">
-                {lastShift}
-                <button className="modes-dismiss" onClick={() => setLastShift(null)}>×</button>
-              </p>
-            )}
-          </div>
-        )}
+        {/* The modal-relativity teaching (same notes · different home, the mode
+            chips, the shift narration) lives in Learn and Flow now — Study is
+            the reference: key in, diatonic harmony out, glossary below. */}
 
         {/* Chord tier selector + diatonic chord buttons */}
         <div className="chord-tier-bar">
@@ -2241,10 +2192,6 @@ export default function App() {
               <button className="theory-toggle" onClick={() => up({ showTheory: false })}>hide</button>
             </div>
             <div className="theory-title">{insight.title}</div>
-            {/* In the context of the tonic you're actually on — not in the abstract */}
-            {state.viewMode !== 'chords' && keyContrast && (
-              <p className="theory-context">{keyContrast.sentence}</p>
-            )}
             <p className="theory-body">
               {insight.body}
               {state.viewMode !== 'chords' && playableChords > 0 && (
