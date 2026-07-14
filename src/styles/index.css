@@ -277,6 +277,22 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   top: 58px;
   z-index: 30;
 }
+.intro-open-btn {
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.intro-open-btn:hover { color: var(--text); border-color: var(--accent); }
 
 /* ─── Main Stage ───────────────────────────────────────────────────── */
 .main-stage {

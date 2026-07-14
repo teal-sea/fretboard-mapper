@@ -363,6 +363,7 @@ export default function App() {
   // Quick look — the glossary path: grab any scale or chord by root without
   // touching the key. The key path (middle of the bar) is the deep dive.
   const [quickType, setQuickType] = useState<'scale' | 'chord'>('scale')
+  const [introOpen, setIntroOpen] = useState(false)
 
   const chordsByCategory = useMemo(() => {
     const cats: Record<string, [string, { name: string; suffix: string }][]> = {}
@@ -1289,9 +1290,10 @@ export default function App() {
         />
       )}
 
-      {/* ─── First run — lives in the Modes tab, not over the whole app.
-             Landing on Flow or Explore never shows it; the tabs stay usable. ─── */}
-      {!state.onboarded && !isLearn && !isFlow && (
+      {/* ─── The welcome never ambushes anyone — the domain loads straight
+             into the app. It opens on demand from the "What is this?" button
+             in Modes. (onboarded persists but no longer gates anything.) ─── */}
+      {introOpen && (
         <div className="intro-veil in-stage">
           <div className="intro">
             <img className="intro-logo" src="/logo.png" alt="Modal Runs" />
@@ -1347,7 +1349,7 @@ export default function App() {
             </div>
 
             <div className="intro-modes">
-              <button className="intro-mode" onClick={() => up({ onboarded: true, appMode: 'study' })}>
+              <button className="intro-mode" onClick={() => { up({ onboarded: true, appMode: 'study' }); setIntroOpen(false) }}>
                 <span className="intro-mode-name">Modes</span>
                 <span className="intro-mode-desc">
                   Any key, any mode. Chords laid over scales, arpeggios, positions, the whole
@@ -1355,7 +1357,7 @@ export default function App() {
                   written for someone who wants to understand it rather than recite it.
                 </span>
               </button>
-              <button className="intro-mode" onClick={() => { up({ onboarded: true }); goFlow() }}>
+              <button className="intro-mode" onClick={() => { up({ onboarded: true }); setIntroOpen(false); goFlow() }}>
                 <span className="intro-mode-name">Just play</span>
                 <span className="intro-mode-desc">
                   One idea, chosen for you, with the shape already sitting on the neck. Start
@@ -1364,7 +1366,7 @@ export default function App() {
                 </span>
               </button>
             </div>
-            <button className="intro-skip" onClick={() => up({ onboarded: true })}>Skip</button>
+            <button className="intro-skip" onClick={() => { up({ onboarded: true }); setIntroOpen(false) }}>Close</button>
           </div>
         </div>
       )}
@@ -2072,6 +2074,7 @@ export default function App() {
                 : '···'}
             </span>
           )}
+          <button className="intro-open-btn" onClick={() => setIntroOpen(true)}>What is this?</button>
         </div>
 
         {micError && <p className="mic-error study-mic-error">{micError}</p>}
