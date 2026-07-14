@@ -1819,6 +1819,14 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   color: var(--text);
   box-shadow: 0 0 10px var(--accent-glow);
 }
+.backing-tuner-btn {
+  width: auto;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  letter-spacing: 0.02em;
+}
 
 /* ─── Tuner ─────────────────────────────────────────────────────────── */
 .tuner-overlay {
