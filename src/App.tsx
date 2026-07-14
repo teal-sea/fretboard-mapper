@@ -129,6 +129,7 @@ const initialState: AppState = {
   padSpread: 1,
   padTone: 0.5,
   backingMode: 'drone',
+  flowJam: 'modes',
   flowEvolve: 'diatonic',
   flowChords: [0, 3, 4],
   flowPaceSec: 120,
@@ -627,10 +628,20 @@ export default function App() {
   // The Walk is the centrepiece, so it must be one press away — ALWAYS.
   // It used to appear only for a brand-new user with empty storage, which meant
   // anyone who'd already used the app could never find it again.
-  const startWalk = useCallback(() => {
+  // The walk itself is key-generic (walkPositions derive from state), so
+  // Lesson 1 can open it in whatever parent scale the user picked — the
+  // concept's hardcoded root is just the default door.
+  const startWalk = useCallback((root?: string, quality?: string) => {
     const walk = CONCEPTS.find(c => c.walk)
-    if (walk) applyConcept(walk)
-  }, [applyConcept])
+    if (!walk) return
+    applyConcept(walk)
+    if (root && quality) {
+      up({
+        keyRoot: root, keyQuality: quality,
+        selectedScaleRoot: root, selectedScaleKey: quality,
+      })
+    }
+  }, [applyConcept, up])
   const nextConcept = useCallback(
     () => applyConcept(getNextConcept(state.conceptId)),
     [applyConcept, state.conceptId]
@@ -639,10 +650,10 @@ export default function App() {
   // Switching modes never destroys your work — Study keeps whatever's on the
   // neck; Flow picks up (or starts) a session.
   const goStudy = useCallback(() => up({ appMode: 'study' }), [up])
-  const goLearn = useCallback(() => {
-    if (state.conceptId) up({ appMode: 'learn' })
-    else startSession()
-  }, [state.conceptId, up, startSession])
+  // Learn opens on the lesson list (conceptId null = the landing), not
+  // mid-drill — lessons are something you choose, not something that
+  // resumes at you.
+  const goLearn = useCallback(() => up({ appMode: 'learn' }), [up])
   // Flow wants a clean full-neck scale — no chord overlays, no position
   // crops, no technique patterns left over from Study.
   const goFlow = useCallback(() => up({
@@ -669,24 +680,33 @@ export default function App() {
   // total silence looked broken. One press starts the room; the same press
   // stops it. Drone always succeeds; Listen can fail (permission, no mic)
   // without taking the drone down with it.
-  const isPlaying = droneOn || listening
+  const isPlaying = droneOn || listening || (state.appMode === 'flow' && state.progressionPlaying)
   const [justTapped, setJustTapped] = useState(0)
+  const flowChanges = state.appMode === 'flow' && state.flowJam === 'changes'
   const togglePlay = useCallback(async () => {
     setJustTapped(n => n + 1)
     if (isPlaying) {
       if (droneOn) setDroneOn(false)
+      if (state.progressionPlaying) stopProgression()
       if (listening) { stopMic(); setListening(false); setHeardMidi(null) }
       if (state.backingMode === 'arp' && metronomeOn) { stopMetronome(); setMetronomeOn(false) }
     } else {
-      setDroneOn(true)
+      if (flowChanges) {
+        // Playing the changes: the progression stepper IS the backing —
+        // chords advance on a bar clock and the neck tracks each one.
+        up({ progression: state.flowChords.length ? state.flowChords : [0, 3, 4] })
+        startProgression()
+      } else {
+        setDroneOn(true)
+        // Arp is tempo-locked, so Play brings the click in with it.
+        if (state.backingMode === 'arp') { startMetronome(state.progressionBpm); setMetronomeOn(true) }
+      }
       setMicError(null)
       const ok = await startMic()
       setListening(ok)
       if (!ok) setMicError(getMicError())
-      // Arp is tempo-locked, so Play brings the click in with it.
-      if (state.backingMode === 'arp') { startMetronome(state.progressionBpm); setMetronomeOn(true) }
     }
-  }, [isPlaying, droneOn, listening, state.backingMode, state.progressionBpm, metronomeOn])
+  }, [isPlaying, droneOn, listening, state.backingMode, state.progressionBpm, metronomeOn, flowChanges, state.flowChords, state.progressionPlaying, stopProgression, startProgression, up])
 
   const backingNoun = state.backingMode === 'chord' ? 'the chord' : state.backingMode === 'arp' ? 'the arpeggiator' : 'the drone'
 
@@ -744,9 +764,9 @@ export default function App() {
 
   // Drone / Chord / Arp switch, shown right beside Play in both Flow and
   // Study — same markup either place so they can't drift apart.
-  const backingControls = (
+  const renderBackingControls = (showSwitch = true) => (
     <div className="backing-controls">
-      <div className="backing-switch" role="group" aria-label="Backing sound">
+      {showSwitch && <div className="backing-switch" role="group" aria-label="Backing sound">
         {BACKING_MODES.map(m => (
           <button
             key={m.key}
@@ -758,7 +778,7 @@ export default function App() {
             {m.label}
           </button>
         ))}
-      </div>
+      </div>}
       <button
         type="button"
         className={`backing-metro-btn ${metronomeOn ? 'active' : ''}`}
@@ -914,6 +934,14 @@ export default function App() {
   // Play is the last decision. The backing evolves underneath the player via
   // selectSibling — every destination is a same-notes sibling mode, so hands
   // never have to move; only the gravity does. No tasks, no fail state.
+  // Lesson 1's key picker — local until Start is pressed, so browsing the
+  // lesson list never mutates what Study has on the neck.
+  const [lessonKey, setLessonKey] = useState({ root: 'C', quality: 'ionian' })
+  const lessonOwnedIds = useMemo(
+    () => (state.appMode === 'learn' && !state.conceptId ? loadOwned() : []),
+    [state.appMode, state.conceptId, soundsOwned]
+  )
+
   const [flowWhisper, setFlowWhisper] = useState<string | null>(null)
   const [flowPulse, setFlowPulse] = useState<FlowPulse | null>(null)
   const [flowWave, setFlowWave] = useState(0)
@@ -927,7 +955,7 @@ export default function App() {
   // The slow drift. Re-creating the interval after every shift (sameNoteModes
   // changes) conveniently restarts the countdown, keeping the pacing even.
   useEffect(() => {
-    if (state.appMode !== 'flow' || !droneOn || state.flowEvolve === 'static') return
+    if (state.appMode !== 'flow' || state.flowJam !== 'modes' || !droneOn || state.flowEvolve === 'static') return
     const t = setInterval(() => {
       flowStepRef.current += 1
       const to = nextFlowHome(state.flowEvolve, flowStepRef.current, sameNoteModes, state.flowChords)
@@ -938,12 +966,13 @@ export default function App() {
       flowHomesRef.current.add(to.root)
     }, state.flowPaceSec * 1000)
     return () => clearInterval(t)
-  }, [state.appMode, droneOn, state.flowEvolve, state.flowPaceSec, state.flowChords, sameNoteModes, selectSibling])
+  }, [state.appMode, state.flowJam, droneOn, state.flowEvolve, state.flowPaceSec, state.flowChords, sameNoteModes, selectSibling])
 
   // Session bookkeeping: counters reset on Play, summary written on Stop.
+  const flowSoundOn = droneOn || state.progressionPlaying
   useEffect(() => {
     if (state.appMode !== 'flow') return
-    if (droneOn) {
+    if (flowSoundOn) {
       flowStartRef.current = Date.now()
       flowNotesRef.current = 0
       flowStepRef.current = 0
@@ -960,7 +989,7 @@ export default function App() {
       }))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [droneOn, state.appMode])
+  }, [flowSoundOn, state.appMode])
 
   // Every committed heard note feeds the canvas — its interval color, and
   // whether it landed home (the firework). heardMidi only changes when the
@@ -968,7 +997,9 @@ export default function App() {
   useEffect(() => {
     if (state.appMode !== 'flow' || heardMidi === null) return
     flowNotesRef.current += 1
-    const homePc = noteIndex(state.selectedScaleRoot || state.keyRoot)
+    const homePc = state.flowJam === 'changes' && state.selectedChordRoot
+      ? noteIndex(state.selectedChordRoot)
+      : noteIndex(state.selectedScaleRoot || state.keyRoot)
     const iv = intervalName(((heardMidi % 12) - homePc + 12) % 12)
     setFlowPulse({
       id: ++flowPulseIdRef.current,
@@ -1353,6 +1384,59 @@ export default function App() {
       </header>
 
       {/* ═════════ FLOW — one idea, the shape, the drone, listening ═════════ */}
+      {/* ═════════ LEARN — the lesson list ═════════ */}
+      {isLearn && !currentConcept && (
+        <main className="lessons-stage">
+          <h2 className="lessons-title">Lessons</h2>
+
+          <div className="lesson-card">
+            <span className="lesson-num">Lesson 1</span>
+            <h3 className="lesson-name">The seven modes of one scale</h3>
+            <p className="lesson-desc">
+              One parent scale contains seven modes — the same notes, a different home
+              each time. Walk the neck position by position and claim each mode by ear.
+            </p>
+            <div className="lesson-actions">
+              <select className="key-select" value={lessonKey.root}
+                onChange={e => setLessonKey(k => ({ ...k, root: e.target.value }))}>
+                {NOTE_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+              <select className="key-select" value={lessonKey.quality}
+                onChange={e => setLessonKey(k => ({ ...k, quality: e.target.value }))}>
+                <option value="ionian">Major</option>
+                <option value="aeolian">Minor</option>
+              </select>
+              <button className="flow-ctl primary" onClick={() => startWalk(lessonKey.root, lessonKey.quality)}>
+                Start →
+              </button>
+            </div>
+          </div>
+
+          <div className="lesson-card">
+            <span className="lesson-num">Drills</span>
+            <h3 className="lesson-name">One sound at a time</h3>
+            <p className="lesson-desc">
+              Short ear-hunts: each one is a single characteristic note against the
+              drone. Owned means the app actually heard you land it.
+            </p>
+            <div className="collection-grid">
+              {CONCEPTS.filter(c => !c.walk).map(c => {
+                const owned = lessonOwnedIds.includes(c.id)
+                return (
+                  <button key={c.id}
+                    className={`collection-item ${owned ? 'owned' : 'locked'}`}
+                    onClick={() => applyConcept(c)}
+                    title={owned ? c.hook : `Not yet — ${c.hook}`}>
+                    <span className="collection-item-mark">{owned ? '✓' : '·'}</span>
+                    <span className="collection-item-title">{c.title}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </main>
+      )}
+
       {isLearn && currentConcept && (
         <main className={`flow-stage ${justLanded ? 'landed' : ''}`}>
           <div className="flow-aura" />
@@ -1602,13 +1686,14 @@ export default function App() {
                   {focusFound ? 'Next sound' : 'Next idea'} {'→'}
                 </button>
                 {/* The centrepiece must always be one press away. */}
-                <button className="flow-ctl walk-entry" onClick={startWalk}>
+                <button className="flow-ctl walk-entry" onClick={() => startWalk()}>
                   Walk the neck
                 </button>
                 <button className="flow-ctl" onClick={shiftPosition}>Shift position</button>
               </>
             )}
-            {backingControls}
+            <button className="flow-ctl" onClick={() => up({ conceptId: null })}>‹ Lessons</button>
+            {renderBackingControls()}
             <button
               key={justTapped}
               className={`play-btn ${isPlaying ? 'on' : ''}`}
@@ -1710,6 +1795,21 @@ export default function App() {
               </div>
 
               <div className="jam-setup-row">
+                <span className="study-bar-label">Jam</span>
+                <div className="backing-switch" role="group" aria-label="How to improvise">
+                  {([
+                    ['modes', 'Modes', 'Modal playing — the harmony sits still (or drifts over minutes) and you color inside it'],
+                    ['changes', 'Changes', 'Playing the changes — a progression loops at tempo and your lines track each chord'],
+                  ] as const).map(([key, label, title]) => (
+                    <button key={key} type="button" title={title}
+                      className={`backing-switch-btn ${state.flowJam === key ? 'active' : ''}`}
+                      onClick={() => up({ flowJam: key })}>{label}</button>
+                  ))}
+                </div>
+              </div>
+
+              {state.flowJam === 'modes' && (
+              <div className="jam-setup-row">
                 <span className="study-bar-label">Evolve</span>
                 <div className="backing-switch" role="group" aria-label="How the backing evolves">
                   {([
@@ -1723,8 +1823,9 @@ export default function App() {
                   ))}
                 </div>
               </div>
+              )}
 
-              {state.flowEvolve === 'custom' && (
+              {((state.flowJam === 'modes' && state.flowEvolve === 'custom') || state.flowJam === 'changes') && (
                 <div className="jam-setup-row jam-chords">
                   <div className="jam-chord-pool">
                     {primaryChords.map((dc, deg) => dc && (
@@ -1751,7 +1852,7 @@ export default function App() {
                 </div>
               )}
 
-              {state.flowEvolve !== 'static' && (
+              {state.flowJam === 'modes' && state.flowEvolve !== 'static' && (
                 <div className="jam-setup-row">
                   <span className="study-bar-label">Pace</span>
                   <div className="backing-switch" role="group" aria-label="Evolution pace">
@@ -1763,12 +1864,37 @@ export default function App() {
                   </div>
                 </div>
               )}
+
+              {state.flowJam === 'changes' && (
+                <div className="jam-setup-row">
+                  <span className="study-bar-label">Tempo</span>
+                  <div className="backing-bpm">
+                    <button type="button" className="backing-bpm-btn"
+                      onClick={() => up({ progressionBpm: Math.max(40, state.progressionBpm - 5) })}>&minus;</button>
+                    <span className="backing-bpm-val">{state.progressionBpm}</span>
+                    <button type="button" className="backing-bpm-btn"
+                      onClick={() => up({ progressionBpm: Math.min(200, state.progressionBpm + 5) })}>+</button>
+                  </div>
+                  <span className="study-bar-label">Bars each</span>
+                  <div className="backing-switch" role="group" aria-label="Bars per chord">
+                    {([1, 2, 4] as const).map(n => (
+                      <button key={n} type="button"
+                        className={`backing-switch-btn ${state.progressionBarsPerChord === n ? 'active' : ''}`}
+                        onClick={() => up({ progressionBarsPerChord: n })}>{n}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {isPlaying && (
             <p className="jam-home">
-              home — <b>{state.selectedScaleRoot || state.keyRoot}</b>
+              {flowChanges && state.selectedChordRoot ? (
+                <>now — <b>{chordLabel}</b>{nextChordInfo && <> · next — {nextChordInfo.name}</>}</>
+              ) : (
+                <>home — <b>{state.selectedScaleRoot || state.keyRoot}</b></>
+              )}
               {flowWhisper && <span className="jam-whisper"> · {flowWhisper}</span>}
             </p>
           )}
@@ -1786,12 +1912,15 @@ export default function App() {
               fretRange={null}
               tuningLabels={tuning.labels}
               guitarModel={state.guitarModel}
+              chordToneNotes={flowChanges && state.progressionPlaying ? chordToneNotes : null}
+              chordRootIndex={flowChanges && state.progressionPlaying ? chordRootIndex : null}
+              nextChordToneNotes={flowChanges ? nextChordInfo?.notes || null : null}
               heardMidi={listening ? heardMidi : null}
             />
           </div>
 
           <footer className="flow-controls">
-            {backingControls}
+            {renderBackingControls(state.flowJam === 'modes')}
             <button
               key={justTapped}
               className={`play-btn ${isPlaying ? 'on' : ''}`}
@@ -1849,7 +1978,7 @@ export default function App() {
 
           <span className="study-bar-sep" />
 
-          {backingControls}
+          {renderBackingControls()}
           <button
             key={justTapped}
             className={`play-btn small ${isPlaying ? 'on' : ''}`}
