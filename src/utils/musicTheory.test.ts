@@ -309,6 +309,50 @@ describe('getChordVoicings', () => {
     expect(shapes).toContain('8,10,10,9,8,8')    // E-form barre at 8
   })
 
+  // ALL five CAGED forms, for ALL twelve roots — each form expressed as
+  // offsets from where the root falls on its anchor string, so this is the
+  // same math for F# as for C, not a per-key lookup table.
+  describe('the full CAGED system, every key', () => {
+    const X = null
+    const shapeStr = (frets: (number | null)[]) => frets.map(f => (f === null ? 'x' : f)).join(',')
+
+    for (const root of ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']) {
+      const pc = noteIndex(root)
+      const b = (pc - 4 + 12) % 12                 // root fret on the low E string
+      const a = (pc - 9 + 12) % 12                 // root fret on the A string
+      const d = (pc - 2 + 12) % 12                 // root fret on the D string
+      const g = b < 3 ? b + 12 : b                 // G-form reaches 3 below its anchor
+      const r = a < 3 ? a + 12 : a                 // C-form reaches 3 below its anchor
+
+      const MAJOR_FORMS: [string, (number | null)[]][] = [
+        ['E-form', [b, b + 2, b + 2, b + 1, b, b]],
+        ['A-form', [X, a, a + 2, a + 2, a + 2, a]],
+        ['D-form', [X, X, d, d + 2, d + 3, d + 2]],
+        ['C-form', [X, r, r - 1, r - 3, r - 2, r - 3]],
+        ['G-form', [g, g - 1, g - 3, g - 3, g - 3, g]],
+      ]
+      const MINOR_FORMS: [string, (number | null)[]][] = [
+        ['Em-form', [b, b + 2, b + 2, b, b, b]],
+        ['Am-form', [X, a, a + 2, a + 2, a + 1, a]],
+        ['Dm-form', [X, X, d, d + 2, d + 3, d + 1]],
+      ]
+
+      it(`${root} major has all five CAGED forms`, () => {
+        const shapes = getChordVoicings(root, CHORDS['major'], stdTuning, 15).map(v => shapeStr(v.frets))
+        for (const [name, form] of MAJOR_FORMS) {
+          expect(shapes, `${root} major missing ${name}`).toContain(shapeStr(form))
+        }
+      })
+
+      it(`${root} minor has the E/A/D forms`, () => {
+        const shapes = getChordVoicings(root, CHORDS['minor'], stdTuning, 15).map(v => shapeStr(v.frets))
+        for (const [name, form] of MINOR_FORMS) {
+          expect(shapes, `${root} minor missing ${name}`).toContain(shapeStr(form))
+        }
+      })
+    }
+  })
+
   it('never emits a grip needing more than four fingers (barre counts as one)', () => {
     for (const [root, chordKey] of [['C', 'major'], ['A', 'minor'], ['G', 'dom7'], ['D', 'min7'], ['F#', 'major']] as const) {
       for (const v of getChordVoicings(root, CHORDS[chordKey], stdTuning, 15)) {

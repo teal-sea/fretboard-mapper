@@ -354,13 +354,19 @@ export function getChordVoicings(
       for (let f = base; f < base + VOICING_SPAN && f <= numFrets; f++) {
         if (chordPcs.has((open + f) % 12)) c.push(f)
       }
-      // Open strings only join near the nut — a barre shape at fret 7 with
-      // a stray open string is not a grip anyone teaches.
-      if (base > 0 && base <= 2 && chordPcs.has(open % 12) && !c.includes(0)) c.unshift(0)
+      // Open strings only exist in the nut window (base 0, where fret 0 is
+      // already a candidate). Injecting them into higher windows produced
+      // hybrid grips — a barre with one stray open string — that beat every
+      // canonical barre form by a point on the finger count.
       return c
     })
 
-    let best: (ChordVoicing & { score: number }) | null = null
+    // Best voicing per BASS STRING, not one per window — the CAGED forms
+    // root on different strings (G/E on the low E, C/A on the A, D on the
+    // D string), and for some roots two forms share the same fret window.
+    // One winner per window silently dropped a form; one per bass keeps
+    // them all without letting note-salad variants pile up.
+    const best = new Map<number, ChordVoicing & { score: number }>()
 
     const walk = (si: number, frets: (number | null)[], anySounded: boolean) => {
       if (si === strings.length) {
@@ -383,13 +389,18 @@ export function getChordVoicings(
           fingers = 1 + fretted.filter(f => f > lowFret).length
         }
         if (fingers > 4) return
+        const bass = frets.findIndex(f => f !== null)
+        // Grips root on the E, A, or D string — a triad fragment floating
+        // on the top three strings is a double-stop exercise, not a shape.
+        if (bass > strings.length - 4) return
         const score = sounded.length * 100 - span * 12 - fingers
-        if (!best || score > best.score) {
-          best = {
+        const incumbent = best.get(bass)
+        if (!incumbent || score > incumbent.score) {
+          best.set(bass, {
             frets: [...frets],
             baseFret: fretted.length ? Math.min(...fretted) : 0,
             score,
-          }
+          })
         }
         return
       }
@@ -403,16 +414,17 @@ export function getChordVoicings(
     }
     walk(0, [], false)
 
-    if (best !== null) {
-      const b: ChordVoicing & { score: number } = best
+    for (const b of best.values()) {
       const key = b.frets.map(f => (f === null ? 'x' : f)).join(',')
       if (!byShape.has(key)) byShape.set(key, b)
     }
   }
 
+  // No cap: within 12 windows the dedupe already bounds this to a handful,
+  // and cutting at an arbitrary count was silently dropping the higher CAGED
+  // forms (the D-form lives around fret 10 for most roots).
   return [...byShape.values()]
     .sort((a, b) => a.baseFret - b.baseFret)
-    .slice(0, 5)
     .map(({ frets, baseFret }) => ({ frets, baseFret }))
 }
 
