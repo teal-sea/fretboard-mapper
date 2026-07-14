@@ -373,7 +373,17 @@ export function getChordVoicings(
         if (pcs.size !== chordPcs.size) return
         const fretted = sounded.filter(s => s.fret > 0).map(s => s.fret)
         const span = fretted.length ? Math.max(...fretted) - Math.min(...fretted) : 0
-        const score = sounded.length * 100 - span * 10 - fretted.length
+        // The constraint that separates real grips from note-salad: a hand
+        // has four fingers, and a barre across the lowest fretted fret is
+        // ONE of them. This is what kills five-finger "voicings" while
+        // letting every open shape and every CAGED barre form through.
+        let fingers = 0
+        if (fretted.length) {
+          const lowFret = Math.min(...fretted)
+          fingers = 1 + fretted.filter(f => f > lowFret).length
+        }
+        if (fingers > 4) return
+        const score = sounded.length * 100 - span * 12 - fingers
         if (!best || score > best.score) {
           best = {
             frets: [...frets],

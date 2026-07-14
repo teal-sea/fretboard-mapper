@@ -302,6 +302,24 @@ describe('getChordVoicings', () => {
     expect(shapes).toContain('x32010')
   })
 
+  it('finds the grown-up C major barre forms (A-form and E-form)', () => {
+    const voicings = getChordVoicings('C', CHORDS['major'], stdTuning, 15)
+    const shapes = voicings.map(v => v.frets.map(f => (f === null ? 'x' : f)).join(','))
+    expect(shapes).toContain('x,3,5,5,5,3')      // A-form barre at 3
+    expect(shapes).toContain('8,10,10,9,8,8')    // E-form barre at 8
+  })
+
+  it('never emits a grip needing more than four fingers (barre counts as one)', () => {
+    for (const [root, chordKey] of [['C', 'major'], ['A', 'minor'], ['G', 'dom7'], ['D', 'min7'], ['F#', 'major']] as const) {
+      for (const v of getChordVoicings(root, CHORDS[chordKey], stdTuning, 15)) {
+        const fretted = v.frets.filter((f): f is number => f !== null && f > 0)
+        if (!fretted.length) continue
+        const low = Math.min(...fretted)
+        expect(1 + fretted.filter(f => f > low).length).toBeLessThanOrEqual(4)
+      }
+    }
+  })
+
   it('finds the open E minor grip (022000)', () => {
     const voicings = getChordVoicings('E', CHORDS['minor'], stdTuning, 15)
     const shapes = voicings.map(v => v.frets.map(f => (f === null ? 'x' : f)).join(''))
