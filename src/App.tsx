@@ -18,6 +18,8 @@ import { intervalSemitones } from './utils/musicTheory'
 import { getScaleInsight, getChordInsight, chordsInScale, getObjective, PRIMER } from './utils/theory'
 import { getSameNoteModes, describeModalShift, contrastWithKey, recontextualise, type SiblingMode } from './utils/modes'
 import { loadPersistedState, savePersistedState } from './utils/persist'
+import { nextFlowHome, describeFlowShift, describeFlowSession } from './utils/flowEngine'
+import FlowCanvas, { type FlowPulse } from './components/FlowCanvas'
 import { familyId, getClaims, claimMode, markCompleted, totalClaimed } from './utils/progress'
 import { getSweepShape, getArpeggioShapes, buildRun } from './utils/arpeggios'
 import {
@@ -127,6 +129,9 @@ const initialState: AppState = {
   padSpread: 1,
   padTone: 0.5,
   backingMode: 'drone',
+  flowEvolve: 'diatonic',
+  flowChords: [0, 3, 4],
+  flowPaceSec: 120,
   appMode: 'study',
   conceptId: null,
   showTheory: true,
@@ -591,7 +596,7 @@ export default function App() {
 
   const applyConcept = useCallback((c: Concept) => {
     up({
-      appMode: 'flow',
+      appMode: 'learn',
       conceptId: c.id,
       keyRoot: c.root,
       keyQuality: PARENT_KEY[c.mode] ?? c.mode,
@@ -634,10 +639,22 @@ export default function App() {
   // Switching modes never destroys your work — Study keeps whatever's on the
   // neck; Flow picks up (or starts) a session.
   const goStudy = useCallback(() => up({ appMode: 'study' }), [up])
-  const goFlow = useCallback(() => {
-    if (state.conceptId) up({ appMode: 'flow' })
+  const goLearn = useCallback(() => {
+    if (state.conceptId) up({ appMode: 'learn' })
     else startSession()
   }, [state.conceptId, up, startSession])
+  // Flow wants a clean full-neck scale — no chord overlays, no position
+  // crops, no technique patterns left over from Study.
+  const goFlow = useCallback(() => up({
+    appMode: 'flow',
+    viewMode: 'scales',
+    selectedChordRoot: null,
+    selectedChordKey: null,
+    scalePosition: null,
+    chordPosition: null,
+    fretRange: null,
+    activeTab: 'explore',
+  }), [up])
 
   const shiftPosition = useCallback(() => {
     const n = scalePositions.length
@@ -893,6 +910,81 @@ export default function App() {
     })
   }, [state.selectedScaleRoot, state.keyRoot, state.selectedScaleKey, state.keyQuality, up])
 
+  // ─── Flow: the endless jam ───
+  // Play is the last decision. The backing evolves underneath the player via
+  // selectSibling — every destination is a same-notes sibling mode, so hands
+  // never have to move; only the gravity does. No tasks, no fail state.
+  const [flowWhisper, setFlowWhisper] = useState<string | null>(null)
+  const [flowPulse, setFlowPulse] = useState<FlowPulse | null>(null)
+  const [flowWave, setFlowWave] = useState(0)
+  const [flowSummary, setFlowSummary] = useState<string | null>(null)
+  const flowStepRef = useRef(0)
+  const flowStartRef = useRef<number | null>(null)
+  const flowNotesRef = useRef(0)
+  const flowHomesRef = useRef<Set<string>>(new Set())
+  const flowPulseIdRef = useRef(0)
+
+  // The slow drift. Re-creating the interval after every shift (sameNoteModes
+  // changes) conveniently restarts the countdown, keeping the pacing even.
+  useEffect(() => {
+    if (state.appMode !== 'flow' || !droneOn || state.flowEvolve === 'static') return
+    const t = setInterval(() => {
+      flowStepRef.current += 1
+      const to = nextFlowHome(state.flowEvolve, flowStepRef.current, sameNoteModes, state.flowChords)
+      if (!to) return
+      selectSibling(to)
+      setFlowWhisper(describeFlowShift(to))
+      setFlowWave(w => w + 1)
+      flowHomesRef.current.add(to.root)
+    }, state.flowPaceSec * 1000)
+    return () => clearInterval(t)
+  }, [state.appMode, droneOn, state.flowEvolve, state.flowPaceSec, state.flowChords, sameNoteModes, selectSibling])
+
+  // Session bookkeeping: counters reset on Play, summary written on Stop.
+  useEffect(() => {
+    if (state.appMode !== 'flow') return
+    if (droneOn) {
+      flowStartRef.current = Date.now()
+      flowNotesRef.current = 0
+      flowStepRef.current = 0
+      flowHomesRef.current = new Set([state.keyRoot])
+      setFlowSummary(null)
+      setFlowWhisper(null)
+    } else if (flowStartRef.current !== null) {
+      const minutes = (Date.now() - flowStartRef.current) / 60000
+      flowStartRef.current = null
+      setFlowSummary(describeFlowSession({
+        minutes,
+        notesHeard: flowNotesRef.current,
+        homesVisited: flowHomesRef.current.size,
+      }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [droneOn, state.appMode])
+
+  // Every committed heard note feeds the canvas — its interval color, and
+  // whether it landed home (the firework). heardMidi only changes when the
+  // committed note changes, so this fires once per note, not per poll.
+  useEffect(() => {
+    if (state.appMode !== 'flow' || heardMidi === null) return
+    flowNotesRef.current += 1
+    const homePc = noteIndex(state.selectedScaleRoot || state.keyRoot)
+    const iv = intervalName(((heardMidi % 12) - homePc + 12) % 12)
+    setFlowPulse({
+      id: ++flowPulseIdRef.current,
+      color: state.intervalColors[iv] || '#9846EA',
+      home: iv === 'R',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heardMidi])
+
+  // Whisper lines dissolve on their own — nothing in Flow asks to be read.
+  useEffect(() => {
+    if (!flowWhisper) return
+    const t = setTimeout(() => setFlowWhisper(null), 6000)
+    return () => clearTimeout(t)
+  }, [flowWhisper])
+
   // Explain the mode against the tonic you're ACTUALLY sitting on, not in the
   // abstract: "You're in A. A Aeolian uses F. A Dorian swaps it for F#."
   const keyContrast = useMemo(() => {
@@ -934,6 +1026,7 @@ export default function App() {
     })
   }, [])
 
+  const isLearn = state.appMode === 'learn'
   const isFlow = state.appMode === 'flow'
   const [primerOpen, setPrimerOpen] = useState(false)
 
@@ -1140,7 +1233,7 @@ export default function App() {
   // ─── Render ───
   return (
     <div className={`app ${state.theme}${state.colorTheme !== 'obsidian' ? ' ' + state.colorTheme : ''} mode-${state.appMode}`}>
-      {!isFlow && (
+      {!isLearn && !isFlow && (
         <div
           className="ambient-glow"
           style={{ '--glow-color': `hsla(${rootHue}, 50%, 35%, 0.05)` } as React.CSSProperties}
@@ -1212,7 +1305,7 @@ export default function App() {
                   written for someone who wants to understand it rather than recite it.
                 </span>
               </button>
-              <button className="intro-mode" onClick={() => { up({ onboarded: true }); startSession() }}>
+              <button className="intro-mode" onClick={() => { up({ onboarded: true }); goFlow() }}>
                 <span className="intro-mode-name">Just play</span>
                 <span className="intro-mode-desc">
                   One idea, chosen for you, with the shape already sitting on the neck. Start
@@ -1234,8 +1327,11 @@ export default function App() {
         </div>
 
         <div className="mode-switch">
-          <button className={`mode-btn ${!isFlow ? 'active' : ''}`} onClick={goStudy}>
+          <button className={`mode-btn ${!isLearn && !isFlow ? 'active' : ''}`} onClick={goStudy}>
             Study
+          </button>
+          <button className={`mode-btn ${isLearn ? 'active' : ''}`} onClick={goLearn}>
+            Learn
           </button>
           <button className={`mode-btn ${isFlow ? 'active' : ''}`} onClick={goFlow}>
             Flow
@@ -1257,7 +1353,7 @@ export default function App() {
       </header>
 
       {/* ═════════ FLOW — one idea, the shape, the drone, listening ═════════ */}
-      {isFlow && currentConcept && (
+      {isLearn && currentConcept && (
         <main className={`flow-stage ${justLanded ? 'landed' : ''}`}>
           <div className="flow-aura" />
 
@@ -1589,8 +1685,143 @@ export default function App() {
         </main>
       )}
 
+      {/* ═════════ FLOW — the endless jam. Play is the last decision. ═════════ */}
+      {isFlow && (
+        <main className="jam-stage">
+          <FlowCanvas
+            active={isFlow}
+            pulse={flowPulse}
+            wave={flowWave}
+            homeColor={state.intervalColors['R'] || '#FFC233'}
+          />
+
+          {!isPlaying && (
+            <div className="jam-setup">
+              <div className="jam-setup-row">
+                <span className="study-bar-label">Key</span>
+                <select className="key-select" value={state.keyRoot}
+                  onChange={e => up({ keyRoot: e.target.value, selectedScaleRoot: e.target.value, selectedScaleKey: state.keyQuality })}>
+                  {NOTE_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+                <select className="key-select" value={state.keyQuality}
+                  onChange={e => up({ keyQuality: e.target.value, selectedScaleKey: e.target.value })}>
+                  {KEY_QUALITIES.map(q => <option key={q.key} value={q.key}>{q.label}</option>)}
+                </select>
+              </div>
+
+              <div className="jam-setup-row">
+                <span className="study-bar-label">Evolve</span>
+                <div className="backing-switch" role="group" aria-label="How the backing evolves">
+                  {([
+                    ['static', 'Stay', 'One home, the whole session'],
+                    ['diatonic', 'Drift', 'Home slowly wanders the sibling modes — same notes, new gravity'],
+                    ['custom', 'My chords', 'Follow your own chord order'],
+                  ] as const).map(([key, label, title]) => (
+                    <button key={key} type="button" title={title}
+                      className={`backing-switch-btn ${state.flowEvolve === key ? 'active' : ''}`}
+                      onClick={() => up({ flowEvolve: key })}>{label}</button>
+                  ))}
+                </div>
+              </div>
+
+              {state.flowEvolve === 'custom' && (
+                <div className="jam-setup-row jam-chords">
+                  <div className="jam-chord-pool">
+                    {primaryChords.map((dc, deg) => dc && (
+                      <button key={deg} type="button" className="jam-chord-btn"
+                        title={`Add ${dc.fullName}`}
+                        onClick={() => up({ flowChords: [...state.flowChords, deg] })}>
+                        {dc.fullName}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="jam-chord-seq">
+                    {state.flowChords.length === 0 && <span className="jam-chord-hint">tap chords above to build the order</span>}
+                    {state.flowChords.map((deg, i) => {
+                      const dc = primaryChords[deg]
+                      return (
+                        <button key={i} type="button" className="jam-chord-btn seq"
+                          title="Remove"
+                          onClick={() => up({ flowChords: state.flowChords.filter((_, j) => j !== i) })}>
+                          {dc ? dc.fullName : '?'} ✕
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {state.flowEvolve !== 'static' && (
+                <div className="jam-setup-row">
+                  <span className="study-bar-label">Pace</span>
+                  <div className="backing-switch" role="group" aria-label="Evolution pace">
+                    {([[240, 'Slow'], [120, 'Medium'], [60, 'Fast']] as const).map(([sec, label]) => (
+                      <button key={sec} type="button"
+                        className={`backing-switch-btn ${state.flowPaceSec === sec ? 'active' : ''}`}
+                        onClick={() => up({ flowPaceSec: sec })}>{label}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {isPlaying && (
+            <p className="jam-home">
+              home — <b>{state.selectedScaleRoot || state.keyRoot}</b>
+              {flowWhisper && <span className="jam-whisper"> · {flowWhisper}</span>}
+            </p>
+          )}
+
+          <div className="jam-neck">
+            <Fretboard
+              board={board}
+              displayMode={displayMode}
+              inlayStyle={state.inlayStyle}
+              intervalColors={state.intervalColors}
+              highlightRoot={state.highlightRoot}
+              showLeftHanded={state.showLeftHanded}
+              posRange={null}
+              numFrets={state.numFrets}
+              fretRange={null}
+              tuningLabels={tuning.labels}
+              guitarModel={state.guitarModel}
+              heardMidi={listening ? heardMidi : null}
+            />
+          </div>
+
+          <footer className="flow-controls">
+            {backingControls}
+            <button
+              key={justTapped}
+              className={`play-btn ${isPlaying ? 'on' : ''}`}
+              onClick={togglePlay}
+              title={isPlaying ? `Stop ${backingNoun} and the mic` : `Start ${backingNoun} and let it hear you`}
+              aria-label={isPlaying ? 'Stop' : 'Play'}
+            >
+              <span className="play-icon">{isPlaying ? '⏸' : '▶'}</span>
+            </button>
+            {listening && (
+              <span className="flow-readout">
+                {heardMidi !== null
+                  ? <>{noteName(heardMidi % 12, flats)}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
+                  : '···'}
+              </span>
+            )}
+          </footer>
+
+          {micError && <p className="flow-coach mic-error"><span className="flow-pip" />{micError}</p>}
+          {!isPlaying && flowSummary && <p className="jam-summary">{flowSummary}</p>}
+          {!isPlaying && !flowSummary && !micError && (
+            <p className="flow-coach"><span className="flow-pip" />
+              Hit <b>&nbsp;play&nbsp;</b> and just improvise. No tasks. The sound moves; your hands don't have to.
+            </p>
+          )}
+        </main>
+      )}
+
       {/* ═════════ STUDY — the full mapper. Nothing hidden. ═════════ */}
-      {!isFlow && (
+      {!isLearn && !isFlow && (
       <main className="study-stage">
         {/* One toolbar instead of four stacked strips */}
         <div className="study-bar">

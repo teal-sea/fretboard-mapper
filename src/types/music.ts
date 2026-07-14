@@ -42,7 +42,11 @@ export interface FretNote {
 }
 
 export type ViewMode = 'chords' | 'scales'
-export type AppMode = 'study' | 'flow'
+// 'study' — the full mapper. 'learn' — the guided concept drills (was called
+// "flow" before there was a real Flow). 'flow' — the endless jam: hit Play,
+// improvise, the backing evolves underneath you, nothing ever asks for a task.
+export type AppMode = 'study' | 'learn' | 'flow'
+export type FlowEvolve = 'static' | 'diatonic' | 'custom'
 
 export interface AppState {
   // Key selection (top level)
@@ -82,6 +86,11 @@ export interface AppState {
   padSpread: number    // 0–1.5, stereo width multiplier
   padTone: number       // 0–1, dark → bright
   backingMode: 'drone' | 'chord' | 'arp' // what Play triggers underneath the mode
+
+  // Flow (the endless jam) — how the backing evolves while you play
+  flowEvolve: FlowEvolve   // stay put, drift through the sibling modes, or follow your own chord order
+  flowChords: number[]     // custom order: diatonic degree indices (0–6), duplicates allowed
+  flowPaceSec: number      // seconds between evolution steps
 
   // Two first-class modes sharing one shell:
   //   'study' — the full fretboard mapper: whole neck, any key, chords over

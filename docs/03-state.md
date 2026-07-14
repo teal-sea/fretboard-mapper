@@ -60,11 +60,14 @@ driving layer will most often set.
 > as chord tones. Deselecting a chord (`selectedChord* = null`, `viewMode:'scales'`)
 > returns to the pure scale. See the `activeNotes` `useMemo` in `App.tsx`.
 
-### App shell: Study vs Flow
+### App shell: Study vs Learn vs Flow
 | Field | Type | Meaning |
 |---|---|---|
-| **`appMode`** | `'study' \| 'flow'` | The two first-class modes sharing one shell. `'study'` = the full mapper; `'flow'` = the session engine (one concept, the shape, the backing sound, listening). |
-| **`conceptId`** | `string \| null` | Active Flow concept (key into `CONCEPTS` in `utils/concepts.ts`). `applyConcept()` writes a whole `up()` partial from it. |
+| **`appMode`** | `'study' \| 'learn' \| 'flow'` | `'study'` = the full mapper. `'learn'` = the guided concept drills (this mode was *called* "flow" before a real Flow existed — its CSS classes are still `.flow-*`). `'flow'` = the endless jam: hit Play, improvise, home evolves underneath you via sibling modes (`utils/flowEngine.ts` + `FlowCanvas` particles), no tasks, no fail state. |
+| **`conceptId`** | `string \| null` | Active Learn concept (key into `CONCEPTS` in `utils/concepts.ts`). `applyConcept()` writes a whole `up()` partial from it. |
+| `flowEvolve` | `'static' \| 'diatonic' \| 'custom'` | How Flow's backing evolves: stay put, drift through sibling modes, or follow `flowChords`. |
+| `flowChords` | `number[]` | Custom evolution order — diatonic degree indices, duplicates allowed. |
+| `flowPaceSec` | `number` | Seconds between evolution steps (60/120/240 in the UI). |
 | `showTheory` | `boolean` | Theory layer visibility. |
 | `onboarded` | `boolean` | First-run intro dismissed (persisted). |
 
