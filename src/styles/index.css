@@ -2139,9 +2139,12 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   background: linear-gradient(180deg, var(--neon-blue), var(--neon-purple), var(--neon-pink));
   border-radius: 999px;
 }
-/* The mark, ghosted into the stages — presence without noise */
+/* The mark, ghosted into the stages — presence without noise. All four
+   stages, every breakpoint. */
 .jam-stage::before,
-.lessons-stage::before {
+.lessons-stage::before,
+.study-stage::before,
+.flow-stage::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -2151,6 +2154,9 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 }
 .lessons-stage { position: relative; }
 .lessons-stage > * { position: relative; }
+.study-stage { position: relative; }
+.study-stage > * { position: relative; z-index: 1; }
+.flow-stage { position: relative; }
 
 /* ─── Landscape phones ──────────────────────────────────────────────────
    A phone on its side is ~850px wide × ~390px tall, so it sails past the
@@ -2161,6 +2167,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 @media (max-height: 500px) {
   .app.mode-learn, .app.mode-flow { height: auto; min-height: 100dvh; overflow: visible; }
   .flow-stage, .jam-stage { height: auto; overflow: visible; }
+  .app.mode-learn .lessons-stage { flex: none; height: auto; overflow: visible; }
   /* justify-content:center + content taller than the viewport = the top
      half overflows UPWARD where no scroll can reach it */
   .jam-stage { justify-content: flex-start; }
@@ -2346,6 +2353,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
    bottom band (the "modalruns" strip, y≈660–805 of 805px), CSS-cropped by
    anchoring a bottom-aligned background inside a band-shaped box. */
 .shell-wordmark {
+  flex-shrink: 0;
   --wm-h: 34px;                                   /* display height of the band */
   width: calc(972 / 145 * var(--wm-h));           /* band aspect: 972 × 145 */
   height: var(--wm-h);
@@ -3665,6 +3673,8 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   /* Phones keep the real wordmark, just smaller — hiding the brand was
      the old text-wordmark's compromise, not this one's. */
   .shell-wordmark { --wm-h: 19px; }
+  .notation-toggle { width: auto; padding: 0 8px; }
+  .app.mode-learn .lessons-stage { flex: none; height: auto; overflow: visible; }
 
   /* Study on a phone: the control bar, mode chips and chord row are all built
      for a desktop row. Let them wrap or scroll sideways instead of blowing out
