@@ -585,6 +585,12 @@ export default function Fretboard({
 
               return (
                 <g key={`n${si}-${fn.fret}`} className={`note-group ${inPos ? '' : 'ghosted'}`}>
+                  {/* Neon is built from SVG halo layers, not CSS filter —
+                      iOS Safari silently drops `filter` on SVG elements, which
+                      is why phones were getting flat dots while desktop glowed.
+                      The filter stays as a desktop-only bonus on top. */}
+                  {inPos && <circle cx={cx} cy={y} r={r * 2} fill={color} opacity={isRoot ? 0.16 : 0.11} />}
+                  {inPos && <circle cx={cx} cy={y} r={r * 1.4} fill={color} opacity={isRoot ? 0.3 : 0.22} />}
                   {isRoot && inPos && <circle className="root-halo" cx={cx} cy={y} r={r + 5} fill={color} opacity={0.3} />}
                   <circle cx={cx} cy={y} r={r} fill={color}
                     stroke={isRoot && inPos ? '#fff' : 'rgba(255,255,255,0.3)'}

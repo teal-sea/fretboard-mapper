@@ -1431,6 +1431,7 @@ export default function App() {
       {isLearn && !currentConcept && (
         <main className="lessons-stage">
           <h2 className="lessons-title">{T('Lessons')}</h2>
+          <button className="intro-open-btn" onClick={() => setIntroOpen(true)}>{T('What is this?')} · Miles Davis</button>
 
           <div className="lesson-card">
             <span className="lesson-num">{T('Lesson 1')}</span>
@@ -1926,6 +1927,7 @@ export default function App() {
                   </div>
                 </div>
               )}
+              <p className="jam-hint">🎧 {T('Headphones recommended — the mic hears your speakers.')}</p>
             </div>
           )}
 
@@ -2089,7 +2091,6 @@ export default function App() {
               <span className={`advanced-arrow ${state.advancedMode ? 'open' : ''}`}>&#9656;</span>
               {T('More')}
             </button>
-            <button className="intro-open-btn" onClick={() => setIntroOpen(true)}>{T('What is this?')}</button>
           </div>
         </div>
 

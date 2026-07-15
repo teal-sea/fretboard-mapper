@@ -120,6 +120,13 @@ const STRINGS: Record<string, Entry> = {
   'safe to play': { es: 'seguras de tocar', fr: 'sans risque', it: 'sicure da suonare', pt: 'seguras de tocar' },
   'what it hears you play': { es: 'lo que te oye tocar', fr: 'ce qu’il t’entend jouer', it: 'quello che ti sente suonare', pt: 'o que ele ouve você tocar' },
 
+  'Headphones recommended — the mic hears your speakers.': {
+    es: 'Se recomiendan audífonos: el micro oye tus parlantes.',
+    fr: 'Casque recommandé — le micro entend tes enceintes.',
+    it: 'Cuffie consigliate: il microfono sente le tue casse.',
+    pt: 'Fones recomendados — o microfone ouve suas caixas.',
+  },
+
   // ─── Theory layer chrome ───
   'the': { es: 'el', fr: 'le', it: 'il', pt: 'o' },
   'hide': { es: 'ocultar', fr: 'masquer', it: 'nascondi', pt: 'ocultar' },

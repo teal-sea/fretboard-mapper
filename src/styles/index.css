@@ -2078,6 +2078,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 .jam-chord-btn:hover { border-color: var(--accent); color: var(--text); }
 .jam-chord-btn.seq { background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
 .jam-chord-hint { font-size: 11px; color: var(--text-3); font-family: var(--font-mono); }
+.jam-hint { font-size: 11px; color: var(--text-3); text-align: center; }
 .jam-home {
   text-align: center;
   font-family: var(--font-mono);
@@ -3663,7 +3664,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   .shell-header { grid-template-columns: auto 1fr auto; }
   /* Phones keep the real wordmark, just smaller — hiding the brand was
      the old text-wordmark's compromise, not this one's. */
-  .shell-wordmark { --wm-h: 22px; }
+  .shell-wordmark { --wm-h: 19px; }
 
   /* Study on a phone: the control bar, mode chips and chord row are all built
      for a desktop row. Let them wrap or scroll sideways instead of blowing out
@@ -3756,12 +3757,20 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
      The Study/Flow pill was built at desktop scale and ate the header,
      squashing the logo and the icon buttons against the edges. */
   .shell-header {
-    grid-template-columns: auto 1fr auto;
-    gap: 8px;
+    /* Three branded rows on a phone — worth the height exactly once, so
+       it scrolls away instead of staying stuck over the fretboard. */
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 6px 10px;
     padding: 8px 10px;
   }
-  .shell-logo { width: 52px; height: 52px; margin: -8px 0; }
-  .mode-switch { padding: 2px; gap: 2px; justify-self: center; }
+  .intro-veil.in-stage { top: 0; }
+  .shell-brand { width: 100%; justify-content: center; }
+  .shell-logo { width: 40px; height: 40px; margin: -4px 0; }
+  .mode-switch { padding: 2px; gap: 2px; }
   .mode-btn {
     padding: 6px 15px;
     font-size: 12.5px;
