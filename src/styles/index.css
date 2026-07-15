@@ -2287,17 +2287,17 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   filter: drop-shadow(0 0 16px rgba(152,70,234,0.8)) drop-shadow(0 0 34px rgba(247,73,162,0.4));
   transform: scale(1.05);
 }
-/* Same face and cut as the original wordmark — only the SIZE grew. The
-   800-weight experiment read as a different font; 700 is the brand. */
-.shell-name {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  white-space: nowrap;
-  background: var(--brand-grad);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* The wordmark is the neon-tube lettering from the logo art itself — no
+   system font resembles it, so the header shows the REAL thing: logo.png's
+   bottom band (the "modalruns" strip, y≈660–805 of 805px), CSS-cropped by
+   anchoring a bottom-aligned background inside a band-shaped box. */
+.shell-wordmark {
+  --wm-h: 34px;                                   /* display height of the band */
+  width: calc(972 / 145 * var(--wm-h));           /* band aspect: 972 × 145 */
+  height: var(--wm-h);
+  background: url('/logo.png') no-repeat left bottom;
+  background-size: calc(972 / 145 * var(--wm-h)) auto;
+  filter: drop-shadow(0 0 10px rgba(247,73,162,0.3));
 }
 .shell-actions {
   display: flex;
@@ -3608,7 +3608,9 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 @media (max-width: 620px) {
   .intro-modes { grid-template-columns: 1fr; }
   .shell-header { grid-template-columns: auto 1fr auto; }
-  .shell-name { display: none; }
+  /* Phones keep the real wordmark, just smaller — hiding the brand was
+     the old text-wordmark's compromise, not this one's. */
+  .shell-wordmark { --wm-h: 22px; }
 
   /* Study on a phone: the control bar, mode chips and chord row are all built
      for a desktop row. Let them wrap or scroll sideways instead of blowing out
