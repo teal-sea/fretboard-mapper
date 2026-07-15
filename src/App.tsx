@@ -2026,7 +2026,12 @@ export default function App() {
                 onClick={() => setQuickType('chord')}>{T('Chord')}</button>
             </div>
             {quickType === 'scale' ? (<>
-              {(scalesByCategory['Popular'] || []).map(([key, s]) => (
+              {/* Simple mode keeps the first choice a guitarist actually makes —
+                  Major or Minor. The full Popular row is advancedMode territory. */}
+              {(state.advancedMode
+                ? (scalesByCategory['Popular'] || [])
+                : (['ionian', 'aeolian'] as const).map(k => [k, SCALES[k]] as [string, { name: string }])
+              ).map(([key, s]) => (
                 <button key={key} type="button"
                   className={`quick-chip ${(state.selectedScaleKey || state.keyQuality) === key && state.viewMode === 'scales' ? 'active' : ''}`}
                   onClick={() => up({
@@ -2034,7 +2039,7 @@ export default function App() {
                     selectedScaleRoot: state.selectedScaleRoot || state.keyRoot,
                     keyRoot: state.selectedScaleRoot || state.keyRoot,
                     viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null,
-                  })}>{T(s.name)}</button>
+                  })}>{state.advancedMode ? T(s.name) : key === 'ionian' ? T('Major') : T('Minor')}</button>
               ))}
               <select className="type-select quick-more" value={state.selectedScaleKey || state.keyQuality}
                 onChange={e => up({
@@ -2050,11 +2055,14 @@ export default function App() {
                 ))}
               </select>
             </>) : (<>
-              {(['major', 'minor', 'dom7', 'maj7', 'min7', 'sus4', 'add9', 'power'] as const).map(key => (
+              {(state.advancedMode
+                ? (['major', 'minor', 'dom7', 'maj7', 'min7', 'sus4', 'add9', 'power'] as const)
+                : (['major', 'minor'] as const)
+              ).map(key => (
                 <button key={key} type="button"
                   className={`quick-chip ${state.selectedChordKey === key && state.viewMode === 'chords' ? 'active' : ''}`}
                   onClick={() => { const r = state.selectedChordRoot || state.keyRoot; const pk = parentScaleFor(r, key); up({ selectedChordKey: key, selectedChordRoot: r, keyRoot: r, keyQuality: pk, selectedScaleRoot: r, selectedScaleKey: pk, viewMode: 'chords', chordPosition: null }) }}
-                >{CHORDS[key].suffix || T('Major')}</button>
+                >{state.advancedMode ? (CHORDS[key].suffix || T('Major')) : key === 'major' ? T('Major') : T('Minor')}</button>
               ))}
               <select className="type-select quick-more" value={state.selectedChordKey || 'major'}
                 onChange={e => { const r = state.selectedChordRoot || state.keyRoot; const pk = parentScaleFor(r, e.target.value); up({ selectedChordKey: e.target.value, selectedChordRoot: r, keyRoot: r, keyQuality: pk, selectedScaleRoot: r, selectedScaleKey: pk, viewMode: 'chords', chordPosition: null }) }}>
@@ -2101,10 +2109,13 @@ export default function App() {
             chips, the shift narration) lives in Learn and Flow now — Study is
             the reference: key in, diatonic harmony out, glossary below. */}
 
-        {/* Chord tier selector + diatonic chord buttons — always visible,
-            and always derived from whatever the user just picked: a scale IS
-            the key; a chord ADOPTS its natural parent scale (Em7 → E Dorian)
-            so the diatonics below always agree with the selection. */}
+        {/* Chord tier selector + diatonic chord buttons — advancedMode only.
+            Simple mode is root → Major/Minor → neck; the diatonic deep-dive
+            lives behind "More". (That's the agreed split — don't float these
+            back up.) Derived from whatever the user picked: a scale IS the
+            key; a chord ADOPTS its natural parent scale (Em7 → E Dorian) so
+            the diatonics below always agree with the selection. */}
+        {state.advancedMode && (<>
         <div className="chord-tier-bar">
           {HARMONY_ROWS.map((row, ri) => {
             const hasAny = harmonyGrid[ri]?.chords.some(c => c !== null)
@@ -2148,6 +2159,7 @@ export default function App() {
             )
           })}
         </div>
+        </>)}
 
         {/* Title + formula */}
         <div className="study-head">
@@ -2161,6 +2173,10 @@ export default function App() {
           </span>
         </div>
 
+        {/* Legend, display mode, and fret window — advancedMode only. The
+            neck's dots already carry names + intervals; simple mode goes
+            straight from the picker to the neck. */}
+        {state.advancedMode && (<>
         {/* Note legend */}
         <div className="note-legend">
           {activeIntervals.map(i => {
@@ -2226,6 +2242,7 @@ export default function App() {
             </div>
           )
         })()}
+        </>)}
 
         {/* Fretboard */}
         <Fretboard
