@@ -2108,12 +2108,12 @@ export default function App() {
               {/* The flip SWITCHES THE VIEW, immediately — it is not a mode
                   for future clicks. Chord quality follows the key (minor key
                   → minor chord), per the golden rule. */}
-              <button type="button" className={`backing-switch-btn ${quickType === 'scale' ? 'active' : ''}`}
-                onClick={() => up({ viewMode: 'scales', advancedMode: false, selectedScaleRoot: state.selectedScaleRoot || state.keyRoot, selectedScaleKey: state.selectedScaleKey || state.keyQuality, selectedChordRoot: null, selectedChordKey: null })}>{T('Scale')}</button>
-              <button type="button" className={`backing-switch-btn ${quickType === 'chord' ? 'active' : ''}`}
-                onClick={() => { const r = state.selectedChordRoot || state.keyRoot; const k = state.selectedChordKey || (MINOR_QUALITIES.has(state.keyQuality) ? 'minor' : 'major'); up({ viewMode: 'chords', advancedMode: false, selectedChordRoot: r, selectedChordKey: k, chordPosition: null }) }}>{T('Chord')}</button>
               <button type="button" className={`backing-switch-btn ${quickType === 'key' ? 'active' : ''}`}
                 onClick={() => up({ viewMode: 'scales', advancedMode: true, selectedScaleRoot: state.selectedScaleRoot || state.keyRoot, selectedScaleKey: state.selectedScaleKey || state.keyQuality, selectedChordRoot: null, selectedChordKey: null })}>{T('Key')}</button>
+              <button type="button" className={`backing-switch-btn ${quickType === 'chord' ? 'active' : ''}`}
+                onClick={() => { const r = state.selectedChordRoot || state.keyRoot; const k = state.selectedChordKey || (MINOR_QUALITIES.has(state.keyQuality) ? 'minor' : 'major'); up({ viewMode: 'chords', advancedMode: false, selectedChordRoot: r, selectedChordKey: k, chordPosition: null }) }}>{T('Chord')}</button>
+              <button type="button" className={`backing-switch-btn ${quickType === 'scale' ? 'active' : ''}`}
+                onClick={() => up({ viewMode: 'scales', advancedMode: false, selectedScaleRoot: state.selectedScaleRoot || state.keyRoot, selectedScaleKey: state.selectedScaleKey || state.keyQuality, selectedChordRoot: null, selectedChordKey: null })}>{T('Scale')}</button>
             </div>
             <select className="key-select quick-root-select" aria-label="Root note"
               value={(quickType !== 'chord' ? state.selectedScaleRoot : state.selectedChordRoot) || state.keyRoot}
