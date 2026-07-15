@@ -3746,33 +3746,42 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 @media (max-width: 620px) {
 
   /* ─── Header ───
-     The Study/Flow pill was built at desktop scale and ate the header,
-     squashing the logo and the icon buttons against the edges. */
+     Two rows, not three: logo and the EN/notation/settings/theme cluster
+     share row 1 (logo left, icons pinned top-right — the compact corner
+     they always belonged in, not centered alone eating a whole row), and
+     the Explore/Modes/Flow pill gets row 2 to itself since it's the
+     widest element and the one thing worth full-width centering. Grid,
+     not flex-wrap: explicit column/row placement, no flex-basis/width
+     tug-of-war with flex-shrink to get subtly wrong across engines. */
   .shell-header {
-    /* Three branded rows on a phone — worth the height exactly once, so
-       it scrolls away instead of staying stuck over the fretboard.
-       Grid, not flex-wrap: a single-column grid puts every direct child
-       on its own row unconditionally — no flex-basis/width:100% tug of
-       war with flex-shrink that Safari has a history of getting wrong. */
     position: static;
     display: grid;
-    grid-template-columns: 1fr;
-    justify-items: center;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto;
     align-items: center;
     gap: 6px 10px;
     padding: 8px 10px;
   }
   .intro-veil.in-stage { top: 0; }
-  .shell-brand { justify-content: center; }
-  .shell-logo { width: 40px; height: 40px; margin: -4px 0; }
-  .mode-switch { justify-content: center; padding: 2px; gap: 2px; }
+  /* Logo+wordmark+icons all sharing row 1 is real content, not
+     decoration — at ~380px it's a fixed budget, not "shrink to taste".
+     Trim the brand (least functional of the three) so the icon cluster
+     never has to fight it for space. */
+  .shell-brand { grid-column: 1; grid-row: 1; width: auto; gap: 6px; }
+  .shell-logo { width: 28px; height: 28px; margin: 0; }
+  .shell-wordmark { --wm-h: 15px; }
+  .shell-actions { grid-column: 3; grid-row: 1; justify-content: flex-end; gap: 4px; }
+  .mode-switch { grid-column: 1 / -1; grid-row: 2; justify-self: center; padding: 2px; gap: 2px; }
   .mode-btn {
     padding: 6px 15px;
     font-size: 12.5px;
     gap: 5px;
   }
-  .shell-actions { justify-content: center; gap: 8px; }
-  .icon-btn { width: 34px; height: 34px; font-size: 14px; }
+  .icon-btn { width: 30px; height: 30px; font-size: 13px; }
+  .lang-select { height: 30px; font-size: 11px; padding: 0 20px 0 8px; }
+  /* .notation-toggle is also .icon-btn — without this it inherits the
+     30px FIXED width above and "C·D·E"/"Do·Re" spills out of the box. */
+  .notation-toggle { width: auto; padding: 0 6px; font-size: 10px; }
 
   /* ─── The neck ───
      Squeezing 15 frets into 390px makes the notes unreadable. Keep the board
