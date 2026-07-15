@@ -2082,6 +2082,13 @@ export default function App() {
                   : '···'}
               </span>
             )}
+            <button
+              className={`advanced-toggle top ${state.advancedMode ? 'open' : ''}`}
+              onClick={() => up({ advancedMode: !state.advancedMode })}
+            >
+              <span className={`advanced-arrow ${state.advancedMode ? 'open' : ''}`}>&#9656;</span>
+              {T('More')}
+            </button>
             <button className="intro-open-btn" onClick={() => setIntroOpen(true)}>{T('What is this?')}</button>
           </div>
         </div>
@@ -2285,10 +2292,6 @@ export default function App() {
               </>
             )}
           </div>
-          <button className="advanced-toggle" onClick={() => up({ advancedMode: !state.advancedMode })}>
-            <span className={`advanced-arrow ${state.advancedMode ? 'open' : ''}`}>&#9656;</span>
-            {T('More')}
-          </button>
         </div>
 
         {/* ─── The theory layer: why what you're looking at actually works ───
