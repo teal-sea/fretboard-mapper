@@ -1,5 +1,12 @@
 import { useState, useMemo, useCallback, useEffect, useRef, Fragment } from 'react'
 import type { AppState } from './types/music'
+
+// window.va is defined by the inline script in index.html (Vercel Web
+// Analytics). A single-page app never changes URL, so every session reads
+// as exactly one pageview — that makes "bounce rate" meaningless here.
+// This custom event is the real engagement signal: did they ever press play.
+declare global { interface Window { va?: (event: 'event', opts: { name: string }) => void } }
+const trackEvent = (name: string) => { try { window.va?.('event', { name }) } catch { /* analytics unavailable — never block the app for this */ } }
 import {
   SCALES, CHORDS, TUNINGS,
   getScaleNotes, getChordNotes, computeFretboard,
@@ -762,6 +769,7 @@ export default function App() {
   const isPlaying = droneOn || listening || (state.appMode === 'flow' && state.progressionPlaying)
   const [justTapped, setJustTapped] = useState(0)
   const flowChanges = state.appMode === 'flow' && state.flowJam === 'changes'
+  const hasTrackedPlay = useRef(false)
   const togglePlay = useCallback(async () => {
     setJustTapped(n => n + 1)
     if (isPlaying) {
@@ -770,6 +778,7 @@ export default function App() {
       if (listening) { stopMic(); setListening(false); setHeardMidi(null) }
       if (state.backingMode === 'arp' && metronomeOn) { stopMetronome(); setMetronomeOn(false) }
     } else {
+      if (!hasTrackedPlay.current) { hasTrackedPlay.current = true; trackEvent('play') }
       if (flowChanges) {
         // Playing the changes: the progression stepper IS the backing —
         // chords advance on a bar clock and the neck tracks each one.
