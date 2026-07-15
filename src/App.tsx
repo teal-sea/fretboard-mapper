@@ -368,6 +368,18 @@ export default function App() {
   // Quick look — the glossary path: grab any scale or chord by root without
   // touching the key. The key path (middle of the bar) is the deep dive.
   const [quickType, setQuickType] = useState<'scale' | 'chord'>('scale')
+
+  // Picking a CHORD adopts its natural parent scale as the key, so the
+  // diatonic harmony below always agrees with the selection: Em7 → E Dorian,
+  // Cmaj7 → C Ionian, G7 → G Mixolydian. Derived, not a lookup table — the
+  // first 7-note scale that contains every chord tone, in catalog order.
+  const parentScaleFor = useCallback((chordRoot: string, chordKey: string): string => {
+    const chord = CHORDS[chordKey]
+    if (!chord) return state.keyQuality
+    const compatible = getCompatibleScales(chordRoot, chord)
+    const seven = compatible.find(s => SCALES[s.key]?.intervals.length === 7)
+    return (seven ?? compatible[0])?.key ?? state.keyQuality
+  }, [state.keyQuality])
   const [introOpen, setIntroOpen] = useState(false)
 
   const chordsByCategory = useMemo(() => {
@@ -1997,7 +2009,7 @@ export default function App() {
                     if (quickType === 'scale') {
                       up({ keyRoot: n, selectedScaleRoot: n, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })
                     } else {
-                      up({ selectedChordRoot: n, selectedChordKey: state.selectedChordKey || 'major', viewMode: 'chords', chordPosition: null })
+                      up({ selectedChordRoot: n, selectedChordKey: state.selectedChordKey || 'major', keyRoot: n, keyQuality: parentScaleFor(n, state.selectedChordKey || 'major'), selectedScaleRoot: n, selectedScaleKey: parentScaleFor(n, state.selectedChordKey || 'major'), viewMode: 'chords', chordPosition: null })
                     }
                   }}>{dn(n)}</button>
               )
@@ -2038,11 +2050,11 @@ export default function App() {
               {(['major', 'minor', 'dom7', 'maj7', 'min7', 'sus4', 'add9', 'power'] as const).map(key => (
                 <button key={key} type="button"
                   className={`quick-chip ${state.selectedChordKey === key && state.viewMode === 'chords' ? 'active' : ''}`}
-                  onClick={() => up({ selectedChordKey: key, selectedChordRoot: state.selectedChordRoot || state.keyRoot, viewMode: 'chords', chordPosition: null })}
+                  onClick={() => { const r = state.selectedChordRoot || state.keyRoot; const pk = parentScaleFor(r, key); up({ selectedChordKey: key, selectedChordRoot: r, keyRoot: r, keyQuality: pk, selectedScaleRoot: r, selectedScaleKey: pk, viewMode: 'chords', chordPosition: null }) }}
                 >{CHORDS[key].suffix || T('Major')}</button>
               ))}
               <select className="type-select quick-more" value={state.selectedChordKey || 'major'}
-                onChange={e => up({ selectedChordKey: e.target.value, selectedChordRoot: state.selectedChordRoot || state.keyRoot, viewMode: 'chords', chordPosition: null })}>
+                onChange={e => { const r = state.selectedChordRoot || state.keyRoot; const pk = parentScaleFor(r, e.target.value); up({ selectedChordKey: e.target.value, selectedChordRoot: r, keyRoot: r, keyQuality: pk, selectedScaleRoot: r, selectedScaleKey: pk, viewMode: 'chords', chordPosition: null }) }}>
                 {Object.entries(chordsByCategory).map(([cat, chords]) => (
                   <optgroup key={cat} label={cat}>
                     {chords.map(([key, ch]) => <option key={key} value={key}>{T(ch.name)}</option>)}
@@ -2080,10 +2092,10 @@ export default function App() {
             chips, the shift narration) lives in Learn and Flow now — Study is
             the reference: key in, diatonic harmony out, glossary below. */}
 
-        {/* Chord tier selector + diatonic chord buttons — the deep dive.
-            Diatonic harmony over the key is the advanced path; it lives
-            behind "More" so the landing view is pure one-click glossary. */}
-        {state.advancedMode && (<>
+        {/* Chord tier selector + diatonic chord buttons — always visible,
+            and always derived from whatever the user just picked: a scale IS
+            the key; a chord ADOPTS its natural parent scale (Em7 → E Dorian)
+            so the diatonics below always agree with the selection. */}
         <div className="chord-tier-bar">
           {HARMONY_ROWS.map((row, ri) => {
             const hasAny = harmonyGrid[ri]?.chords.some(c => c !== null)
@@ -2127,7 +2139,6 @@ export default function App() {
             )
           })}
         </div>
-        </>)}
 
         {/* Title + formula */}
         <div className="study-head">
