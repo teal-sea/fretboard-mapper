@@ -323,13 +323,17 @@ export default function Fretboard({
               fill={isWound ? 'url(#str-wound)' : 'url(#str-plain)'} rx={gauge / 2} />
           })}
 
-          {/* Open string labels */}
+          {/* Open string labels — must clear the open-string (fret 0) note
+              circle, which is centered at nutX-5 with up to a 12px radius
+              (left edge at nutX-17) and paints AFTER this in document
+              order, so any overlap here means the circle covers the
+              letter, not just sits near it. */}
           {stringOrder.map((si, visualIdx) => {
             const y = paddingTop + visualIdx * stringSpacing
             return (
-              <text key={`ol${si}`} x={nutX - 18} y={y}
+              <text key={`ol${si}`} x={nutX - 32} y={y}
                 textAnchor="middle" dominantBaseline="central" className="open-string-label"
-                style={showLeftHanded ? { transform: `scaleX(-1)`, transformOrigin: `${nutX - 18}px ${y}px` } : undefined}>
+                style={showLeftHanded ? { transform: `scaleX(-1)`, transformOrigin: `${nutX - 32}px ${y}px` } : undefined}>
                 {tuningLabels[si]}
               </text>
             )
