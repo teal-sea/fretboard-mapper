@@ -3758,14 +3758,16 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   .intro-veil.in-stage { top: 0; }
   .shell-brand { width: 100%; justify-content: center; }
   .shell-logo { width: 40px; height: 40px; margin: -4px 0; }
-  .mode-switch { padding: 2px; gap: 2px; }
+  /* Three rows means three, not two — without a forced width the tabs and
+     the icon cluster both fit on the leftover row and cram together. */
+  .mode-switch { width: 100%; justify-content: center; padding: 2px; gap: 2px; }
   .mode-btn {
     padding: 6px 15px;
     font-size: 12.5px;
     gap: 5px;
   }
-  .shell-actions { gap: 4px; }
-  .icon-btn { width: 30px; height: 30px; font-size: 13px; }
+  .shell-actions { width: 100%; justify-content: center; gap: 8px; }
+  .icon-btn { width: 34px; height: 34px; font-size: 14px; }
 
   /* ─── The neck ───
      Squeezing 15 frets into 390px makes the notes unreadable. Keep the board
