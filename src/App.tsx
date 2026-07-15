@@ -104,9 +104,11 @@ const THEME_OPTIONS: { key: AppState['colorTheme']; label: string; accent: strin
 const initialState: AppState = {
   keyRoot: 'C',
   keyQuality: 'ionian',
-  viewMode: 'scales',
-  selectedChordRoot: null,
-  selectedChordKey: null,
+  // Explore greets a first-timer with a CHORD — the thing a guitarist
+  // recognizes — with Scale one flip away.
+  viewMode: 'chords',
+  selectedChordRoot: 'C',
+  selectedChordKey: 'major',
   selectedScaleRoot: 'C',
   selectedScaleKey: 'ionian',
   tuningKey: 'standard',
@@ -138,7 +140,10 @@ const initialState: AppState = {
   flowEvolve: 'diatonic',
   flowChords: [0, 3, 4],
   flowPaceSec: 120,
-  appMode: 'study',
+  // First visit lands on Flow — the ten-seconds-to-playing promise. The mic
+  // is only requested when Play is pressed (togglePlay/openTuner), never on
+  // load, so landing here must not prompt for anything.
+  appMode: 'flow',
   conceptId: null,
   showTheory: true,
   onboarded: false,
@@ -269,7 +274,13 @@ export default function App() {
         const chord = CHORDS[state.selectedChordKey]
         if (chord) {
           const chordNotes = getChordNotes(state.selectedChordRoot, chord)
-          return { activeNotes: new Set([...scaleNotes, ...chordNotes]), fretboardRoot: scaleRoot }
+          // Chord view shows the chord that was PICKED — its tones, nothing
+          // else. (Union-with-parent-scale put seven notes on the board when
+          // the user asked for three, reading as "the neck ignores me".)
+          // Mid-progression keeps the whole key on the board so the stepper
+          // can point at where the NEXT chord's tones live.
+          if (state.progressionPlaying) return { activeNotes: new Set([...scaleNotes, ...chordNotes]), fretboardRoot: scaleRoot }
+          return { activeNotes: chordNotes, fretboardRoot: state.selectedChordRoot }
         }
       }
       return { activeNotes: scaleNotes, fretboardRoot: scaleRoot }
@@ -352,7 +363,9 @@ export default function App() {
 
   // Grouped pickers
   const scalesByCategory = useMemo(() => {
-    const POPULAR_KEYS = ['minor_penta', 'major_penta', 'aeolian', 'ionian', 'blues', 'dorian', 'mixolydian', 'harmonic_minor']
+    // Basics first, the order every chord book uses: Major, Minor, then
+    // pentatonics/blues, then the rest.
+    const POPULAR_KEYS = ['ionian', 'aeolian', 'minor_penta', 'major_penta', 'blues', 'dorian', 'mixolydian', 'harmonic_minor']
     const cats: Record<string, [string, { name: string }][]> = {}
     cats['Popular'] = POPULAR_KEYS
       .map(k => [k, SCALES[k]] as [string, { name: string }])
@@ -368,7 +381,11 @@ export default function App() {
 
   // Quick look — the glossary path: grab any scale or chord by root without
   // touching the key. The key path (middle of the bar) is the deep dive.
-  const [quickType, setQuickType] = useState<'scale' | 'chord'>('scale')
+  // Derived, not its own useState: the flip always says what the NECK is
+  // showing. As separate state it drifted from viewMode after a reload —
+  // scale pills up top, a chord on the board, and the user rightly asking
+  // why the fretboard ignores the picker.
+  const quickType: 'scale' | 'chord' = state.viewMode === 'chords' ? 'chord' : 'scale'
 
   // Picking a CHORD adopts its natural parent scale as the key, so the
   // diatonic harmony below always agrees with the selection: Em7 → E Dorian,
@@ -2020,10 +2037,13 @@ export default function App() {
           </div>
           <div className="quick-row">
             <div className="backing-switch" role="group" aria-label="Scale or chord">
+              {/* The flip SWITCHES THE VIEW, immediately — it is not a mode
+                  for future clicks. Chord quality follows the key (minor key
+                  → minor chord), per the golden rule. */}
               <button type="button" className={`backing-switch-btn ${quickType === 'scale' ? 'active' : ''}`}
-                onClick={() => setQuickType('scale')}>{T('Scale')}</button>
+                onClick={() => up({ viewMode: 'scales', selectedScaleRoot: state.selectedScaleRoot || state.keyRoot, selectedScaleKey: state.selectedScaleKey || state.keyQuality, selectedChordRoot: null, selectedChordKey: null })}>{T('Scale')}</button>
               <button type="button" className={`backing-switch-btn ${quickType === 'chord' ? 'active' : ''}`}
-                onClick={() => setQuickType('chord')}>{T('Chord')}</button>
+                onClick={() => { const r = state.selectedChordRoot || state.keyRoot; const k = state.selectedChordKey || (MINOR_QUALITIES.has(state.keyQuality) ? 'minor' : 'major'); up({ viewMode: 'chords', selectedChordRoot: r, selectedChordKey: k, chordPosition: null }) }}>{T('Chord')}</button>
             </div>
             {quickType === 'scale' ? (<>
               {/* Simple mode keeps the first choice a guitarist actually makes —
