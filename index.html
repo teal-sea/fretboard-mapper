@@ -36,6 +36,13 @@
     <meta name="twitter:title" content="Modal Runs — It listens while you play" />
     <meta name="twitter:description" content="Hold a drone in any key, improvise, and it hears you through your mic — answering on the neck." />
     <meta name="twitter:image" content="https://modalruns.com/og.jpg" />
+
+    <!-- Vercel Web Analytics. Plain script instead of @vercel/analytics so the
+         zero-runtime-dependency rule holds; 404s harmlessly in local dev. -->
+    <script>
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments) }
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
   </head>
   <body>
     <!-- Brand splash: the mark breathes while the bundle loads. Inline so it
