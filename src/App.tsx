@@ -354,7 +354,7 @@ export default function App() {
   // parent scale — "C" fits Ionian, Lydian, and Mixolydian alike, so
   // claiming "C over C Ionian" here would assert a mode nobody chose. The
   // real diatonic relationship (degree -> mode) only exists once a chord
-  // comes out of the Harmony Map in More, where the key was picked first.
+  // comes out of the Harmony Map under Key, where the key was picked first.
   const activeLabel = state.activeTab === 'technique'
     ? `${dn(state.keyRoot)} ${T(keyScale?.name || '')}`
     : state.viewMode === 'chords' && chordLabel
@@ -396,7 +396,12 @@ export default function App() {
   // showing. As separate state it drifted from viewMode after a reload —
   // scale pills up top, a chord on the board, and the user rightly asking
   // why the fretboard ignores the picker.
-  const quickType: 'scale' | 'chord' = state.viewMode === 'chords' ? 'chord' : 'scale'
+  // 'key' is 'scale' with the diatonic deep-dive (Harmony Map, Practice,
+  // Technique) pinned open — the two share every field (root/quality ARE
+  // the key), they only differ on whether advancedMode is showing.
+  const quickType: 'scale' | 'chord' | 'key' = state.viewMode === 'chords'
+    ? 'chord'
+    : state.advancedMode ? 'key' : 'scale'
 
   // Picking a CHORD adopts its natural parent scale as the key, so the
   // diatonic harmony below always agrees with the selection: Em7 → E Dorian,
@@ -2092,17 +2097,29 @@ export default function App() {
       {/* ═════════ STUDY — the full mapper. Nothing hidden. ═════════ */}
       {!isLearn && !isFlow && (
       <main className="study-stage">
-        {/* The glossary bar: everything ONE CLICK from page load. A row of
-            root chips, a Scale/Chord flip, and a row of the common picks —
-            the full catalog stays one select away. Picking a scale IS
-            picking the key; the diatonic deep-dive lives behind "More". */}
+        {/* The glossary bar: everything ONE CLICK from page load. A
+            Scale/Chord/Key flip, a root, and the matching quality — picking
+            a scale IS picking the key; Key pins the diatonic deep-dive
+            (Harmony Map, Practice, Technique) open instead of needing a
+            separate "More" button. */}
         <div className="study-bar quick-bar">
           <div className="quick-row">
+            <div className="backing-switch" role="group" aria-label="Scale, chord, or key">
+              {/* The flip SWITCHES THE VIEW, immediately — it is not a mode
+                  for future clicks. Chord quality follows the key (minor key
+                  → minor chord), per the golden rule. */}
+              <button type="button" className={`backing-switch-btn ${quickType === 'scale' ? 'active' : ''}`}
+                onClick={() => up({ viewMode: 'scales', advancedMode: false, selectedScaleRoot: state.selectedScaleRoot || state.keyRoot, selectedScaleKey: state.selectedScaleKey || state.keyQuality, selectedChordRoot: null, selectedChordKey: null })}>{T('Scale')}</button>
+              <button type="button" className={`backing-switch-btn ${quickType === 'chord' ? 'active' : ''}`}
+                onClick={() => { const r = state.selectedChordRoot || state.keyRoot; const k = state.selectedChordKey || (MINOR_QUALITIES.has(state.keyQuality) ? 'minor' : 'major'); up({ viewMode: 'chords', advancedMode: false, selectedChordRoot: r, selectedChordKey: k, chordPosition: null }) }}>{T('Chord')}</button>
+              <button type="button" className={`backing-switch-btn ${quickType === 'key' ? 'active' : ''}`}
+                onClick={() => up({ viewMode: 'scales', advancedMode: true, selectedScaleRoot: state.selectedScaleRoot || state.keyRoot, selectedScaleKey: state.selectedScaleKey || state.keyQuality, selectedChordRoot: null, selectedChordKey: null })}>{T('Key')}</button>
+            </div>
             <select className="key-select quick-root-select" aria-label="Root note"
-              value={(quickType === 'scale' ? state.selectedScaleRoot : state.selectedChordRoot) || state.keyRoot}
+              value={(quickType !== 'chord' ? state.selectedScaleRoot : state.selectedChordRoot) || state.keyRoot}
               onChange={e => {
                 const n = e.target.value
-                if (quickType === 'scale') {
+                if (quickType !== 'chord') {
                   up({ keyRoot: n, selectedScaleRoot: n, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })
                 } else {
                   up({ selectedChordRoot: n, selectedChordKey: state.selectedChordKey || 'major', keyRoot: n, keyQuality: parentScaleFor(n, state.selectedChordKey || 'major'), selectedScaleRoot: n, selectedScaleKey: parentScaleFor(n, state.selectedChordKey || 'major'), viewMode: 'chords', chordPosition: null })
@@ -2110,22 +2127,14 @@ export default function App() {
               }}>
               {NOTE_NAMES.map(n => <option key={n} value={n}>{dn(n)}</option>)}
             </select>
-            <div className="backing-switch" role="group" aria-label="Scale or chord">
-              {/* The flip SWITCHES THE VIEW, immediately — it is not a mode
-                  for future clicks. Chord quality follows the key (minor key
-                  → minor chord), per the golden rule. */}
-              <button type="button" className={`backing-switch-btn ${quickType === 'scale' ? 'active' : ''}`}
-                onClick={() => up({ viewMode: 'scales', selectedScaleRoot: state.selectedScaleRoot || state.keyRoot, selectedScaleKey: state.selectedScaleKey || state.keyQuality, selectedChordRoot: null, selectedChordKey: null })}>{T('Scale')}</button>
-              <button type="button" className={`backing-switch-btn ${quickType === 'chord' ? 'active' : ''}`}
-                onClick={() => { const r = state.selectedChordRoot || state.keyRoot; const k = state.selectedChordKey || (MINOR_QUALITIES.has(state.keyQuality) ? 'minor' : 'major'); up({ viewMode: 'chords', selectedChordRoot: r, selectedChordKey: k, chordPosition: null }) }}>{T('Chord')}</button>
-            </div>
             {/* One quality dropdown, full catalog always — the option SET
                 swaps between scale modes and chord qualities with the flip
-                above, since the two vocabularies don't share names. Major
-                and Minor are the first two entries of the first group in
-                both (SCALES' "Popular", CHORDS' "Triads") — no separate
-                pill row needed to put them "at the top". */}
-            {quickType === 'scale' ? (
+                above, since the two vocabularies don't share names (Key
+                uses the scale set — a key IS a root + a scale quality).
+                Major and Minor are the first two entries of the first
+                group in both (SCALES' "Popular", CHORDS' "Triads") — no
+                separate pill row needed to put them "at the top". */}
+            {quickType !== 'chord' ? (
               <select className="type-select quick-quality-select" aria-label="Scale" value={state.selectedScaleKey || state.keyQuality}
                 onChange={e => up({
                   keyQuality: e.target.value, selectedScaleKey: e.target.value,
@@ -2169,13 +2178,6 @@ export default function App() {
                   : '···'}
               </span>
             )}
-            <button
-              className={`advanced-toggle top ${state.advancedMode ? 'open' : ''}`}
-              onClick={() => up({ advancedMode: !state.advancedMode })}
-            >
-              <span className={`advanced-arrow ${state.advancedMode ? 'open' : ''}`}>&#9656;</span>
-              {T('More')}
-            </button>
           </div>
         </div>
 
@@ -2186,11 +2188,12 @@ export default function App() {
             the reference: key in, diatonic harmony out, glossary below. */}
 
         {/* Chord tier selector + diatonic chord buttons — advancedMode only.
-            Simple mode is root → Major/Minor → neck; the diatonic deep-dive
-            lives behind "More". (That's the agreed split — don't float these
-            back up.) Derived from whatever the user picked: a scale IS the
-            key; a chord ADOPTS its natural parent scale (Em7 → E Dorian) so
-            the diatonics below always agree with the selection. */}
+            Scale/Chord is root → Major/Minor → neck; the diatonic deep-dive
+            only shows once Key is picked up top. (That's the agreed split —
+            don't float these back up.) Derived from whatever the user
+            picked: a scale IS the key; a chord ADOPTS its natural parent
+            scale (Em7 → E Dorian) so the diatonics below always agree with
+            the selection. */}
         {state.advancedMode && (<>
         <div className="chord-tier-bar">
           {HARMONY_ROWS.map((row, ri) => {
@@ -2343,8 +2346,8 @@ export default function App() {
         />
 
 
-        {/* Position bar + More toggle \u2014 browses scale positions normally,
-            or the same chord's shapes up the neck when one's selected. */}
+        {/* Position bar \u2014 browses scale positions normally, or the same
+            chord's shapes up the neck when one's selected. */}
         <div className="bottom-strip">
           <div className="position-bar">
             {isChordShapeMode ? (
