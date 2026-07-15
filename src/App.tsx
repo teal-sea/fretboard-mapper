@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef, Fragment } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import type { AppState } from './types/music'
 import {
   SCALES, CHORDS, TUNINGS,
@@ -2617,6 +2618,7 @@ export default function App() {
         className={`drawer-overlay ${settingsOpen ? 'open' : ''}`}
         onClick={() => setSettingsOpen(false)}
       />
+      <Analytics />
     </div>
   )
 }
