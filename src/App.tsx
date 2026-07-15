@@ -390,6 +390,20 @@ export default function App() {
     return cats
   }, [])
 
+  // A "key" drives the Harmony Map — degree chords need a real 7-note
+  // diatonic scale to walk (getDiatonicChords stops at scale.intervals.length).
+  // Pentatonic/blues/exotic scales aren't keys: picking one under Key would
+  // silently truncate or fall back (PARENT_KEY) instead of doing anything.
+  // Scale mode (plain neck browsing, no harmony) still offers all of them.
+  const keyScalesByCategory = useMemo(() => {
+    const cats: Record<string, [string, { name: string }][]> = {}
+    for (const [cat, scales] of Object.entries(scalesByCategory)) {
+      const kept = scales.filter(([key]) => SCALES[key]?.intervals.length === 7)
+      if (kept.length) cats[cat] = kept
+    }
+    return cats
+  }, [scalesByCategory])
+
   // Quick look — the glossary path: grab any scale or chord by root without
   // touching the key. The key path (middle of the bar) is the deep dive.
   // Derived, not its own useState: the flip always says what the NECK is
@@ -2109,7 +2123,15 @@ export default function App() {
                   for future clicks. Chord quality follows the key (minor key
                   → minor chord), per the golden rule. */}
               <button type="button" className={`backing-switch-btn ${quickType === 'key' ? 'active' : ''}`}
-                onClick={() => up({ viewMode: 'scales', advancedMode: true, selectedScaleRoot: state.selectedScaleRoot || state.keyRoot, selectedScaleKey: state.selectedScaleKey || state.keyQuality, selectedChordRoot: null, selectedChordKey: null })}>{T('Key')}</button>
+                onClick={() => {
+                  // A key needs a real 7-note scale to walk (the Harmony
+                  // Map's degree chords stop where the scale does) — if
+                  // the current pick is pentatonic/blues/exotic, land on
+                  // its real parent instead of a truncated Harmony Map.
+                  const current = state.selectedScaleKey || state.keyQuality
+                  const q = SCALES[current]?.intervals.length === 7 ? current : (PARENT_KEY[current] || 'ionian')
+                  up({ viewMode: 'scales', advancedMode: true, keyQuality: q, selectedScaleRoot: state.selectedScaleRoot || state.keyRoot, selectedScaleKey: q, selectedChordRoot: null, selectedChordKey: null })
+                }}>{T('Key')}</button>
               <button type="button" className={`backing-switch-btn ${quickType === 'chord' ? 'active' : ''}`}
                 onClick={() => { const r = state.selectedChordRoot || state.keyRoot; const k = state.selectedChordKey || (MINOR_QUALITIES.has(state.keyQuality) ? 'minor' : 'major'); up({ viewMode: 'chords', advancedMode: false, selectedChordRoot: r, selectedChordKey: k, chordPosition: null }) }}>{T('Chord')}</button>
               <button type="button" className={`backing-switch-btn ${quickType === 'scale' ? 'active' : ''}`}
@@ -2142,7 +2164,7 @@ export default function App() {
                   keyRoot: state.selectedScaleRoot || state.keyRoot,
                   viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null,
                 })}>
-                {Object.entries(scalesByCategory).map(([cat, scales]) => (
+                {Object.entries(quickType === 'key' ? keyScalesByCategory : scalesByCategory).map(([cat, scales]) => (
                   <optgroup key={cat} label={cat}>
                     {scales.map(([key, s]) => <option key={key} value={key}>{T(s.name)}</option>)}
                   </optgroup>
