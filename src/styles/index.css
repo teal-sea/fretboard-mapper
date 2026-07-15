@@ -3647,7 +3647,11 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 
 @media (max-width: 620px) {
   .intro-modes { grid-template-columns: 1fr; }
-  .shell-header { grid-template-columns: auto 1fr auto; }
+  /* .shell-header's own mobile layout is fully owned by the later PHONE
+     block below — a stale duplicate rule here (grid-template-columns:
+     auto 1fr auto, from before the header went single-column) used to
+     live at this spot and silently fought it depending on how the build
+     merged the two identical-condition media blocks. One declaration. */
   /* Phones keep the real wordmark, just smaller — hiding the brand was
      the old text-wordmark's compromise, not this one's. */
   .shell-wordmark { --wm-h: 19px; }
@@ -3746,27 +3750,28 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
      squashing the logo and the icon buttons against the edges. */
   .shell-header {
     /* Three branded rows on a phone — worth the height exactly once, so
-       it scrolls away instead of staying stuck over the fretboard. */
+       it scrolls away instead of staying stuck over the fretboard.
+       Grid, not flex-wrap: a single-column grid puts every direct child
+       on its own row unconditionally — no flex-basis/width:100% tug of
+       war with flex-shrink that Safari has a history of getting wrong. */
     position: static;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-items: center;
     align-items: center;
     gap: 6px 10px;
     padding: 8px 10px;
   }
   .intro-veil.in-stage { top: 0; }
-  .shell-brand { width: 100%; justify-content: center; }
+  .shell-brand { justify-content: center; }
   .shell-logo { width: 40px; height: 40px; margin: -4px 0; }
-  /* Three rows means three, not two — without a forced width the tabs and
-     the icon cluster both fit on the leftover row and cram together. */
-  .mode-switch { width: 100%; justify-content: center; padding: 2px; gap: 2px; }
+  .mode-switch { justify-content: center; padding: 2px; gap: 2px; }
   .mode-btn {
     padding: 6px 15px;
     font-size: 12.5px;
     gap: 5px;
   }
-  .shell-actions { width: 100%; justify-content: center; gap: 8px; }
+  .shell-actions { justify-content: center; gap: 8px; }
   .icon-btn { width: 34px; height: 34px; font-size: 14px; }
 
   /* ─── The neck ───
