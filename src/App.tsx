@@ -1362,7 +1362,7 @@ export default function App() {
       <header className="shell-header">
         <div className="shell-brand">
           <img className="shell-logo" src="/mark.png" alt="Modal Runs" width={44} height={44} />
-          <span className="shell-name">modalruns</span>
+          <span className="shell-wordmark" role="img" aria-label="modalruns" />
         </div>
 
         <div className="mode-switch">
