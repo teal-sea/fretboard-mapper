@@ -369,12 +369,8 @@ export default function Fretboard({
 
                   return (
                     <g key={`n${si}-${fn.fret}`} className={`note-group ${inPos ? '' : 'ghosted'}`}>
-                      {/* Screen blend, not a translucent wash — see the Normal
-                          Mode note below on why: a plain fill+opacity halo
-                          over black dims rather than glows. */}
-                      {inPos && <circle cx={cx} cy={y} r={r + 5} fill={chordColor} opacity={0.55}
-                        style={{ mixBlendMode: 'screen' }} className="chord-tone-glow" />}
-                      {/* Main dot */}
+                      {/* No halo. The color IS the neon — a saturated flat
+                          fill against black, not a glow effect around it. */}
                       <circle cx={cx} cy={y} r={r} fill={chordColor}
                         stroke={isChordRoot && inPos ? '#fff' : 'rgba(255,255,255,0.5)'}
                         strokeWidth={isChordRoot && inPos ? 2.5 : 1.5} />
@@ -444,8 +440,6 @@ export default function Fretboard({
                   const r = baseR
                   return (
                     <g key={`n${si}-${fn.fret}`} className="note-group technique-highlight">
-                      <circle cx={cx} cy={y} r={r + 5} fill={color} opacity={0.55}
-                        style={{ mixBlendMode: 'screen' }} className="technique-glow" />
                       <circle cx={cx} cy={y} r={r} fill={color}
                         stroke="#fff" strokeWidth={2} />
                       {(displayMode === 'notes' || displayMode === 'both') && (
@@ -498,10 +492,6 @@ export default function Fretboard({
 
                 return (
                   <g key={`n${si}-${fn.fret}`} className="note-group">
-                    {isCurrent && (
-                      <circle cx={cx} cy={y} r={r + 6} fill={focusColor} opacity={0.5}
-                        style={{ mixBlendMode: 'screen' }} className="run-target" />
-                    )}
                     <circle cx={cx} cy={y} r={r} fill={fill}
                       stroke={isDone ? 'rgba(255,255,255,0.55)' : isCurrent ? '#fff' : 'rgba(255,255,255,0.22)'}
                       strokeWidth={isCurrent ? 2 : 1.2} />
@@ -543,10 +533,6 @@ export default function Fretboard({
 
                 return (
                   <g key={`n${si}-${fn.fret}`} className={`note-group ${inPos ? '' : 'ghosted'}`}>
-                    {isTarget && inPos && (
-                      <circle cx={cx} cy={y} r={r + 6} fill={color} opacity={0.55}
-                        style={{ mixBlendMode: 'screen' }} className="focus-halo" />
-                    )}
                     <circle cx={cx} cy={y} r={r} fill={color}
                       opacity={isTarget ? 1 : dimOpacity}
                       stroke={
@@ -583,26 +569,12 @@ export default function Fretboard({
 
               return (
                 <g key={`n${si}-${fn.fret}`} className={`note-group ${inPos ? '' : 'ghosted'}`}>
-                  {/* Neon is built from SVG halo layers, not CSS filter —
-                      iOS Safari silently drops `filter` on SVG elements, which
-                      is why phones were getting flat dots while desktop glowed.
-                      The filter stays as a desktop-only bonus on top.
-                      The halo itself is `mix-blend-mode: screen`, not a plain
-                      translucent fill: a normal-blend wash over near-black
-                      just DIMS the color at a wide radius — the "pale, foggy,
-                      low-contrast" look. Screen only ever brightens, so the
-                      same pixels read as a tight bloom of light instead of a
-                      grey smudge, which is what neon signage actually looks
-                      like. One ring, not two — a single tight one beats a
-                      wide soft one for contrast against black. */}
-                  {inPos && <circle cx={cx} cy={y} r={r * 1.3} fill={color}
-                    opacity={isRoot ? 0.6 : 0.45} style={{ mixBlendMode: 'screen' }} />}
-                  {isRoot && inPos && <circle className="root-halo" cx={cx} cy={y} r={r + 5} fill={color}
-                    opacity={0.4} style={{ mixBlendMode: 'screen' }} />}
+                  {/* No halo, no glow filter — a flat, saturated fill IS the
+                      neon. Any ring around it, however it's blended, reads as
+                      a wash and softens the color it's supposed to sell. */}
                   <circle cx={cx} cy={y} r={r} fill={color}
                     stroke={isRoot && inPos ? '#fff' : 'rgba(255,255,255,0.3)'}
-                    strokeWidth={isRoot && inPos ? 2.2 : 1.2}
-                    style={inPos ? { filter: `drop-shadow(0 0 ${isRoot ? 10 : 6}px ${color})` } : undefined} />
+                    strokeWidth={isRoot && inPos ? 2.2 : 1.2} />
                   {inPos && (displayMode === 'notes' || displayMode === 'both') && (
                     <text x={cx} y={displayMode === 'both' ? y - 4.5 : y + 0.5}
                       textAnchor="middle" dominantBaseline="central" className="note-label"
