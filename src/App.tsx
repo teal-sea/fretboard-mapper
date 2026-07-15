@@ -1341,7 +1341,7 @@ export default function App() {
 
             <div className="intro-modes">
               <button className="intro-mode" onClick={() => { up({ onboarded: true, appMode: 'study' }); setIntroOpen(false) }}>
-                <span className="intro-mode-name">{T('Modes')}</span>
+                <span className="intro-mode-name">{T('Explore')}</span>
                 <span className="intro-mode-desc">
                   {T('Any key, any mode. Chords laid over scales, arpeggios, positions, the whole fretboard at once — and the theory that accounts for what you’re looking at, written for someone who wants to understand it rather than recite it.')}
                 </span>
@@ -1369,10 +1369,10 @@ export default function App() {
           {/* The internal appMode values keep their old names (study/learn/
               flow) — these labels are product-facing and cheap to re-cut. */}
           <button className={`mode-btn tab-modes ${!isLearn && !isFlow ? 'active' : ''}`} onClick={goStudy}>
-            {T('Modes')}
+            {T('Explore')}
           </button>
           <button className={`mode-btn tab-explore ${isLearn ? 'active' : ''}`} onClick={goLearn}>
-            {T('Explore')}
+            {T('Modes')}
           </button>
           <button className={`mode-btn tab-flow ${isFlow ? 'active' : ''}`} onClick={goFlow}>
             Flow
@@ -1982,78 +1982,96 @@ export default function App() {
       {/* ═════════ STUDY — the full mapper. Nothing hidden. ═════════ */}
       {!isLearn && !isFlow && (
       <main className="study-stage">
-        {/* One toolbar instead of four stacked strips */}
-        <div className="study-bar">
-          {/* LEFT — quick look: any scale or chord, by root, without touching
-              the key. The glossary path. */}
-          {/* ONE selector, deliberately ambiguous: pick a tonic and a scale
-              and it IS the key — the diatonic chords, tiers, grips and
-              positions all derive from it. Flip to Chord to look up any
-              voicing over that same tonic. No separate "Key" section. */}
-          <select className="key-select"
-            value={(quickType === 'scale' ? state.selectedScaleRoot : state.selectedChordRoot) || state.keyRoot}
-            onChange={e => {
-              const root = e.target.value
-              if (quickType === 'scale') {
-                up({ keyRoot: root, selectedScaleRoot: root, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })
-              } else {
-                up({ selectedChordRoot: root, selectedChordKey: state.selectedChordKey || 'major', viewMode: 'chords', chordPosition: null })
-              }
-            }}>
-            {NOTE_NAMES.map(n => <option key={n} value={n}>{dn(n)}</option>)}
-          </select>
-          <div className="backing-switch" role="group" aria-label="Scale or chord">
-            <button type="button" className={`backing-switch-btn ${quickType === 'scale' ? 'active' : ''}`}
-              onClick={() => setQuickType('scale')}>{T('Scale')}</button>
-            <button type="button" className={`backing-switch-btn ${quickType === 'chord' ? 'active' : ''}`}
-              onClick={() => setQuickType('chord')}>{T('Chord')}</button>
+        {/* The glossary bar: everything ONE CLICK from page load. A row of
+            root chips, a Scale/Chord flip, and a row of the common picks —
+            the full catalog stays one select away. Picking a scale IS
+            picking the key; the diatonic deep-dive lives behind "More". */}
+        <div className="study-bar quick-bar">
+          <div className="quick-roots">
+            {NOTE_NAMES.map(n => {
+              const activeRoot = (quickType === 'scale' ? state.selectedScaleRoot : state.selectedChordRoot) || state.keyRoot
+              return (
+                <button key={n} type="button"
+                  className={`quick-chip root ${activeRoot === n ? 'active' : ''}`}
+                  onClick={() => {
+                    if (quickType === 'scale') {
+                      up({ keyRoot: n, selectedScaleRoot: n, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })
+                    } else {
+                      up({ selectedChordRoot: n, selectedChordKey: state.selectedChordKey || 'major', viewMode: 'chords', chordPosition: null })
+                    }
+                  }}>{dn(n)}</button>
+              )
+            })}
           </div>
-          {quickType === 'scale' ? (
-            <select className="type-select" value={state.selectedScaleKey || state.keyQuality}
-              onChange={e => up({
-                keyQuality: e.target.value,
-                selectedScaleKey: e.target.value,
-                selectedScaleRoot: state.selectedScaleRoot || state.keyRoot,
-                keyRoot: state.selectedScaleRoot || state.keyRoot,
-                viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null,
-              })}>
-              {Object.entries(scalesByCategory).map(([cat, scales]) => (
-                <optgroup key={cat} label={cat}>
-                  {scales.map(([key, s]) => <option key={key} value={key}>{T(s.name)}</option>)}
-                </optgroup>
+          <div className="quick-row">
+            <div className="backing-switch" role="group" aria-label="Scale or chord">
+              <button type="button" className={`backing-switch-btn ${quickType === 'scale' ? 'active' : ''}`}
+                onClick={() => setQuickType('scale')}>{T('Scale')}</button>
+              <button type="button" className={`backing-switch-btn ${quickType === 'chord' ? 'active' : ''}`}
+                onClick={() => setQuickType('chord')}>{T('Chord')}</button>
+            </div>
+            {quickType === 'scale' ? (<>
+              {(scalesByCategory['Popular'] || []).map(([key, s]) => (
+                <button key={key} type="button"
+                  className={`quick-chip ${(state.selectedScaleKey || state.keyQuality) === key && state.viewMode === 'scales' ? 'active' : ''}`}
+                  onClick={() => up({
+                    keyQuality: key, selectedScaleKey: key,
+                    selectedScaleRoot: state.selectedScaleRoot || state.keyRoot,
+                    keyRoot: state.selectedScaleRoot || state.keyRoot,
+                    viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null,
+                  })}>{T(s.name)}</button>
               ))}
-            </select>
-          ) : (
-            <select className="type-select" value={state.selectedChordKey || 'major'}
-              onChange={e => up({ selectedChordKey: e.target.value, selectedChordRoot: state.selectedChordRoot || state.keyRoot, viewMode: 'chords', chordPosition: null })}>
-              {Object.entries(chordsByCategory).map(([cat, chords]) => (
-                <optgroup key={cat} label={cat}>
-                  {chords.map(([key, ch]) => <option key={key} value={key}>{T(ch.name)}</option>)}
-                </optgroup>
+              <select className="type-select quick-more" value={state.selectedScaleKey || state.keyQuality}
+                onChange={e => up({
+                  keyQuality: e.target.value, selectedScaleKey: e.target.value,
+                  selectedScaleRoot: state.selectedScaleRoot || state.keyRoot,
+                  keyRoot: state.selectedScaleRoot || state.keyRoot,
+                  viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null,
+                })}>
+                {Object.entries(scalesByCategory).map(([cat, scales]) => (
+                  <optgroup key={cat} label={cat}>
+                    {scales.map(([key, s]) => <option key={key} value={key}>{T(s.name)}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </>) : (<>
+              {(['major', 'minor', 'dom7', 'maj7', 'min7', 'sus4', 'add9', 'power'] as const).map(key => (
+                <button key={key} type="button"
+                  className={`quick-chip ${state.selectedChordKey === key && state.viewMode === 'chords' ? 'active' : ''}`}
+                  onClick={() => up({ selectedChordKey: key, selectedChordRoot: state.selectedChordRoot || state.keyRoot, viewMode: 'chords', chordPosition: null })}
+                >{CHORDS[key].suffix || T('Major')}</button>
               ))}
-            </select>
-          )}
+              <select className="type-select quick-more" value={state.selectedChordKey || 'major'}
+                onChange={e => up({ selectedChordKey: e.target.value, selectedChordRoot: state.selectedChordRoot || state.keyRoot, viewMode: 'chords', chordPosition: null })}>
+                {Object.entries(chordsByCategory).map(([cat, chords]) => (
+                  <optgroup key={cat} label={cat}>
+                    {chords.map(([key, ch]) => <option key={key} value={key}>{T(ch.name)}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </>)}
+          </div>
 
-          <span className="study-bar-sep" />
-
-          {renderBackingControls()}
-          <button
-            key={justTapped}
-            className={`play-btn small ${isPlaying ? 'on' : ''}`}
-            onClick={togglePlay}
-            title={isPlaying ? `Stop ${backingNoun} and the mic` : `Start ${backingNoun} and let it hear you`}
-            aria-label={isPlaying ? 'Stop' : 'Play'}
-          >
-            <span className="play-icon">{isPlaying ? '⏸' : '▶'}</span>
-          </button>
-          {listening && (
-            <span className="heard-readout">
-              {heardMidi !== null
-                ? <>{dn(noteName(heardMidi % 12, flats))}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
-                : '···'}
-            </span>
-          )}
-          <button className="intro-open-btn" onClick={() => setIntroOpen(true)}>{T('What is this?')}</button>
+          <div className="quick-row">
+            {renderBackingControls()}
+            <button
+              key={justTapped}
+              className={`play-btn small ${isPlaying ? 'on' : ''}`}
+              onClick={togglePlay}
+              title={isPlaying ? `Stop ${backingNoun} and the mic` : `Start ${backingNoun} and let it hear you`}
+              aria-label={isPlaying ? 'Stop' : 'Play'}
+            >
+              <span className="play-icon">{isPlaying ? '⏸' : '▶'}</span>
+            </button>
+            {listening && (
+              <span className="heard-readout">
+                {heardMidi !== null
+                  ? <>{dn(noteName(heardMidi % 12, flats))}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
+                  : '···'}
+              </span>
+            )}
+            <button className="intro-open-btn" onClick={() => setIntroOpen(true)}>{T('What is this?')}</button>
+          </div>
         </div>
 
         {micError && <p className="mic-error study-mic-error">{micError}</p>}
@@ -2062,7 +2080,10 @@ export default function App() {
             chips, the shift narration) lives in Learn and Flow now — Study is
             the reference: key in, diatonic harmony out, glossary below. */}
 
-        {/* Chord tier selector + diatonic chord buttons */}
+        {/* Chord tier selector + diatonic chord buttons — the deep dive.
+            Diatonic harmony over the key is the advanced path; it lives
+            behind "More" so the landing view is pure one-click glossary. */}
+        {state.advancedMode && (<>
         <div className="chord-tier-bar">
           {HARMONY_ROWS.map((row, ri) => {
             const hasAny = harmonyGrid[ri]?.chords.some(c => c !== null)
@@ -2106,6 +2127,7 @@ export default function App() {
             )
           })}
         </div>
+        </>)}
 
         {/* Title + formula */}
         <div className="study-head">

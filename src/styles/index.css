@@ -294,6 +294,43 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 }
 .intro-open-btn:hover { color: var(--text); border-color: var(--accent); }
 
+/* ─── The one-click glossary bar ────────────────────────────────────── */
+.quick-bar { flex-direction: column; gap: 8px; }
+.quick-roots, .quick-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.quick-chip {
+  padding: 6px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-raised);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.quick-chip.root {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  min-width: 38px;
+  text-align: center;
+}
+.quick-chip:hover { border-color: var(--accent); color: var(--text); }
+.quick-chip.active {
+  background: var(--brand-grad);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(152,70,234,0.4);
+}
+.quick-more { max-width: 150px; }
+
 /* ─── Main Stage ───────────────────────────────────────────────────── */
 .main-stage {
   position: relative;
