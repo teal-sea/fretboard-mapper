@@ -76,8 +76,8 @@ const KEY_QUALITIES = [
 // the mode's own parent chord held together, or that chord arpeggiated in
 // tempo. Kept as one list so a future 4th option is a one-line add.
 const BACKING_MODES: { key: AppState['backingMode']; label: string; title: string }[] = [
+  { key: 'chord', label: 'Pad',   title: "The chord this mode actually lives against" },
   { key: 'drone', label: 'Drone', title: 'A single sustained pedal tone' },
-  { key: 'chord', label: 'Chord', title: "The chord this mode actually lives against" },
   { key: 'arp',   label: 'Arp',   title: 'That chord, arpeggiated and locked to tempo' },
 ]
 
@@ -350,10 +350,15 @@ export default function App() {
     ? `${dn(state.selectedScaleRoot)} ${T(SCALES[state.selectedScaleKey]?.name || '')}`
     : `${dn(state.keyRoot)} ${T(keyScale?.name || '')}`
 
+  // A bare chord (picked directly by root+quality) doesn't imply any one
+  // parent scale — "C" fits Ionian, Lydian, and Mixolydian alike, so
+  // claiming "C over C Ionian" here would assert a mode nobody chose. The
+  // real diatonic relationship (degree -> mode) only exists once a chord
+  // comes out of the Harmony Map in More, where the key was picked first.
   const activeLabel = state.activeTab === 'technique'
     ? `${dn(state.keyRoot)} ${T(keyScale?.name || '')}`
     : state.viewMode === 'chords' && chordLabel
-      ? `${chordLabel} over ${scaleLabel}`
+      ? chordLabel
       : scaleLabel
 
   const activeIntervals = state.viewMode === 'scales' && state.selectedScaleKey
@@ -433,7 +438,15 @@ export default function App() {
       if (!cats[chord.category]) cats[chord.category] = []
       cats[chord.category].push([key, chord])
     }
-    return cats
+    // CHORDS has a '6' key (Major 6th) — JS hoists integer-like string keys
+    // to the front of enumeration regardless of source order, which would
+    // otherwise put "Extended" ahead of "Triads" and bury Major/Minor.
+    // Pin the category order so Major/Minor always lead the dropdown.
+    const CATEGORY_ORDER = ['Triads', 'Sevenths', 'Extended']
+    const ordered: Record<string, [string, { name: string; suffix: string }][]> = {}
+    for (const cat of CATEGORY_ORDER) if (cats[cat]) ordered[cat] = cats[cat]
+    for (const cat of Object.keys(cats)) if (!ordered[cat]) ordered[cat] = cats[cat]
+    return ordered
   }, [])
 
   // Simple mode root
@@ -2084,23 +2097,19 @@ export default function App() {
             the full catalog stays one select away. Picking a scale IS
             picking the key; the diatonic deep-dive lives behind "More". */}
         <div className="study-bar quick-bar">
-          <div className="quick-roots">
-            {NOTE_NAMES.map(n => {
-              const activeRoot = (quickType === 'scale' ? state.selectedScaleRoot : state.selectedChordRoot) || state.keyRoot
-              return (
-                <button key={n} type="button"
-                  className={`quick-chip root ${activeRoot === n ? 'active' : ''}`}
-                  onClick={() => {
-                    if (quickType === 'scale') {
-                      up({ keyRoot: n, selectedScaleRoot: n, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })
-                    } else {
-                      up({ selectedChordRoot: n, selectedChordKey: state.selectedChordKey || 'major', keyRoot: n, keyQuality: parentScaleFor(n, state.selectedChordKey || 'major'), selectedScaleRoot: n, selectedScaleKey: parentScaleFor(n, state.selectedChordKey || 'major'), viewMode: 'chords', chordPosition: null })
-                    }
-                  }}>{dn(n)}</button>
-              )
-            })}
-          </div>
           <div className="quick-row">
+            <select className="key-select quick-root-select" aria-label="Root note"
+              value={(quickType === 'scale' ? state.selectedScaleRoot : state.selectedChordRoot) || state.keyRoot}
+              onChange={e => {
+                const n = e.target.value
+                if (quickType === 'scale') {
+                  up({ keyRoot: n, selectedScaleRoot: n, viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null })
+                } else {
+                  up({ selectedChordRoot: n, selectedChordKey: state.selectedChordKey || 'major', keyRoot: n, keyQuality: parentScaleFor(n, state.selectedChordKey || 'major'), selectedScaleRoot: n, selectedScaleKey: parentScaleFor(n, state.selectedChordKey || 'major'), viewMode: 'chords', chordPosition: null })
+                }
+              }}>
+              {NOTE_NAMES.map(n => <option key={n} value={n}>{dn(n)}</option>)}
+            </select>
             <div className="backing-switch" role="group" aria-label="Scale or chord">
               {/* The flip SWITCHES THE VIEW, immediately — it is not a mode
                   for future clicks. Chord quality follows the key (minor key
@@ -2110,23 +2119,14 @@ export default function App() {
               <button type="button" className={`backing-switch-btn ${quickType === 'chord' ? 'active' : ''}`}
                 onClick={() => { const r = state.selectedChordRoot || state.keyRoot; const k = state.selectedChordKey || (MINOR_QUALITIES.has(state.keyQuality) ? 'minor' : 'major'); up({ viewMode: 'chords', selectedChordRoot: r, selectedChordKey: k, chordPosition: null }) }}>{T('Chord')}</button>
             </div>
-            {quickType === 'scale' ? (<>
-              {/* Simple mode keeps the first choice a guitarist actually makes —
-                  Major or Minor. The full Popular row is advancedMode territory. */}
-              {(state.advancedMode
-                ? (scalesByCategory['Popular'] || [])
-                : (['ionian', 'aeolian'] as const).map(k => [k, SCALES[k]] as [string, { name: string }])
-              ).map(([key, s]) => (
-                <button key={key} type="button"
-                  className={`quick-chip ${(state.selectedScaleKey || state.keyQuality) === key && state.viewMode === 'scales' ? 'active' : ''}`}
-                  onClick={() => up({
-                    keyQuality: key, selectedScaleKey: key,
-                    selectedScaleRoot: state.selectedScaleRoot || state.keyRoot,
-                    keyRoot: state.selectedScaleRoot || state.keyRoot,
-                    viewMode: 'scales', selectedChordRoot: null, selectedChordKey: null,
-                  })}>{state.advancedMode ? T(s.name) : key === 'ionian' ? T('Major') : T('Minor')}</button>
-              ))}
-              <select className="type-select quick-more" value={state.selectedScaleKey || state.keyQuality}
+            {/* One quality dropdown, full catalog always — the option SET
+                swaps between scale modes and chord qualities with the flip
+                above, since the two vocabularies don't share names. Major
+                and Minor are the first two entries of the first group in
+                both (SCALES' "Popular", CHORDS' "Triads") — no separate
+                pill row needed to put them "at the top". */}
+            {quickType === 'scale' ? (
+              <select className="type-select quick-quality-select" aria-label="Scale" value={state.selectedScaleKey || state.keyQuality}
                 onChange={e => up({
                   keyQuality: e.target.value, selectedScaleKey: e.target.value,
                   selectedScaleRoot: state.selectedScaleRoot || state.keyRoot,
@@ -2139,17 +2139,8 @@ export default function App() {
                   </optgroup>
                 ))}
               </select>
-            </>) : (<>
-              {(state.advancedMode
-                ? (['major', 'minor', 'dom7', 'maj7', 'min7', 'sus4', 'add9', 'power'] as const)
-                : (['major', 'minor'] as const)
-              ).map(key => (
-                <button key={key} type="button"
-                  className={`quick-chip ${state.selectedChordKey === key && state.viewMode === 'chords' ? 'active' : ''}`}
-                  onClick={() => { const r = state.selectedChordRoot || state.keyRoot; const pk = parentScaleFor(r, key); up({ selectedChordKey: key, selectedChordRoot: r, keyRoot: r, keyQuality: pk, selectedScaleRoot: r, selectedScaleKey: pk, viewMode: 'chords', chordPosition: null }) }}
-                >{state.advancedMode ? (CHORDS[key].suffix || T('Major')) : key === 'major' ? T('Major') : T('Minor')}</button>
-              ))}
-              <select className="type-select quick-more" value={state.selectedChordKey || 'major'}
+            ) : (
+              <select className="type-select quick-quality-select" aria-label="Chord" value={state.selectedChordKey || 'major'}
                 onChange={e => { const r = state.selectedChordRoot || state.keyRoot; const pk = parentScaleFor(r, e.target.value); up({ selectedChordKey: e.target.value, selectedChordRoot: r, keyRoot: r, keyQuality: pk, selectedScaleRoot: r, selectedScaleKey: pk, viewMode: 'chords', chordPosition: null }) }}>
                 {Object.entries(chordsByCategory).map(([cat, chords]) => (
                   <optgroup key={cat} label={cat}>
@@ -2157,7 +2148,7 @@ export default function App() {
                   </optgroup>
                 ))}
               </select>
-            </>)}
+            )}
           </div>
 
           <div className="quick-row">

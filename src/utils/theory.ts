@@ -237,12 +237,24 @@ export function getChordInsight(
   const chordName = dn(dc.root) + dc.chordDef.suffix
   const parts: string[] = []
 
-  parts.push(tf('{chord} is the {roman} of {key} {scale}.', lang, {
-    chord: chordName,
-    roman: dc.romanNumeral,
-    key: dn(keyRoot),
-    scale: t(scale.name, lang).replace(/\s*\(.*\)/, ''),
-  }))
+  // A chord picked directly by root+quality gets its key auto-assigned to
+  // its own natural parent scale (so the diatonic harmony below stays
+  // consistent) — it isn't a scale the player actually chose. When the
+  // chord IS that key's own tonic, "X is the I of X Lydian" would be a
+  // trivially-true, unearned claim (every chord is degree I of itself).
+  // Only assert a scale-degree relationship once the chord is a genuine
+  // non-tonic degree of an already-established key — i.e. picked out of
+  // the Harmony Map, where the key was chosen first.
+  const isSelfTonic = tonicChord !== null && tonicChord.chordKey === dc.chordKey && tonicChord.root === dc.root
+
+  if (!isSelfTonic) {
+    parts.push(tf('{chord} is the {roman} of {key} {scale}.', lang, {
+      chord: chordName,
+      roman: dc.romanNumeral,
+      key: dn(keyRoot),
+      scale: t(scale.name, lang).replace(/\s*\(.*\)/, ''),
+    }))
+  }
 
   if (sharedNames.length >= 2) {
     parts.push(tf('It shares {notes} with your home chord — that overlap is why it can wander this far and still sound like it belongs.', lang, {
@@ -255,16 +267,18 @@ export function getChordInsight(
   }
 
   if (colourNote && colourIv) {
-    parts.push(tf('The note doing the work is {note}, its {iv} — that’s the {deg} of the key.', lang, {
-      note: dn(colourNote), iv: colourIv, deg: degreeOf(noteIndex(colourNote)),
-    }))
+    parts.push(isSelfTonic
+      ? tf('The note doing the work is {note}, its {iv}.', lang, { note: dn(colourNote), iv: colourIv })
+      : tf('The note doing the work is {note}, its {iv} — that’s the {deg} of the key.', lang, {
+          note: dn(colourNote), iv: colourIv, deg: degreeOf(noteIndex(colourNote)),
+        }))
   }
 
   parts.push(t('Play the scale, but aim at the lit-up chord tones. They land; everything else is passing through.', lang))
 
   return {
-    eyebrow: t('Why it works', lang),
-    title: tf('{chord} over {key}', lang, { chord: chordName, key: dn(keyRoot) }),
+    eyebrow: isSelfTonic ? t('The chord', lang) : t('Why it works', lang),
+    title: isSelfTonic ? chordName : tf('{chord} over {key}', lang, { chord: chordName, key: dn(keyRoot) }),
     body: parts.join(' '),
     focus: colourIv ?? undefined,
   }
