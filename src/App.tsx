@@ -400,6 +400,27 @@ export default function App() {
   }, [state.keyQuality])
   const [introOpen, setIntroOpen] = useState(false)
 
+  // ─── "Looks better on desktop" nudge ───
+  // Reddit sends a lot of phones. This never blocks the app (same rule as
+  // rotate-prompt below) — it's a once-ever aside, dismissed for good,
+  // shown only to touch-primary devices (hover:none + pointer:coarse),
+  // not merely narrow desktop windows, which a width breakpoint alone
+  // would catch.
+  const DESKTOP_NUDGE_KEY = 'fm.desktopNudgeSeen'
+  const [desktopNudgeOpen, setDesktopNudgeOpen] = useState(false)
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(DESKTOP_NUDGE_KEY)) return
+    } catch { /* storage unavailable — just don't nag every load */ return }
+    if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) {
+      setDesktopNudgeOpen(true)
+    }
+  }, [])
+  const dismissDesktopNudge = useCallback(() => {
+    setDesktopNudgeOpen(false)
+    try { localStorage.setItem(DESKTOP_NUDGE_KEY, '1') } catch { /* no-op */ }
+  }, [])
+
   const chordsByCategory = useMemo(() => {
     const cats: Record<string, [string, { name: string; suffix: string }][]> = {}
     for (const [key, chord] of Object.entries(CHORDS)) {
@@ -1323,6 +1344,42 @@ export default function App() {
           className="ambient-glow"
           style={{ '--glow-color': `hsla(${rootHue}, 50%, 35%, 0.05)` } as React.CSSProperties}
         />
+      )}
+
+      {/* ─── The desktop nudge — a real screenshot would go stale the next
+             time colors or layout change; a live instance of the actual
+             <Fretboard /> never can. Same board/tuning/colors the visitor
+             is already looking at, just framed like a monitor. ─── */}
+      {desktopNudgeOpen && (
+        <div className="intro-veil in-stage desktop-nudge-veil">
+          <div className="desktop-nudge">
+            <img className="desktop-nudge-logo" src="/mark.png" alt="" />
+            <h2 className="desktop-nudge-title">{T('Modal Runs looks best on desktop')}</h2>
+            <p className="desktop-nudge-sub">
+              {T('The whole neck, every mode, side by side — a bigger screen shows a lot more of it at once. Totally playable here too.')}
+            </p>
+            <div className="desktop-nudge-frame">
+              <div className="desktop-nudge-bezel"><span /><span /><span /></div>
+              <div className="desktop-nudge-preview">
+                <Fretboard
+                  board={board}
+                  displayMode={displayMode}
+                  inlayStyle={state.inlayStyle}
+                  intervalColors={state.intervalColors}
+                  highlightRoot={state.highlightRoot}
+                  showLeftHanded={state.showLeftHanded}
+                  posRange={null}
+                  numFrets={Math.min(state.numFrets, 8)}
+                  fretRange={null}
+                  tuningLabels={tuning.labels.map(dn)}
+                  noteMap={noteMap}
+                  guitarModel={state.guitarModel}
+                />
+              </div>
+            </div>
+            <button className="desktop-nudge-dismiss" onClick={dismissDesktopNudge}>{T('Continue on mobile')}</button>
+          </div>
+        </div>
       )}
 
       {/* ─── The welcome never ambushes anyone — the domain loads straight
