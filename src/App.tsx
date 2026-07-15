@@ -1506,7 +1506,7 @@ export default function App() {
             {T('Modes')}
           </button>
           <button className={`mode-btn tab-flow ${isFlow ? 'active' : ''}`} onClick={goFlow}>
-            {T('Plan')}
+            Flow
           </button>
         </div>
 
