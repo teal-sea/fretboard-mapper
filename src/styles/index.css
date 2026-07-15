@@ -2173,6 +2173,11 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   .jam-stage { justify-content: flex-start; }
   .flow-neck, .jam-neck { height: 72vh; max-height: 72vh; flex-shrink: 0; }
   .flow-neck .fretboard-svg, .jam-neck .fretboard-svg { min-width: 0; max-height: min(66vh, 400px); }
+  /* At ~850px wide the full-size lockup collides with the centered nav —
+     the width queries that shrink the header only start at 720px. A
+     smaller mark + band keeps the brand inside its grid column. */
+  .shell-logo { width: 44px; height: 44px; }
+  .shell-wordmark { --wm-h: 22px; }
 }
 
 /* ─── Learn — the lesson list ───────────────────────────────────────── */
@@ -2309,8 +2314,15 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   flex-direction: column;
 }
 /* learn (the concept drills, formerly named flow — the .flow-* classes
-   below still serve it) and flow (the jam) both lock to the viewport */
-.app.mode-learn, .app.mode-flow { height: 100dvh; overflow: hidden; }
+   below still serve it) and flow (the jam) both lock to the viewport —
+   but only on screens tall AND wide enough to hold a whole stage. Phones
+   (narrow = portrait, short = landscape) scroll instead. The relaxing
+   rules live in earlier @media blocks (620px-width, 500px-height); an
+   unscoped lock here beats them on source order — it did, silently, which
+   is how the phone layouts kept "un-fixing" themselves. Keep it scoped. */
+@media (min-width: 621px) and (min-height: 501px) {
+  .app.mode-learn, .app.mode-flow { height: 100dvh; overflow: hidden; }
+}
 
 /* ─── Header ─── */
 .shell-header {
