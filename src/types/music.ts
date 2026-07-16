@@ -107,6 +107,11 @@ export interface AppState {
   showTheory: boolean
   onboarded: boolean
 
+  // Practice streak — counted on real engagement (pressing Play), not
+  // just opening the tab. See utils/streak.ts.
+  practiceStreak: number
+  lastPracticeDate: string | null // YYYY-MM-DD
+
   advancedMode: boolean
   activeTab: 'explore' | 'technique'
   techniqueMode: '3nps' | 'arpeggios' | 'tapping'

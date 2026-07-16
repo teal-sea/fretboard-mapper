@@ -29,6 +29,7 @@ import { parseUrlState, syncUrl } from './utils/urlState'
 import { displayNote, LANGUAGES } from './utils/noteNames'
 import { t as translate, tf } from './utils/i18n'
 import { nextFlowHome, describeFlowShift, describeFlowSession } from './utils/flowEngine'
+import { recordPractice } from './utils/streak'
 import FlowCanvas, { type FlowPulse } from './components/FlowCanvas'
 import { familyId, getClaims, claimMode, markCompleted, totalClaimed } from './utils/progress'
 import { getSweepShape, getArpeggioShapes, buildRun } from './utils/arpeggios'
@@ -154,6 +155,8 @@ const initialState: AppState = {
   conceptId: null,
   showTheory: true,
   onboarded: false,
+  practiceStreak: 0,
+  lastPracticeDate: null,
   advancedMode: false,
   activeTab: 'explore',
   techniqueMode: '3nps',
@@ -820,7 +823,13 @@ export default function App() {
       if (listening) { stopMic(); setListening(false); setHeardMidi(null) }
       if (state.backingMode === 'arp' && metronomeOn) { stopMetronome(); setMetronomeOn(false) }
     } else {
-      if (!hasTrackedPlay.current) { hasTrackedPlay.current = true; trackEvent('play') }
+      if (!hasTrackedPlay.current) {
+        hasTrackedPlay.current = true
+        trackEvent('play')
+        const today = new Date().toISOString().slice(0, 10)
+        const next = recordPractice({ streak: state.practiceStreak, lastDate: state.lastPracticeDate }, today)
+        if (next.lastDate !== state.lastPracticeDate) up({ practiceStreak: next.streak, lastPracticeDate: next.lastDate })
+      }
       if (flowChanges) {
         // Playing the changes: the progression stepper IS the backing —
         // chords advance on a bar clock and the neck tracks each one.
@@ -836,7 +845,7 @@ export default function App() {
       setListening(ok)
       if (!ok) setMicError(getMicError())
     }
-  }, [isPlaying, droneOn, listening, state.backingMode, state.progressionBpm, metronomeOn, flowChanges, state.flowChords, state.progressionPlaying, stopProgression, startProgression, up])
+  }, [isPlaying, droneOn, listening, state.backingMode, state.progressionBpm, metronomeOn, flowChanges, state.flowChords, state.progressionPlaying, state.practiceStreak, state.lastPracticeDate, stopProgression, startProgression, up])
 
   const backingNoun = state.backingMode === 'chord' ? 'the chord' : state.backingMode === 'arp' ? 'the arpeggiator' : 'the drone'
 
@@ -1578,6 +1587,16 @@ export default function App() {
         </div>
 
         <div className="shell-actions">
+          {/* Only shows once there's an actual streak (2+ days) — a bare
+              "1" on first visit reads as broken, not encouraging. */}
+          {state.practiceStreak >= 2 && (
+            <span className="streak-badge" title={`${state.practiceStreak}-day practice streak`}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 2c1 3-2 4-2 7a4 4 0 108 0c0-1-.5-2-1-2 .5 2-1 3-2 2 1-2-1-3-1-5 0-1 .5-2-2-2z" fill="currentColor" />
+              </svg>
+              {state.practiceStreak}
+            </span>
+          )}
           {/* Language + notation live in the header, not buried in Settings —
               what a note is CALLED is a first-class preference. */}
           <select

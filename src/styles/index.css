@@ -247,6 +247,20 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   border-color: var(--accent);
   color: var(--text);
 }
+.streak-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: default;
+}
 .icon-btn.active {
   background: var(--accent-dim);
   border-color: var(--accent);
@@ -3813,6 +3827,10 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
     gap: 5px;
   }
   .icon-btn { width: 30px; height: 30px; font-size: 13px; }
+  /* The icon row is a fixed budget at this width (see comment above) —
+     the streak is a nice-to-have, not worth fighting EN/notation/settings/
+     theme for space. Still visible in Settings if we ever want it there. */
+  .streak-badge { display: none; }
   .lang-select { height: 30px; font-size: 11px; padding: 0 20px 0 8px; }
   /* .notation-toggle is also .icon-btn — without this it inherits the
      30px FIXED width above and "C·D·E"/"Do·Re" spills out of the box. */
