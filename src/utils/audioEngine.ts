@@ -277,7 +277,11 @@ export function playChordPad(midiNotes: number[], latched: boolean = false): voi
 
     // Mix levels — shimmer boosted from the original 0.04/0.03: the drone
     // has no fifth/octave-above shimmer at all, so leaning into it here is
-    // one more real point of difference, not just a wider detune.
+    // one more real point of difference, not just a wider detune. shimmer5/
+    // shimmerHi are also the layers that land highest in frequency (up to
+    // ~2x the chord tone) — the only part of this mix a phone speaker can
+    // actually move air at, so they're boosted again here specifically for
+    // that, not just for character.
     const gains = [
       { osc: sine1,    level: 0.30 },
       { osc: sine2,    level: 0.22 },
@@ -285,8 +289,8 @@ export function playChordPad(midiNotes: number[], latched: boolean = false): voi
       { osc: tri1,     level: 0.10 },
       { osc: tri2,     level: 0.10 },
       { osc: sub,      level: 0.15 },
-      { osc: shimmer5, level: 0.07 },
-      { osc: shimmerHi,level: 0.06 },
+      { osc: shimmer5, level: 0.11 },
+      { osc: shimmerHi,level: 0.10 },
     ]
 
     for (const { osc, level } of gains) {
@@ -698,10 +702,17 @@ export function startDrone(rootPc: number, scaleIntervals: number[]): void {
     { ratio: 1.0035, type: 'sine', gain: 0.35 },
     { ratio: 0.9965, type: 'sine', gain: 0.35 },
     { ratio: 0.5,    type: 'sine', gain: 0.4 }, // sub octave
+    // Presence octave: every layer above is a sine at 33-123Hz, at or below
+    // what a phone speaker can physically move — no gain makes that audible.
+    // A triangle (real harmonics, not a pure tone) an octave up lands at
+    // 131-247Hz, solidly inside small-speaker range, without changing the
+    // bass character on real speakers/headphones.
+    { ratio: 2,      type: 'triangle', gain: 0.22 },
   ])
   makeVoice(pedalRoot + 7, 0.14, -0.15, [
     { ratio: 1,     type: 'sine', gain: 0.5 },
     { ratio: 1.004, type: 'sine', gain: 0.3 },
+    { ratio: 2,     type: 'triangle', gain: 0.16 }, // same presence boost, quieter — this voice is already the fifth
   ])
 
   // Slow amplitude tremolo for life
