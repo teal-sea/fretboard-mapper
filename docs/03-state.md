@@ -65,7 +65,8 @@ driving layer will most often set.
 |---|---|---|
 | **`appMode`** | `'study' \| 'learn' \| 'flow'` | `'study'` = the full mapper. `'learn'` = the guided concept drills (this mode was *called* "flow" before a real Flow existed — its CSS classes are still `.flow-*`). `'flow'` = the endless jam: hit Play, improvise, home evolves underneath you via sibling modes (`utils/flowEngine.ts` + `FlowCanvas` particles), no tasks, no fail state. |
 | **`conceptId`** | `string \| null` | Active Learn concept (key into `CONCEPTS` in `utils/concepts.ts`). `applyConcept()` writes a whole `up()` partial from it. |
-| `flowEvolve` | `'static' \| 'diatonic' \| 'custom'` | How Flow's backing evolves: stay put, drift through sibling modes, or follow `flowChords`. |
+| **`flowJam`** | `'modes' \| 'changes' \| 'findit' \| 'echo'` | Flow's JAM switcher. `'modes'`/`'changes'` are the two ways to improvise (see `flowEvolve` below). `'findit'` and `'echo'` are the ear-training games (`docs/06-components.md`) — picking either forces `advancedMode`-style config rows in place of the Evolve/Pace/chords rows, since neither uses them. |
+| `flowEvolve` | `'static' \| 'diatonic' \| 'custom'` | How Flow's backing evolves under `flowJam:'modes'`: stay put, drift through sibling modes, or follow `flowChords`. |
 | `flowChords` | `number[]` | Custom evolution order — diatonic degree indices, duplicates allowed. |
 | `flowPaceSec` | `number` | Seconds between evolution steps (60/120/240 in the UI). |
 | `showTheory` | `boolean` | Theory layer visibility. |
@@ -109,18 +110,26 @@ driving layer will most often set.
 | `progressionPlaying` | `boolean` | Stepper running. |
 | `progressionBpm` | `number` | 40–200. Also the arpeggiator's tempo. |
 | `progressionBarsPerChord` | `number` | 1, 2, or 4 bars per chord. |
+| `micEchoCancellation` | `boolean` | Passed straight through to `getUserMedia`'s `echoCancellation` constraint (`startMic()`). On by default — correct for the laptop-speaker-to-laptop-mic loop the app's own backing sound bleeds through. Wrong for a real mic on an external interface (no acoustic feedback path for AEC to cancel, so its adaptive filter chews on the actual signal instead) — Settings → Microphone lets you turn it off. Affects both Play and the Tuner, which share `startMic()`. |
 
 > **Not in `AppState`:** `droneOn`, `listening`, `metronomeOn`, `micError`,
 > `heardMidi`, `micLevel`, and the Flow-session ephemera (`focusFound`,
 > `walkState`, `runState`, `collectionOpen`…) are local `useState` in `App.tsx`
-> — side-effect flags and per-session game state that shouldn't persist.
+> — side-effect flags and per-session game state that shouldn't persist. Find
+> It (`findItOn`, `findItTarget`, `findItRevealed`, `findItScore`,
+> `findItStreak`, `findItLastMs`, `findItStrings`, `findItFretRange`) and Echo
+> (`echoOn`, `echoPhrase`, `echoPlayedIdx`, `echoStatus`, `echoScore`,
+> `echoStreak`, `echoLength`) follow the same rule — a game's live progress is
+> exactly the kind of per-session state that shouldn't survive a refresh.
 > Separately-persisted progress lives in `utils/concepts.ts` (`fm.ownedSounds`)
 > and `utils/progress.ts` (`mr.progress`), not in `AppState`.
 
 ## `initialState`
 
-Defaults to **A aeolian** (natural minor), scales view, standard tuning, 15 frets,
-dark theme, backing mode `'drone'`, progression `[0,3,4]` (i–iv–v) at 80 BPM.
+Defaults to **C ionian** (major), chords view with C major selected (Explore
+greets a first-timer with a chord — the thing a guitarist recognizes — Scale
+is one flip away), standard tuning, 15 frets, dark theme, backing mode
+`'drone'`, progression `[0,3,4]` (i–iv–v) at 80 BPM.
 Full literal at the top of `App.tsx` — but remember the *effective* initial
 state is `{ ...initialState, ...loadPersistedState() }`.
 

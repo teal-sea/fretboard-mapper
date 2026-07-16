@@ -15,10 +15,10 @@ Created on first sound (a user gesture, satisfying autoplay policy). It builds a
 fixed master bus once:
 
 ```
-  masterGain ──┬─► dryGain (0.4) ──────────────────────┐
-               └─► reverb (convolver) ─► wetGain (0.6) ─┤
-                                                        ▼
-                                        limiter (compressor) ─► destination
+  masterGain (2.2) ──┬─► dryGain (0.4) ──────────────────────┐
+                      └─► reverb (convolver) ─► wetGain (0.6) ─┤
+                                                               ▼
+                                             limiter (compressor) ─► destination
 ```
 `reverb` is a **procedurally generated 4.5s hall impulse** (`createReverb`).
 The **limiter** (a `DynamicsCompressorNode`, threshold −6 dB, ratio 16) exists
@@ -26,6 +26,20 @@ because the user Volume controls go up to **3×** — without it, cranking volum
 was just hard digital clipping. **Every new sound source must connect into
 `masterGain`** to get the shared reverb + limiter, and **must disconnect its
 nodes on stop** to avoid leaks.
+
+`masterGain` itself is `2.2`, not unity — it's **makeup gain** for the dry/wet
+split above it, not a design choice to lean on for "loud". At `1.0` the dry
+path alone cuts to 0.4× before the limiter even sees it, which — combined with
+the **metronome bypassing this whole bus** (below) — made the metronome
+noticeably louder than the drone/pad by construction, not by ear. If you
+change the dry/wet ratio, re-check this value; it exists to compensate for
+exactly that split.
+
+**The metronome does not route through `masterGain`.** It connects straight to
+`ctx.destination` — full raw gain, no dry/wet split, no limiter. That's
+deliberate (a click doesn't need reverb), but it means the metronome and
+everything else on the shared bus are on two different loudness budgets by
+design. Keep that in mind before comparing perceived volume across sources.
 
 Helpers: `midiToFreq(midi)`, `makeSaturationCurve(amount)` (a `tanh` waveshaper).
 
@@ -82,6 +96,16 @@ isDroneRunning(): boolean
 A sustained **pedal tone**: root + fifth (plus sub layers), with *timbral*
 movement only — a very slow breathing lowpass LFO, gentle saturation, slow
 tremolo, 5s bloom.
+
+Every layer on both pedal voices used to be a pure sine between the sub-octave
+(~33 Hz) and the fifth voice's fundamental (~185 Hz) — entirely at or below
+what a phone speaker can physically reproduce, independent of gain. Each
+voice now also carries a **triangle layer one octave up** (real harmonics,
+not a pure tone), landing at 131–370 Hz depending on root — inside
+small-speaker range — without changing the drone's bass character on real
+speakers/headphones. If you add more layers, check where their *energy*
+actually lands, not just the level you set it at; a loud layer below ~150 Hz
+is often inaudible on a phone regardless.
 
 > **History, so nobody reintroduces it:** the drone originally had three upper
 > "drift voices" gliding between scale tones every ~7s. That made it sound like
@@ -146,12 +170,19 @@ With the backing sound on speakers, the mic hears the app's own output, and a
 drone/pad is quasi-periodic — the detector happily reports the backing sound's
 root forever instead of the player. Two defenses, in order of importance:
 
-1. **Echo cancellation is ON** (`echoCancellation: true` in `getUserMedia`).
-   AEC subtracts audio the device knows it is outputting — exactly this bleed.
-   It was originally off (voice-call DSP can dull instrument transients), but a
-   level gate fundamentally cannot distinguish "loud bleed" from "loud playing",
-   and every mic bug traced back to that. `noiseSuppression` and
-   `autoGainControl` stay **off** — they reshape dynamics with no upside here.
+1. **Echo cancellation is ON by default**, toggleable via `AppState.micEchoCancellation`
+   (Settings → Microphone), threaded into `startMic(echoCancellation)`. AEC
+   subtracts audio the device knows it is outputting — exactly this bleed —
+   for the laptop-speaker-to-laptop-mic case this section is about. It was
+   originally unconditional, but that's wrong for a **real mic through an
+   external interface**: there's no acoustic feedback path there for AEC to
+   legitimately cancel, so its adaptive filter chews on the actual musical
+   signal instead. Symptom: a note registers for an instant, then gets
+   suppressed as the filter "learns" it away. `startMic()` and `openTuner()`
+   both read this setting — they share one mic pipeline, so fixing one fixes
+   the other. `noiseSuppression` and `autoGainControl` stay **off**
+   unconditionally — they reshape dynamics with no upside here regardless of
+   input source.
 2. **Ambient calibration** as a backstop: `recalibrateMic()` samples ambient RMS
    (median of 8 windows) and sets the gate to **1.6×** that floor, hard-capped
    at **0.02**. Both numbers were tuned against a real guitar + real speakers:
