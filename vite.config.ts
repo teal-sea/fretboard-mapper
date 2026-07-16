@@ -1,9 +1,10 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { modePagesPlugin } from './scripts/modePages'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), modePagesPlugin()],
   server: { port: 5173 },
   test: {
     globals: true,

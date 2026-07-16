@@ -61,6 +61,18 @@
     </style>
     <div id="splash"><img src="/mark.png" alt="" /></div>
     <div id="root"></div>
+    <!-- For crawlers and agents that don't run JavaScript (most AI crawlers
+         don't): the pitch in plain HTML, plus the door into the static
+         mode-page cluster under /modes/. -->
+    <noscript>
+      <h1>Modal Runs — a guitar practice tool that listens</h1>
+      <p>Hold a drone in any key, improvise over it, and Modal Runs hears you
+         through your mic — lighting up what you played on an interactive
+         fretboard and telling you when you land the note it asked for.
+         Learn the modes by ear instead of memorising them. Free, in the
+         browser, no signup.</p>
+      <p><a href="/modes/">Fretboard maps for every mode in every key</a></p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
