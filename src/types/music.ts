@@ -1,3 +1,5 @@
+import type { FavoriteItem } from '../utils/favorites'
+
 export const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const
 export const NOTE_NAMES_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'] as const
 
@@ -111,6 +113,9 @@ export interface AppState {
   // just opening the tab. See utils/streak.ts.
   practiceStreak: number
   lastPracticeDate: string | null // YYYY-MM-DD
+
+  // Starred chords/scales for quick recall. See utils/favorites.ts.
+  favorites: FavoriteItem[]
 
   advancedMode: boolean
   activeTab: 'explore' | 'technique'

@@ -267,6 +267,51 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   color: var(--text);
   box-shadow: 0 0 10px var(--accent-glow);
 }
+.favorite-star {
+  font-size: 17px;
+  color: var(--text-2);
+}
+.favorite-star.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.favorites-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.favorite-chip {
+  display: flex;
+  align-items: stretch;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  overflow: hidden;
+}
+.favorite-chip button {
+  background: none;
+  border: none;
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: 12.5px;
+  transition: all var(--transition);
+}
+.favorite-chip button:first-child {
+  padding: 5px 6px 5px 12px;
+  font-weight: 600;
+}
+.favorite-chip button:first-child:hover {
+  color: var(--accent);
+}
+.favorite-remove {
+  padding: 5px 10px 5px 4px;
+  color: var(--text-3);
+}
+.favorite-remove:hover {
+  color: var(--text);
+}
 /* Language + notation — header residents, always in reach */
 .lang-select {
   height: 34px;

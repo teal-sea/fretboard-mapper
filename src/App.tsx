@@ -30,6 +30,7 @@ import { displayNote, LANGUAGES } from './utils/noteNames'
 import { t as translate, tf } from './utils/i18n'
 import { nextFlowHome, describeFlowShift, describeFlowSession } from './utils/flowEngine'
 import { recordPractice } from './utils/streak'
+import { favoriteId, isFavorited, toggleFavorite, type FavoriteItem } from './utils/favorites'
 import FlowCanvas, { type FlowPulse } from './components/FlowCanvas'
 import { familyId, getClaims, claimMode, markCompleted, totalClaimed } from './utils/progress'
 import { getSweepShape, getArpeggioShapes, buildRun } from './utils/arpeggios'
@@ -157,6 +158,7 @@ const initialState: AppState = {
   onboarded: false,
   practiceStreak: 0,
   lastPracticeDate: null,
+  favorites: [],
   advancedMode: false,
   activeTab: 'explore',
   techniqueMode: '3nps',
@@ -430,6 +432,17 @@ export default function App() {
     ? 'chord'
     : state.advancedMode ? 'key' : 'scale'
 
+  // What the star button favorites: whatever's currently selected in
+  // Study — a chord or a scale, root + key. Null only if nothing's
+  // selected yet (shouldn't happen post-boot, but the type is honest).
+  const currentFavorite: FavoriteItem | null = state.viewMode === 'chords'
+    ? (state.selectedChordRoot && state.selectedChordKey
+        ? { viewMode: 'chords', root: state.selectedChordRoot, key: state.selectedChordKey }
+        : null)
+    : (state.selectedScaleRoot && state.selectedScaleKey
+        ? { viewMode: 'scales', root: state.selectedScaleRoot, key: state.selectedScaleKey }
+        : null)
+
   // Picking a CHORD adopts its natural parent scale as the key, so the
   // diatonic harmony below always agrees with the selection: Em7 → E Dorian,
   // Cmaj7 → C Ionian, G7 → G Mixolydian. Derived, not a lookup table — the
@@ -441,6 +454,17 @@ export default function App() {
     const seven = compatible.find(s => SCALES[s.key]?.intervals.length === 7)
     return (seven ?? compatible[0])?.key ?? state.keyQuality
   }, [state.keyQuality])
+
+  // Mirrors what the Chord/Scale quality selects already do on change —
+  // a favorite jump is just landing on that same combination directly.
+  const jumpToFavorite = useCallback((item: FavoriteItem) => {
+    if (item.viewMode === 'chords') {
+      const pk = parentScaleFor(item.root, item.key)
+      up({ selectedChordKey: item.key, selectedChordRoot: item.root, keyRoot: item.root, keyQuality: pk, selectedScaleRoot: item.root, selectedScaleKey: pk, viewMode: 'chords', chordPosition: null })
+    } else {
+      up({ viewMode: 'scales', keyQuality: item.key, selectedScaleRoot: item.root, selectedScaleKey: item.key, keyRoot: item.root, selectedChordRoot: null, selectedChordKey: null })
+    }
+  }, [up, parentScaleFor])
   const [introOpen, setIntroOpen] = useState(false)
 
   // ─── "Looks better on desktop" nudge ───
@@ -2320,7 +2344,39 @@ export default function App() {
                 ))}
               </select>
             )}
+            {currentFavorite && (
+              <button
+                type="button"
+                className={`icon-btn favorite-star ${isFavorited(state.favorites, currentFavorite) ? 'active' : ''}`}
+                onClick={() => up({ favorites: toggleFavorite(state.favorites, currentFavorite) })}
+                title={isFavorited(state.favorites, currentFavorite) ? 'Remove from favorites' : 'Add to favorites'}
+                aria-label={isFavorited(state.favorites, currentFavorite) ? 'Remove from favorites' : 'Add to favorites'}
+              >
+                {isFavorited(state.favorites, currentFavorite) ? '★' : '☆'}
+              </button>
+            )}
           </div>
+
+          {state.favorites.length > 0 && (
+            <div className="favorites-strip" aria-label="Favorites">
+              {state.favorites.map(f => (
+                <span key={favoriteId(f)} className="favorite-chip">
+                  <button type="button" onClick={() => jumpToFavorite(f)}>
+                    {dn(f.root)}{f.viewMode === 'chords' ? (CHORDS[f.key]?.suffix ?? '') : ` ${T(SCALES[f.key]?.name ?? f.key)}`}
+                  </button>
+                  <button
+                    type="button"
+                    className="favorite-remove"
+                    onClick={() => up({ favorites: toggleFavorite(state.favorites, f) })}
+                    aria-label="Remove from favorites"
+                    title="Remove from favorites"
+                  >
+                    &#215;
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
 
           <div className="quick-row">
             {renderBackingControls()}
