@@ -3587,7 +3587,10 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   border: 1px solid transparent;
   background:
     linear-gradient(var(--bg-surface), var(--bg-surface)) padding-box,
-    var(--brand-grad) border-box;
+    conic-gradient(from 180deg,
+      var(--neon-cyan), var(--neon-blue), var(--neon-purple),
+      var(--neon-pink), var(--neon-coral), var(--neon-amber), var(--neon-cyan)
+    ) border-box;
   box-shadow: 0 0 50px rgba(152,70,234,0.18);
 }
 .desktop-nudge-close {
@@ -3626,6 +3629,12 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   font-weight: 700;
   color: var(--text);
   text-wrap: balance;
+}
+.desktop-nudge-title-brand {
+  background: var(--brand-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 .desktop-nudge-sub {
   font-size: 13.5px;
