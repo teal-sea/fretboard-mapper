@@ -579,8 +579,8 @@ export const CONTENT: Record<string, Entry> = {
     pt: 'O b5 é por que este modo nunca pode descansar — o próprio acorde da fundamental é diminuto. Toque e note que você fica querendo ir embora. Essa inquietação É o som. Use como cor de passagem, não como casa.',
   },
   'The jam-session mode.': {
-    es: 'El modo de las jams.', fr: 'Le mode des jams.',
-    it: 'Il modo delle jam.', pt: 'O modo das jams.',
+    es: 'El modo perfecto para improvisar.', fr: 'Le mode idéal pour improviser.',
+    it: 'La modalità perfetta per improvvisare.', pt: 'O modo perfeito para improvisar.',
   },
   'Same raised 6 as A Dorian, new home. Prove the concept is portable: the shape moved, the colour is identical. If you can hear the 6 here without hunting, you own it.': {
     es: 'El mismo 6 elevado que La dórico, nueva casa. Demuestra que el concepto es portátil: la figura se movió, el color es idéntico. Si puedes oír el 6 aquí sin cazarlo, es tuyo.',
