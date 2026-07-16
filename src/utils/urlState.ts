@@ -10,6 +10,7 @@
 import type { AppState } from '../types/music'
 import { NOTE_NAMES, NOTE_NAMES_FLAT } from '../types/music'
 import { SCALES } from './musicTheory'
+import { LANGUAGES } from './noteNames'
 
 const VALID_ROOTS = new Set<string>([...NOTE_NAMES, ...NOTE_NAMES_FLAT])
 
@@ -51,6 +52,15 @@ export function parseUrlState(search: string): Partial<AppState> {
 
   const app = (params.get('app') ?? '').trim().toLowerCase() as AppState['appMode']
   if (APP_MODES.has(app)) out.appMode = app
+
+  // Localized landing pages arrive with ?lang= — mirror what the in-app
+  // language switcher does: set the language AND its note-naming default.
+  const langParam = (params.get('lang') ?? '').trim().toLowerCase()
+  const lang = LANGUAGES.find(l => l.key === langParam)
+  if (lang) {
+    out.language = lang.key
+    out.noteStyle = lang.defaultStyle
+  }
 
   return out
 }
