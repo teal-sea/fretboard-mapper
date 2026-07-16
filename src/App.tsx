@@ -1141,9 +1141,19 @@ export default function App() {
     setFindItStreak(s => s + 1)
     setFindItLastMs(elapsed)
     setFindItRevealed(true)
+  }, [heardMidi, findItOn, findItTarget, findItRevealed])
+
+  // Advancing after a hit is its OWN effect, deliberately not folded into
+  // the detection effect above: that one lists findItRevealed as a dep (it
+  // needs to stop reacting once revealed), so setting findItRevealed(true)
+  // inside it would re-run it immediately — whose cleanup would cancel this
+  // same setTimeout before it ever fires, freezing the game on the first
+  // hit forever. This effect's only trigger is findItRevealed itself.
+  useEffect(() => {
+    if (!findItRevealed) return
     const t = setTimeout(() => setFindItTarget(null), 900)
     return () => clearTimeout(t)
-  }, [heardMidi, findItOn, findItTarget, findItRevealed])
+  }, [findItRevealed])
 
   // A dedicated board for the game: blank while hunting, lights up the
   // target's pitch class (every fret it appears at) once confirmed.
