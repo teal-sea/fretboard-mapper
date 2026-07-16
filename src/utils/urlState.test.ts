@@ -61,6 +61,12 @@ describe('parseUrlState', () => {
     expect(parseUrlState('?app=nonsense').appMode).toBeUndefined()
   })
 
+  it('parses lang with its note-style default, like the in-app switcher', () => {
+    expect(parseUrlState('?lang=es')).toEqual({ language: 'es', noteStyle: 'solfege' })
+    expect(parseUrlState('?lang=en')).toEqual({ language: 'en', noteStyle: 'letters' })
+    expect(parseUrlState('?lang=de')).toEqual({})
+  })
+
   it('returns empty partial for empty search', () => {
     expect(parseUrlState('')).toEqual({})
   })

@@ -181,12 +181,21 @@ export const CSS = `
   footer a { margin-right: 18px }
 `
 
-export function head(opts: { title: string; description: string; canonicalPath: string }): string {
+export function head(opts: {
+  title: string
+  description: string
+  canonicalPath: string
+  alternates?: { hreflang: string; href: string }[]
+}): string {
+  const alternates = (opts.alternates ?? [])
+    .map(a => `<link rel="alternate" hreflang="${a.hreflang}" href="${a.href}" />`)
+    .join('\n    ')
   return `<meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${opts.title}</title>
     <meta name="description" content="${opts.description}" />
     <link rel="canonical" href="${ORIGIN}${opts.canonicalPath}" />
+    ${alternates}
     <meta name="theme-color" content="#050507" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
@@ -205,8 +214,20 @@ export function head(opts: { title: string; description: string; canonicalPath: 
 
 export const SITE_HEADER = `<header class="site"><img src="/mark.png" alt="" /><a href="/">Modal Runs</a></header>`
 
-export function footer(): string {
-  return `<footer><a href="/modes/">All modes, all keys</a><a href="/guides/">Guides</a><a href="/">Open the app</a><span>Modal Runs — free guitar practice that listens.</span></footer>`
+export function footer(opts?: {
+  modesHref: string
+  modesLabel: string
+  appLabel: string
+  tag: string
+  showGuides?: boolean
+}): string {
+  const o = opts ?? {
+    modesHref: '/modes/', modesLabel: 'All modes, all keys',
+    appLabel: 'Open the app', tag: 'Modal Runs — free guitar practice that listens.',
+    showGuides: true,
+  }
+  const guides = o.showGuides !== false ? `<a href="/guides/">Guides</a>` : ''
+  return `<footer><a href="${o.modesHref}">${o.modesLabel}</a>${guides}<a href="/">${o.appLabel}</a><span>${o.tag}</span></footer>`
 }
 
 // A deep link into the live app, preset to a key + mode.
