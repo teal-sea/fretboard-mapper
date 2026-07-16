@@ -1067,6 +1067,80 @@ export default function App() {
   const flowHomesRef = useRef<Set<string>>(new Set())
   const flowPulseIdRef = useRef(0)
 
+  // ─── Find It: sound (or name) first, fretboard second ───
+  // The neck stays blank while hunting — it lights back up only to confirm
+  // a hit, so lighting up is the reward, not the instruction. Backing
+  // (Pad/Drone/Arp — whatever's already selected) keeps playing underneath;
+  // this doesn't require the drone specifically.
+  const [findItOn, setFindItOn] = useState(false)
+  const [findItTarget, setFindItTarget] = useState<{ stringIndex: number; fret: number; midi: number; note: string } | null>(null)
+  const [findItRevealed, setFindItRevealed] = useState(false)
+  const [findItScore, setFindItScore] = useState(0)
+  const [findItStreak, setFindItStreak] = useState(0)
+  const [findItLastMs, setFindItLastMs] = useState<number | null>(null)
+  const [findItStrings, setFindItStrings] = useState<number[]>([]) // empty = every string
+  const [findItFretRange, setFindItFretRange] = useState<[number, number] | null>(null) // null = full neck
+  const findItStartedAtRef = useRef<number | null>(null)
+
+  const findItCandidates = useMemo(() => {
+    const out: ({ stringIndex: number; fret: number; midi: number; note: string })[] = []
+    for (let s = 0; s < board.length; s++) {
+      if (findItStrings.length && !findItStrings.includes(s)) continue
+      for (const fn of board[s]) {
+        if (!fn.isInScale) continue
+        if (findItFretRange && (fn.fret < findItFretRange[0] || fn.fret > findItFretRange[1])) continue
+        out.push({ stringIndex: fn.stringIndex, fret: fn.fret, midi: fn.midi, note: fn.note })
+      }
+    }
+    return out
+  }, [board, findItStrings, findItFretRange])
+
+  const pickFindItTarget = useCallback(() => {
+    if (!findItCandidates.length) { setFindItTarget(null); return }
+    const pick = findItCandidates[Math.floor(Math.random() * findItCandidates.length)]
+    setFindItTarget(pick)
+    setFindItRevealed(false)
+    findItStartedAtRef.current = Date.now()
+    playChordPad([pick.midi], false)
+  }, [findItCandidates])
+
+  // Enter/leave the game with the JAM switch + transport, same Play button
+  // as Modes/Changes — no separate start control to learn.
+  useEffect(() => {
+    const shouldRun = state.flowJam === 'findit' && isPlaying
+    if (shouldRun && !findItOn) {
+      setFindItOn(true); setFindItScore(0); setFindItStreak(0); setFindItLastMs(null)
+    } else if (!shouldRun && findItOn) {
+      setFindItOn(false); setFindItTarget(null); setFindItRevealed(false)
+    }
+  }, [state.flowJam, isPlaying, findItOn])
+
+  useEffect(() => {
+    if (findItOn && !findItTarget) pickFindItTarget()
+  }, [findItOn, findItTarget, pickFindItTarget])
+
+  // The hit: exact MIDI match, not just pitch class — "find it on this
+  // string/section" only means something if the octave has to match too.
+  useEffect(() => {
+    if (!findItOn || !findItTarget || findItRevealed || heardMidi === null) return
+    if (heardMidi !== findItTarget.midi) return
+    const elapsed = findItStartedAtRef.current ? Date.now() - findItStartedAtRef.current : 0
+    const points = Math.max(5, Math.round(200 - elapsed / 50))
+    setFindItScore(s => s + points)
+    setFindItStreak(s => s + 1)
+    setFindItLastMs(elapsed)
+    setFindItRevealed(true)
+    const t = setTimeout(() => setFindItTarget(null), 900)
+    return () => clearTimeout(t)
+  }, [heardMidi, findItOn, findItTarget, findItRevealed])
+
+  // A dedicated board for the game: blank while hunting, lights up the
+  // target's pitch class (every fret it appears at) once confirmed.
+  const findItBoard = useMemo(() => {
+    if (!findItOn) return board
+    return computeFretboard(tuning, fretboardRoot, findItRevealed && findItTarget ? new Set([findItTarget.midi % 12]) : new Set(), state.numFrets)
+  }, [findItOn, findItRevealed, findItTarget, tuning, fretboardRoot, state.numFrets, board])
+
   // The slow drift. Re-creating the interval after every shift (sameNoteModes
   // changes) conveniently restarts the countdown, keeping the pacing even.
   useEffect(() => {
@@ -1944,6 +2018,7 @@ export default function App() {
                   {([
                     ['modes', 'Modes', 'Modal playing — the harmony sits still (or drifts over minutes) and you color inside it'],
                     ['changes', 'Changes', 'Playing the changes — a progression loops at tempo and your lines track each chord'],
+                    ['findit', 'Find It', 'The neck stays dark. A note plays — find and land it before the clock confirms it for you'],
                   ] as const).map(([key, label, title]) => (
                     <button key={key} type="button" title={title}
                       className={`backing-switch-btn ${state.flowJam === key ? 'active' : ''}`}
@@ -1951,6 +2026,43 @@ export default function App() {
                   ))}
                 </div>
               </div>
+
+              {state.flowJam === 'findit' && (
+              <>
+                <div className="jam-setup-row">
+                  <span className="study-bar-label">{T('String')}</span>
+                  <div className="backing-switch" role="group" aria-label="Restrict to strings">
+                    <button type="button"
+                      className={`backing-switch-btn ${findItStrings.length === 0 ? 'active' : ''}`}
+                      onClick={() => setFindItStrings([])}>{T('All')}</button>
+                    {tuning.labels.map((label, si) => (
+                      <button key={si} type="button"
+                        className={`backing-switch-btn ${findItStrings.includes(si) ? 'active' : ''}`}
+                        onClick={() => setFindItStrings(cur =>
+                          cur.includes(si) ? cur.filter(x => x !== si) : [...cur, si])}>
+                        {dn(label)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="jam-setup-row">
+                  <span className="study-bar-label">{T('Section')}</span>
+                  <div className="backing-switch" role="group" aria-label="Restrict to a fret range">
+                    {([
+                      [null, 'Whole neck'],
+                      [[0, 4], 'Open–4'],
+                      [[5, 9], '5–9'],
+                      [[10, state.numFrets], `10–${state.numFrets}`],
+                    ] as const).map(([range, label]) => (
+                      <button key={label} type="button"
+                        className={`backing-switch-btn ${JSON.stringify(findItFretRange) === JSON.stringify(range) ? 'active' : ''}`}
+                        onClick={() => setFindItFretRange(range as [number, number] | null)}>{T(label)}</button>
+                    ))}
+                  </div>
+                </div>
+                <p className="jam-hint">{T('Hit play — the target and score show up next to the neck once you start.')}</p>
+              </>
+              )}
 
               {state.flowJam === 'modes' && (
               <div className="jam-setup-row">
@@ -2033,7 +2145,19 @@ export default function App() {
             </div>
           )}
 
-          {isPlaying && (
+          {isPlaying && state.flowJam === 'findit' && (
+            <p className="jam-home jam-findit-hud">
+              <span className="jam-findit-target">
+                {findItTarget
+                  ? (findItRevealed ? <>✓ <b>{dn(findItTarget.note)}</b></> : <>{T('Find')}: <b>{dn(findItTarget.note)}</b></>)
+                  : T('No note fits those filters')}
+              </span>
+              <span className="jam-findit-stat">{T('Score')} <b>{findItScore}</b></span>
+              <span className="jam-findit-stat">{T('Streak')} <b>{findItStreak}</b></span>
+              {findItLastMs !== null && <span className="jam-findit-stat">{T('Last')} <b>{(findItLastMs / 1000).toFixed(1)}s</b></span>}
+            </p>
+          )}
+          {isPlaying && state.flowJam !== 'findit' && (
             <p className="jam-home">
               {flowChanges && state.selectedChordRoot ? (
                 <>{T('now')} — <b>{chordLabel}</b>{nextChordInfo && <> · {T('next')} — {nextChordInfo.name}</>}</>
@@ -2046,7 +2170,7 @@ export default function App() {
 
           <div className="jam-neck">
             <Fretboard
-              board={board}
+              board={state.flowJam === 'findit' ? findItBoard : board}
               displayMode={displayMode}
               inlayStyle={state.inlayStyle}
               intervalColors={state.intervalColors}
@@ -2066,7 +2190,7 @@ export default function App() {
           </div>
 
           <footer className="flow-controls">
-            {renderBackingControls(state.flowJam === 'modes')}
+            {renderBackingControls(state.flowJam === 'modes' || state.flowJam === 'findit')}
             <button
               key={justTapped}
               className={`play-btn ${isPlaying ? 'on' : ''}`}

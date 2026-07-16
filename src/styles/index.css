@@ -2000,6 +2000,22 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   color: var(--text-2);
   animation: jam-whisper-in 0.8s ease;
 }
+.jam-findit-hud {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+.jam-findit-target {
+  font-size: 20px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--text);
+}
+.jam-findit-target b { color: var(--neon-amber); font-size: 24px; }
+.jam-findit-stat { color: var(--text-3); }
+.jam-findit-stat b { color: var(--text); font-size: 14px; }
 @keyframes jam-whisper-in {
   from { opacity: 0; }
   to   { opacity: 1; }
