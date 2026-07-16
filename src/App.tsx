@@ -1290,6 +1290,13 @@ export default function App() {
     return () => clearTimeout(t)
   }, [echoStatus, echoPhrase, playPhraseAndListen])
 
+  // Echo is ear-only — the neck stays blank the whole round, no reveal even
+  // on a landed phrase (unlike Find It, which confirms visually on a hit).
+  const echoBoard = useMemo(() => {
+    if (!echoOn) return board
+    return computeFretboard(tuning, fretboardRoot, new Set(), state.numFrets)
+  }, [echoOn, tuning, fretboardRoot, state.numFrets, board])
+
   // The slow drift. Re-creating the interval after every shift (sameNoteModes
   // changes) conveniently restarts the countdown, keeping the pacing even.
   useEffect(() => {
@@ -2178,6 +2185,7 @@ export default function App() {
                     ['modes', 'Modes', 'Modal playing — the harmony sits still (or drifts over minutes) and you color inside it'],
                     ['changes', 'Changes', 'Playing the changes — a progression loops at tempo and your lines track each chord'],
                     ['findit', 'Find It', 'The neck stays dark. A note plays — find and land it before the clock confirms it for you'],
+                    ['echo', 'Echo', 'Call and response — a short phrase plays, you play it back by ear. Miss it and it repeats'],
                   ] as const).map(([key, label, title]) => (
                     <button key={key} type="button" title={title}
                       className={`backing-switch-btn ${state.flowJam === key ? 'active' : ''}`}
@@ -2185,6 +2193,10 @@ export default function App() {
                   ))}
                 </div>
               </div>
+
+              {state.flowJam === 'echo' && (
+                <p className="jam-hint">{T('Hit play — a phrase plays, then play it back. Land it and the phrase grows by one note; miss it and it repeats.')}</p>
+              )}
 
               {state.flowJam === 'findit' && (
               <>
@@ -2316,7 +2328,20 @@ export default function App() {
               {findItLastMs !== null && <span className="jam-findit-stat">{T('Last')} <b>{(findItLastMs / 1000).toFixed(1)}s</b></span>}
             </p>
           )}
-          {isPlaying && state.flowJam !== 'findit' && (
+          {isPlaying && state.flowJam === 'echo' && (
+            <p className="jam-home jam-findit-hud">
+              <span className="jam-findit-target">
+                {echoStatus === 'playing' && T('Listen…')}
+                {echoStatus === 'listening' && `${T('Your turn')}: ${echoPlayedIdx}/${echoPhrase.length}`}
+                {echoStatus === 'success' && `✓ ${T('Nailed it')}`}
+                {echoStatus === 'miss' && T('Not quite — hear it again')}
+              </span>
+              <span className="jam-findit-stat">{T('Score')} <b>{echoScore}</b></span>
+              <span className="jam-findit-stat">{T('Streak')} <b>{echoStreak}</b></span>
+              <span className="jam-findit-stat">{T('Phrase')} <b>{echoLength}</b></span>
+            </p>
+          )}
+          {isPlaying && state.flowJam !== 'findit' && state.flowJam !== 'echo' && (
             <p className="jam-home">
               {flowChanges && state.selectedChordRoot ? (
                 <>{T('now')} — <b>{chordLabel}</b>{nextChordInfo && <> · {T('next')} — {nextChordInfo.name}</>}</>
@@ -2329,7 +2354,7 @@ export default function App() {
 
           <div className="jam-neck">
             <Fretboard
-              board={state.flowJam === 'findit' ? findItBoard : board}
+              board={state.flowJam === 'findit' ? findItBoard : state.flowJam === 'echo' ? echoBoard : board}
               displayMode={displayMode}
               inlayStyle={state.inlayStyle}
               intervalColors={state.intervalColors}
@@ -2349,7 +2374,7 @@ export default function App() {
           </div>
 
           <footer className="flow-controls">
-            {renderBackingControls(state.flowJam === 'modes' || state.flowJam === 'findit')}
+            {renderBackingControls(state.flowJam === 'modes' || state.flowJam === 'findit' || state.flowJam === 'echo')}
             <button
               key={justTapped}
               className={`play-btn ${isPlaying ? 'on' : ''}`}
