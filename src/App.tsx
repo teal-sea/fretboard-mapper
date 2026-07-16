@@ -1398,7 +1398,7 @@ export default function App() {
             </button>
             <div className="desktop-nudge">
               <img className="desktop-nudge-logo" src="/mark.png" alt="" />
-              <h2 className="desktop-nudge-title">{T('Modal Runs looks best on desktop')}</h2>
+              <h2 className="desktop-nudge-title"><span className="desktop-nudge-title-brand">modalruns</span> {T('looks best on desktop')}</h2>
               <p className="desktop-nudge-sub">
                 {T('The whole neck, every mode, side by side — a bigger screen shows a lot more of it at once. Totally playable here too.')}
               </p>
