@@ -416,6 +416,57 @@ const hearing: Guide = {
   `, [explained, whichFirst]),
 }
 
+const modalJazz: Guide = {
+  slug: 'what-is-modal-jazz',
+  title: 'What Is Modal Jazz? Miles Davis, "So What", and Harmony Without Chord Changes | Modal Runs',
+  description: 'Modal jazz replaces fast chord changes with one mode held for a long stretch. Why Miles Davis and Kind of Blue started it, how it differs from bebop, and how to practice the sound yourself.',
+  h1: 'What is modal jazz?',
+  blurb: 'One mode, held for a long stretch, instead of chords flying past every two beats.',
+  faq: [
+    { q: 'What is modal jazz?', a: 'Modal jazz is jazz built on modes held for long stretches — sixteen bars, a whole tune — instead of chords changing every measure or two. The harmony almost stops moving; the melody is what moves, exploring a mode’s colour instead of navigating fast chord changes.' },
+    { q: 'What is the most famous modal jazz song?', a: '"So What" by Miles Davis, from the 1959 album Kind of Blue. Its structure is almost embarrassingly simple: sixteen bars of D Dorian, eight of Eb Dorian, eight back in D — and it’s one of the most studied recordings in jazz history.' },
+  ],
+  render: () => page(modalJazz, `
+    <div class="tldr"><p><strong>TL;DR:</strong> modal jazz holds <strong>one mode for a long stretch</strong> — sixteen bars, a whole tune — instead of chords changing every measure or two. Miles Davis’s <em>Kind of Blue</em> (1959) started it as a reaction to bebop’s speed. The point isn’t simpler music; it’s different music, built on colour instead of motion.</p></div>
+
+    <h2>The problem modal jazz was solving</h2>
+    <p>By the late 1950s, bebop harmony had become a sport: chords changing every one or two beats, soloists sprinting to outline each one before the next arrived. Miles Davis found it exhausting to listen to and, by his own account, exhausting to write over. His fix, developed with pianist Bill Evans and theorist George Russell: strip the chords down to almost nothing and give the soloist a <em>mode</em> to live in instead of a maze to navigate.</p>
+
+    <h2>"So What": the whole idea in one tune</h2>
+    <p>The clearest example is still the best one. "So What," the opening track of <em>Kind of Blue</em>, has a structure you can hold in your head instantly:</p>
+    <ul>
+      <li><strong>16 bars</strong> of ${mlink('D', 'dorian')}</li>
+      <li><strong>8 bars</strong> of ${mlink('E', 'dorian', 'Eb Dorian')} (up a half step)</li>
+      <li><strong>8 bars</strong> back in D Dorian</li>
+    </ul>
+    <p>That’s the entire harmonic form — no ii-V-I, no turnaround, no chord-of-the-month. The famous "So What" chord (a stack of fourths, voiced by Bill Evans) isn’t functioning as harmony that resolves anywhere; it’s colouring the mode, not driving toward a cadence. The soloist’s job is to explore D Dorian, not to out-run it.</p>
+
+    <h2>Modal jazz vs bebop: the actual difference</h2>
+    <div class="tablewrap"><table>
+      <tr><th></th><th>Bebop</th><th>Modal jazz</th></tr>
+      <tr><td>Chords</td><td>change every 1–2 beats</td><td>held for 8–32 bars</td></tr>
+      <tr><td>What a soloist tracks</td><td>the changes, in real time</td><td>one mode’s colour, at length</td></tr>
+      <tr><td>Tension comes from</td><td>harmonic motion</td><td>melodic development, rhythm, tone</td></tr>
+      <tr><td>Signature scale move</td><td>outlining each chord’s tones</td><td>${mlink('D', 'dorian')}: aim for the natural 6th and let it breathe</td></tr>
+    </table></div>
+    <p>Neither is harder — they demand different skills. Bebop rewards fast harmonic reflexes; modal jazz rewards patience and a genuinely good ear for a mode’s colour, because there’s nowhere to hide behind chord motion.</p>
+
+    <h2>Why Dorian specifically</h2>
+    <p>Dorian became modal jazz’s house mode for a reason: it’s minor (moody enough to sustain interest) but its natural 6th keeps it from turning heavy the way ${mlink('D', 'aeolian')} would over sixteen unchanging bars. That lift is what lets a mode hold your attention for two minutes without a single chord change to break the monotony. See <a href="/guides/dorian-vs-aeolian/">Dorian vs Aeolian</a> for exactly what that one note is doing.</p>
+
+    <h2>Other modal jazz landmarks</h2>
+    <ul>
+      <li><strong>"Impressions" — John Coltrane.</strong> Practically "So What" 2.0: the same D Dorian / Eb Dorian form, taken to more intense places.</li>
+      <li><strong>"Maiden Voyage" — Herbie Hancock.</strong> A whole album built on suspended, ambiguous chords that refuse to resolve — modal harmony pushed further from any home at all.</li>
+      <li><strong>"A Love Supreme" — John Coltrane.</strong> Modal vocabulary stretched into something closer to a spiritual statement than a set of tunes.</li>
+    </ul>
+
+    <h2>How to practice the modal jazz sound yourself</h2>
+    <p>You don’t need a quartet. You need a drone and patience: hold a root, pick a mode — Dorian is the classic entry point — and resist the urge to "resolve" anywhere for a full two minutes. Let phrases breathe. Come back to the characteristic note instead of running past it. That restraint, more than any scale, is what modal jazz actually sounds like.</p>
+    ${cta('D', 'dorian', 'Practice the "So What" sound: D Dorian over a drone')}
+  `, [dorianVsAeolian, artists]),
+}
+
 // Order here = order on the /guides/ index.
 export const GUIDES: Guide[] = [
   explained,
@@ -426,12 +477,13 @@ export const GUIDES: Guide[] = [
   blues,
   spanish,
   artists,
+  modalJazz,
 ]
 
 // Contextual "go deeper" links for the programmatic mode pages.
 export const GUIDES_FOR_MODE: Record<ModeKey, Guide[]> = {
   ionian: [explained, lydianVsMajor],
-  dorian: [dorianVsAeolian, whichFirst],
+  dorian: [dorianVsAeolian, whichFirst, modalJazz],
   phrygian: [spanish, artists],
   lydian: [lydianVsMajor, artists],
   mixolydian: [blues, artists],
