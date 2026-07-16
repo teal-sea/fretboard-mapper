@@ -12,7 +12,7 @@ import { noteIndex, noteName, formulaString, SCALES } from '../src/utils/musicTh
 import {
   MODES, MODE_COPY, type ModeKey,
   notesOf, pagePath, appLink,
-  head, SITE_HEADER, footer,
+  head, SITE_HEADER, footer, breadcrumbList, articleSchema, faqPageSchema,
 } from './shared'
 
 export interface Guide {
@@ -21,11 +21,20 @@ export interface Guide {
   description: string  // meta description
   h1: string
   blurb: string        // one line for the /guides/ index
+  // Real Q&A pulled verbatim from the visible TL;DR/body — FAQPage schema
+  // must match rendered content, so these are never invented separately.
+  faq: { q: string; a: string }[]
   render: () => string // full HTML document
 }
 
 // ─── Little helpers ──────────────────────────────────────────────────
 const pc = (name: string) => noteIndex(name)
+
+// FAQPage answer text must be plain — strip the inline <strong>/<em>/<a>
+// tags the same sentence uses in the visible TL;DR box.
+function stripHtml(s: string): string {
+  return s.replace(/<[^>]+>/g, '')
+}
 
 // Link to a mode page: mlink('D', 'dorian') → <a href="/modes/d-dorian/">D Dorian</a>
 function mlink(rootName: string, mode: ModeKey, label?: string): string {
@@ -59,10 +68,20 @@ function page(g: Guide, body: string, readNext: Guide[]): string {
       ${readNext.map(n => `<li><a href="/guides/${n.slug}/">${n.h1}</a></li>`).join('\n      ')}
     </ul>`
     : ''
+  const canonicalPath = `/guides/${g.slug}/`
+  const structuredData = [
+    breadcrumbList([
+      { name: 'Modal Runs', path: '/' },
+      { name: 'Guides', path: '/guides/' },
+      { name: g.h1, path: canonicalPath },
+    ]),
+    articleSchema({ headline: g.title, description: g.description, path: canonicalPath, inLanguage: 'en' }),
+    ...(g.faq.length ? [faqPageSchema(g.faq)] : []),
+  ]
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-    ${head({ title: g.title, description: g.description, canonicalPath: `/guides/${g.slug}/` })}
+    ${head({ title: g.title, description: g.description, canonicalPath, jsonLd: structuredData })}
 </head>
 <body>
   ${SITE_HEADER}
@@ -87,6 +106,11 @@ const explained: Guide = {
   description: 'What modes actually are, why the same seven notes sound completely different, the seven modes ranked brightest to darkest, and how to learn them by ear instead of memorising patterns.',
   h1: 'Guitar modes, explained like you’re a guitarist',
   blurb: 'What a mode actually is, why the same notes sound different, and the bright-to-dark ranking.',
+  faq: [
+    { q: 'What is a guitar mode, actually?', a: stripHtml('A mode is the major scale with a different note treated as home. Same seven notes, different centre of gravity. There are seven of them, and you already know two: the major scale is Ionian, and natural minor is Aeolian.') },
+    { q: 'If the notes are the same, why do modes sound different?', a: stripHtml('Because your ear doesn’t hear note names — it hears distances from home. When home is C, the note B sits a major 7th away and aches to resolve upward. When home is D, that same B sits a major 6th away and just sounds warm. Move the home, and every note’s job changes.') },
+    { q: 'How do you actually learn the modes?', a: stripHtml('Not by memorising seven fretboard patterns — patterns tell your fingers where to go, not your ears where home is. Hold a drone on the root, improvise the mode over it, and aim deliberately at the one note that makes that mode itself.') },
+  ],
   render: () => page(explained, `
     <div class="tldr"><p><strong>TL;DR:</strong> a mode is the major scale with a different note treated as home. Same seven notes, different centre of gravity. There are seven of them, and you already know two: the major scale is Ionian, and natural minor is Aeolian.</p></div>
 
@@ -127,6 +151,10 @@ const whichFirst: Guide = {
   description: 'Start with Dorian if you already solo in minor pentatonic; start with Mixolydian if you live on blues and dominant chords. A learning order that follows your ears, with reasons.',
   h1: 'Which mode should you learn first?',
   blurb: 'Dorian for most players, Mixolydian for blues hands — and the order for the rest.',
+  faq: [
+    { q: 'Which guitar mode should you learn first?', a: stripHtml('Learn Dorian first. If your hands already live in the minor pentatonic box, Dorian is one gentle step away and instantly sounds like music. If you’re a blues or classic-rock player who lives on dominant chords, start with Mixolydian instead.') },
+    { q: 'Why is Dorian the best mode to learn first?', a: stripHtml('Your fingers are already there — the A minor pentatonic box lives inside A Dorian. It’s forgiving: over a minor vamp, every Dorian note sounds intentional. And it’s everywhere: Santana vamps, "So What", funk grooves.') },
+  ],
   render: () => page(whichFirst, `
     <div class="tldr"><p><strong>TL;DR:</strong> learn <strong>Dorian</strong> first. If your hands already live in the minor pentatonic box, Dorian is one gentle step away and instantly sounds like music. If you’re a blues or classic-rock player who lives on dominant chords, start with <strong>Mixolydian</strong> instead.</p></div>
 
@@ -165,6 +193,10 @@ const dorianVsAeolian: Guide = {
   description: 'Dorian and Aeolian differ by exactly one note — the 6th. What that note does, where you’ve heard each mode, and a 60-second exercise to hear the difference for yourself.',
   h1: 'Dorian vs Aeolian: one note apart',
   blurb: 'Both minor. One note different. Completely different mood.',
+  faq: [
+    { q: 'What is the difference between Dorian and Aeolian?', a: stripHtml('Both are minor scales, and they differ by exactly one note: the 6th. Dorian’s 6th is major (bright), Aeolian’s is minor (dark). That single note is the difference between "cool" and "sad".') },
+    { q: 'What does the natural 6th do in Dorian?', a: stripHtml('The natural 6th lifts. Play a D minor groove and land on B natural: the music leans forward, like it’s about to smile. That’s the Santana vamp, the "So What" sound, every funk progression that stays on one minor chord without getting sad about it.') },
+  ],
   render: () => page(dorianVsAeolian, `
     <div class="tldr"><p><strong>TL;DR:</strong> both are minor scales, and they differ by exactly one note: the <strong>6th</strong>. Dorian’s 6th is major (bright), Aeolian’s is minor (dark). That single note is the difference between "cool" and "sad".</p></div>
 
@@ -201,6 +233,10 @@ const blues: Guide = {
   description: 'Mixolydian fits major-key blues because every chord is a dominant 7th; Dorian owns minor blues; and the blues scale is the attitude you smear over both. A cheat sheet included.',
   h1: 'What mode is best for blues?',
   blurb: 'Mixolydian for major blues, Dorian for minor blues, and why blues breaks the rules anyway.',
+  faq: [
+    { q: 'What mode is best for blues?', a: stripHtml('For a standard major-key blues, Mixolydian matches the chords. For a minor blues, Dorian is the classic choice. And over both, the minor pentatonic/blues scale remains legal at all times — blues mixes major and minor on purpose.') },
+    { q: 'Why does Mixolydian fit major-key blues chords?', a: stripHtml('A 12-bar blues in A uses A7, D7, and E7 — three dominant 7th chords. A Mixolydian is the major scale with the 7th flattened, which makes it agree with an A7 chord note-for-note.') },
+  ],
   render: () => page(blues, `
     <div class="tldr"><p><strong>TL;DR:</strong> for a standard major-key blues, <strong>Mixolydian</strong> matches the chords. For a minor blues, <strong>Dorian</strong> is the classic choice. And over both, the minor pentatonic/blues scale remains legal at all times — blues mixes major and minor <em>on purpose</em>.</p></div>
 
@@ -235,6 +271,10 @@ const artists: Guide = {
   description: 'Santana’s Dorian, Satriani’s Lydian, the Grateful Dead’s Mixolydian, metal’s Phrygian — who uses which mode, which song to hear it in, and what to steal from each.',
   h1: 'What modes do famous guitarists actually use?',
   blurb: 'Santana = Dorian, Satriani = Lydian, the Dead = Mixolydian, metal = Phrygian. With receipts.',
+  faq: [
+    { q: 'What modes do famous guitarists use?', a: stripHtml('Most players you’d recognise built a career on one or two modal colours. Santana is Dorian. Satriani’s ballads are Lydian. The Grateful Dead jam in Mixolydian. Metal’s darkness is mostly Phrygian and Aeolian. Nobody lives in Locrian — that’s the joke and the lesson.') },
+    { q: 'What mode does Santana play in?', a: stripHtml('Carlos Santana built a career on Dorian — "Oye Como Va" is an Am–D7 vamp that never leaves it. He isn’t running scales; he’s singing through the Dorian 6th and letting the band hold the floor.') },
+  ],
   render: () => page(artists, `
     <div class="tldr"><p><strong>TL;DR:</strong> most players you’d recognise built a career on one or two modal colours. Santana is Dorian. Satriani’s ballads are Lydian. The Grateful Dead jam in Mixolydian. Metal’s darkness is mostly Phrygian and Aeolian. Nobody lives in Locrian — that’s the joke and the lesson.</p></div>
 
@@ -268,6 +308,10 @@ const spanish: Guide = {
   description: 'The flamenco sound is the Phrygian mode: a flat 2nd one fret above home, the Andalusian cadence, and the Phrygian dominant variant with its raised 3rd. Explained on guitar, in E.',
   h1: 'Why does Spanish music sound Spanish?',
   blurb: 'One note, one fret above home: the Phrygian flat 2nd, and the cadence built on it.',
+  faq: [
+    { q: 'Why does Spanish music sound Spanish?', a: 'One note does it — the flat 2nd, a semitone above the root. That’s the Phrygian mode, and on a guitar in E it’s literally the open low string against the first fret. Spain lives one fret above home.' },
+    { q: 'What is the Andalusian cadence?', a: 'The classic Spanish progression walks downhill: Am – G – F – E. It stops not on Am, but on E — the F chord one fret above keeps falling onto it, over and over. That downward pull is the flat 2nd acting as harmony instead of melody.' },
+  ],
   render: () => page(spanish, `
     <div class="tldr"><p><strong>TL;DR:</strong> one note does it — the <strong>flat 2nd</strong>, a semitone above the root. That’s the ${mlink('E', 'phrygian', 'Phrygian')} mode, and on a guitar in E it’s literally the open low string against the first fret. Spain lives one fret above home.</p></div>
 
@@ -294,6 +338,10 @@ const lydianVsMajor: Guide = {
   description: 'Lydian is the major scale with the 4th raised a semitone. Why that removes the scale’s gravity, where the floating film-score sound comes from, and a 60-second exercise to hear it.',
   h1: 'Lydian vs Major: one sharp note apart',
   blurb: 'Raise the 4th a semitone and major stops resolving and starts floating.',
+  faq: [
+    { q: 'What is the difference between Lydian and the major scale?', a: 'Lydian is the major scale with one alteration — the 4th raised a semitone. Major sounds resolved and grounded; Lydian sounds weightless. One note removes the scale’s gravity.' },
+    { q: 'Why does the sharp 4th make Lydian sound floating?', a: 'In a major scale, the 4th sits a semitone above the 3rd and wants to fall onto it — it’s the "avoid note" over major chords. Raise it, and the pull vanishes: the sharp 4th sits a comfortable whole step from the notes on either side, so the whole scale stops leaning.' },
+  ],
   render: () => page(lydianVsMajor, `
     <div class="tldr"><p><strong>TL;DR:</strong> Lydian is the major scale with one alteration — the <strong>4th raised a semitone</strong>. Major sounds resolved and grounded; Lydian sounds weightless. One note removes the scale’s gravity.</p></div>
 
@@ -324,6 +372,10 @@ const hearing: Guide = {
   description: 'Why learning seven patterns fails, the drone method step by step, and the one characteristic note to aim for in each mode — the ear-first way to make modes stick.',
   h1: 'How to actually hear the modes',
   blurb: 'The drone method, step by step — and the one note to aim for in each mode.',
+  faq: [
+    { q: 'How do you actually hear the modes on guitar?', a: 'Hold a drone on the root, improvise the mode over it, and deliberately land on that mode’s characteristic note. Your ear learns the colour in minutes because it finally has something to measure against. Patterns alone can’t teach this — they tell your fingers where to go, not your ears where home is.' },
+    { q: 'Why does memorizing mode patterns fail to teach the sound?', a: 'The patterns all contain the same notes as the parent major scale, so without something asserting a home note underneath, everything collapses back into it. A mode isn’t a pattern — it’s a relationship between notes and a home. No home, no mode.' },
+  ],
   render: () => page(hearing, `
     <div class="tldr"><p><strong>TL;DR:</strong> hold a drone on the root, improvise the mode over it, and deliberately land on that mode’s <em>characteristic note</em>. Your ear learns the colour in minutes because it finally has something to measure against. Patterns alone can’t teach this — they tell your fingers where to go, not your ears where home is.</p></div>
 

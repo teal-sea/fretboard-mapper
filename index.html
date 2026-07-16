@@ -37,6 +37,29 @@
     <meta name="twitter:description" content="Hold a drone in any key, improvise, and it hears you through your mic — answering on the neck." />
     <meta name="twitter:image" content="https://modalruns.com/og.jpg" />
 
+    <!-- Structured data: tells search/AI crawlers what this IS before any JS
+         runs. Kept in sync by hand — this is the one page the build script
+         doesn't generate. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Modal Runs",
+        "url": "https://modalruns.com/",
+        "description": "Hold a drone in any key, improvise over it, and Modal Runs hears you through your mic — lighting up what you played and telling you when you land the note it asked for. Learn the guitar modes by ear instead of memorising them.",
+        "applicationCategory": "MusicApplication",
+        "operatingSystem": "Any (runs in a web browser)",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "browserRequirements": "Requires JavaScript and microphone access",
+        "featureList": [
+          "Drone playback in any key and mode",
+          "Real-time pitch detection through the microphone",
+          "Interactive fretboard mapping for scales, chords, and diatonic harmony",
+          "Guided practice for all seven modes of the major scale"
+        ]
+      }
+    </script>
+
     <!-- Vercel Web Analytics. Plain script instead of @vercel/analytics so the
          zero-runtime-dependency rule holds; 404s harmlessly in local dev. -->
     <script>
