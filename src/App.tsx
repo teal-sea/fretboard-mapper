@@ -511,33 +511,6 @@ export default function App() {
   const simpleRoot = state.viewMode === 'scales'
     ? (state.selectedScaleRoot || state.keyRoot)
     : (state.selectedChordRoot || state.keyRoot)
-  const handleSimpleRootChange = (root: string) => {
-    if (state.advancedMode) {
-      // Advanced: note pills select diatonic chord or mode for this root
-      const degIdx = degreeHeaders.findIndex(dh => dh.note === root)
-      if (state.viewMode === 'chords') {
-        const dc = degIdx >= 0 ? primaryChords[degIdx] : null
-        up({
-          selectedChordRoot: root,
-          selectedChordKey: dc?.chordKey || (MINOR_QUALITIES.has(state.keyQuality) ? 'minor' : 'major'),
-        })
-      } else {
-        // Scale view: show the diatonic mode for this degree
-        const modeKey = degIdx >= 0 ? getDiatonicScaleKey(degIdx, state.keyQuality) : state.keyQuality
-        up({
-          selectedScaleRoot: root,
-          selectedScaleKey: modeKey,
-        })
-      }
-    } else {
-      // Simple: note pills change root + key together
-      if (state.viewMode === 'scales') {
-        up({ selectedScaleRoot: root, keyRoot: root })
-      } else {
-        up({ selectedChordRoot: root, keyRoot: root })
-      }
-    }
-  }
 
   // Ambient glow hue
   const rootHue = ROOT_HUES[simpleRoot] ?? 210
@@ -594,11 +567,6 @@ export default function App() {
   }
   const handlePlayChord = (dc: DiatonicChord) => {
     playChordPad(chordToMidi(noteIndex(dc.root), dc.chordDef.intervals), state.padLatched)
-  }
-  const handleLatchToggle = () => {
-    const newLatched = !state.padLatched
-    up({ padLatched: newLatched })
-    if (!newLatched) stopChordPad()
   }
 
   // ─── Progression stepper ───

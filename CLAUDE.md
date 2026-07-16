@@ -30,7 +30,7 @@ Live: https://fretboard-mapper-zeta.vercel.app · Repo: `teal-sea/fretboard-mapp
 ```bash
 npm run dev        # Vite dev server → http://localhost:5173
 npm run build      # tsc -b && vite build  (this is also the typecheck)
-npm test           # vitest run  (67 tests, mostly the theory engine)
+npm test           # vitest run  (350+ tests — check the current count, it moves)
 npm run preview    # preview a production build
 ```
 
@@ -38,20 +38,38 @@ Always run `npm run build` (typecheck) and `npm test` before pushing.
 
 ## File map
 
+Last verified accurate against `find src -name '*.ts*'` — this has drifted
+badly before (an entire pull's worth of new files went undocumented for a
+while). If you notice it's stale again, fix it, don't just work around it.
+
 ```
 src/
   main.tsx                  # React entry
   App.tsx                   # ALL app state + UI orchestration (see docs/03-state.md)
   types/music.ts            # AppState + domain types
   components/
-    Fretboard.tsx           # the neck renderer
-    KeyMapView.tsx          # (see docs/06-components.md)
+    Fretboard.tsx           # the neck renderer (docs/06-components.md)
+    FlowCanvas.tsx          # Flow's ambient particle layer (docs/06-components.md)
+    KeyMapView.tsx          # ⚠️ dead code, not mounted anywhere (docs/06-components.md)
   utils/
     musicTheory.ts          # deterministic theory engine (docs/04-music-theory.md)
-    musicTheory.test.ts     # 67 tests — the safety net for theory
-    audioEngine.ts          # Web Audio: pad, metronome, drone (docs/05-audio-engine.md)
-    defaultColors.ts        # interval → color map
+    theory.ts               # "why it works" insight text (scale/chord → prose)
+    audioEngine.ts          # Web Audio: pad, drone, arp, metronome (docs/05-audio-engine.md)
+    micInput.ts             # mic capture + ambient calibration
+    pitchDetect.ts          # pure DSP pitch detection (McLeod/NSDF), no Web Audio
+    arpeggios.ts            # sweep/tapping technique-pattern generators
+    concepts.ts             # Learn-mode concept catalog + owned-sounds tracking
+    modes.ts / walk.ts / runner.ts / flowEngine.ts   # Flow/Learn session engines
+    progress.ts / favorites.ts / streak.ts           # separately-persisted progress (not AppState)
+    persist.ts               # AppState -> localStorage (the only place that touches it)
+    urlState.ts               # shareable-URL <-> AppState sync
+    noteNames.ts               # note-name display (letters vs solfège, per language)
+    i18n.ts / i18nContent.ts   # ES/FR/IT/PT translation lookup + string tables
+    defaultColors.ts           # interval -> color map
+    webmcp.ts                  # origin-trial WebMCP tool registration (no-op most browsers)
   styles/index.css          # all styling (CSS variables + theme classes)
+scripts/                    # SSG build step: /modes/, /guides/, /chords/ pages,
+                             # llms.txt, sitemap — runs as part of `npm run build`
 ```
 
 ## The golden rules (don't fight these)
