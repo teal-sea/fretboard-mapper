@@ -1391,7 +1391,7 @@ export default function App() {
              <Fretboard /> never can. Same board/tuning/colors the visitor
              is already looking at, just framed like a monitor. ─── */}
       {desktopNudgeOpen && (
-        <div className="intro-veil in-stage desktop-nudge-veil">
+        <div className="intro-veil desktop-nudge-veil">
           <div className="desktop-nudge-card">
             <button className="desktop-nudge-close" onClick={dismissDesktopNudge} aria-label={T('Continue on mobile')} title={T('Continue on mobile')}>
               &#10005;
@@ -1402,25 +1402,7 @@ export default function App() {
               <p className="desktop-nudge-sub">
                 {T('The whole neck, every mode, side by side — a bigger screen shows a lot more of it at once. Totally playable here too.')}
               </p>
-              <div className="desktop-nudge-frame">
-                <div className="desktop-nudge-bezel"><span /><span /><span /></div>
-                <div className="desktop-nudge-preview">
-                  <Fretboard
-                    board={board}
-                    displayMode={displayMode}
-                    inlayStyle={state.inlayStyle}
-                    intervalColors={state.intervalColors}
-                    highlightRoot={state.highlightRoot}
-                    showLeftHanded={state.showLeftHanded}
-                    posRange={null}
-                    numFrets={Math.min(state.numFrets, 8)}
-                    fretRange={null}
-                    tuningLabels={tuning.labels.map(dn)}
-                    noteMap={noteMap}
-                    guitarModel={state.guitarModel}
-                  />
-                </div>
-              </div>
+              <img className="desktop-nudge-frame" src="/desktop-nudge-art.png" alt="Modal Runs open on a desktop monitor" />
               <button className="desktop-nudge-dismiss" onClick={dismissDesktopNudge}>{T('Continue on mobile')}</button>
             </div>
           </div>
