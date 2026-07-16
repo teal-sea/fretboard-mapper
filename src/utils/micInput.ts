@@ -62,7 +62,7 @@ export function recalibrateMic(): void {
   }, 60)
 }
 
-export async function startMic(): Promise<boolean> {
+export async function startMic(echoCancellation: boolean = true): Promise<boolean> {
   if (stream) return true
   lastError = null
 
@@ -72,7 +72,7 @@ export async function startMic(): Promise<boolean> {
   }
 
   try {
-    // echoCancellation ON, on purpose, unlike noiseSuppression/autoGainControl
+    // echoCancellation ON by default, unlike noiseSuppression/autoGainControl
     // below. This app plays audio (drone/pad/arp) out the same speakers the
     // mic is listening through, so the mic hears its own backing track —
     // gating on level alone can't tell "loud backing bleed" from "loud
@@ -81,9 +81,18 @@ export async function startMic(): Promise<boolean> {
     // which is exactly this. noiseSuppression/autoGainControl stay off —
     // those reshape level/dynamics in ways that fight pitch detection with
     // no equivalent upside here.
+    //
+    // BUT: that's only correct for the laptop-speaker-to-laptop-mic loop
+    // it's designed for. Route a real mic through an external interface
+    // (an amp mic'd separately from the playback device, no acoustic
+    // feedback path to cancel) and the browser's AEC adaptive filter has
+    // nothing legitimate to converge on — it still tries, against a clean
+    // musical signal, and the classic symptom is a note registering for an
+    // instant and then getting suppressed as the filter "learns" it away.
+    // Toggleable in Settings for exactly that setup.
     stream = await navigator.mediaDevices.getUserMedia({
       audio: {
-        echoCancellation: true,
+        echoCancellation,
         noiseSuppression: false,
         autoGainControl: false,
       },

@@ -28,7 +28,7 @@ import { displayNote } from '../src/utils/noteNames'
 import {
   ORIGIN, MAJOR, MODES, type ModeKey, MODE_COPY, ENHARMONIC,
   parentPc, usesFlats, rootNameFor, pageSlug, pagePath, appLink,
-  head, SITE_HEADER, footer,
+  head, SITE_HEADER, footer, breadcrumbList, articleSchema, faqPageSchema,
 } from './shared'
 import { GUIDES, GUIDES_FOR_MODE, guidesIndexPage } from './guides'
 import { LOCALES, type Locale } from './locales'
@@ -191,10 +191,24 @@ function modePage(rootPc: number, mode: ModeKey): string {
     .map(g => `<li><a href="/guides/${g.slug}/">${g.h1}</a></li>`)
     .join('\n      ')
 
+  const canonicalPath = pagePath(rootPc, mode)
+  const structuredData = [
+    breadcrumbList([
+      { name: 'Modal Runs', path: '/' },
+      { name: 'Modes', path: '/modes/' },
+      { name: displayName, path: canonicalPath },
+    ]),
+    articleSchema({ headline: title, description, path: canonicalPath, inLanguage: 'en' }),
+    // The trending query is literally "what is dorian mode" — this answers
+    // it with the exact sentence already opening the lead paragraph below,
+    // so the markup never diverges from what's rendered.
+    faqPageSchema([{ q: `What is ${displayName}?`, a: copy.hook }]),
+  ]
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-    ${head({ title, description, canonicalPath: pagePath(rootPc, mode), alternates: alternatesFor(rootPc, mode) })}
+    ${head({ title, description, canonicalPath, alternates: alternatesFor(rootPc, mode), jsonLd: structuredData })}
 </head>
 <body>
   ${SITE_HEADER}
@@ -279,18 +293,30 @@ function localizedModePage(rootPc: number, mode: ModeKey, locale: Locale): strin
   }
 
   const title = fmt(t.title, { ...vars, name: `${displayName}${alt ? ` (${dispAlt})` : ''}` })
+  const description = fmt(t.metaDesc, vars)
+  const canonicalPath = pagePathL(rootPc, mode, locale)
   const relativeLine = mode === 'ionian' ? fmt(t.relativeIonian, vars) : fmt(t.relative, vars)
   const link = (s: { pc: number; mode: ModeKey }) =>
     `<li><a href="${pagePathL(s.pc, s.mode, locale)}">${disp(rootNameFor(s.pc, s.mode))} ${locale.modeNames[s.mode]}</a></li>`
+  const structuredData = [
+    breadcrumbList([
+      { name: 'Modal Runs', path: '/' },
+      { name: t.indexH1, path: `/${locale.code}/${locale.modesSegment}/` },
+      { name: displayName, path: canonicalPath },
+    ]),
+    articleSchema({ headline: title, description, path: canonicalPath, inLanguage: locale.code }),
+    faqPageSchema([{ q: fmt(t.faqQ, vars), a: copy.hook }]),
+  ]
 
   return `<!DOCTYPE html>
 <html lang="${locale.htmlLang}">
 <head>
     ${head({
       title,
-      description: fmt(t.metaDesc, vars),
-      canonicalPath: pagePathL(rootPc, mode, locale),
+      description,
+      canonicalPath,
       alternates: alternatesFor(rootPc, mode),
+      jsonLd: structuredData,
     })}
 </head>
 <body>
@@ -364,10 +390,15 @@ function indexPage(): string {
     .map(l => `<a href="/${l.code}/${l.modesSegment}/" hreflang="${l.code}">${l.t.indexH1}</a>`)
     .join(' · ')
 
+  const structuredData = [
+    breadcrumbList([{ name: 'Modal Runs', path: '/' }, { name: 'Modes', path: '/modes/' }]),
+    articleSchema({ headline: title, description, path: '/modes/', inLanguage: 'en' }),
+  ]
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-    ${head({ title, description, canonicalPath: '/modes/', alternates: indexAlternates() })}
+    ${head({ title, description, canonicalPath: '/modes/', alternates: indexAlternates(), jsonLd: structuredData })}
 </head>
 <body>
   ${SITE_HEADER}
@@ -398,14 +429,21 @@ function localizedIndexPage(locale: Locale): string {
     </div>`
   }).join('\n\n    ')
 
+  const canonicalPath = `/${locale.code}/${locale.modesSegment}/`
+  const structuredData = [
+    breadcrumbList([{ name: 'Modal Runs', path: '/' }, { name: t.indexH1, path: canonicalPath }]),
+    articleSchema({ headline: t.indexTitle, description: t.indexDesc, path: canonicalPath, inLanguage: locale.code }),
+  ]
+
   return `<!DOCTYPE html>
 <html lang="${locale.htmlLang}">
 <head>
     ${head({
       title: t.indexTitle,
       description: t.indexDesc,
-      canonicalPath: `/${locale.code}/${locale.modesSegment}/`,
+      canonicalPath,
       alternates: indexAlternates(),
+      jsonLd: structuredData,
     })}
 </head>
 <body>

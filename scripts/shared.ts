@@ -181,21 +181,81 @@ export const CSS = `
   footer a { margin-right: 18px }
 `
 
+// JSON-LD is data the crawler reads, not markup the visitor sees — this is
+// the layer both Google's rich-result parser and AI extraction pipelines
+// prefer over scraping prose. Every object here must describe something
+// actually visible on the page (Google penalises structured data that
+// doesn't match rendered content), so callers build these from the same
+// facts/copy the page body already uses, never invented text.
+export function jsonLd(objects: object[]): string {
+  // Escaping "</" prevents any string value from prematurely closing the
+  // script tag — defense in depth even though every value here is authored.
+  return objects
+    .map(o => `<script type="application/ld+json">${JSON.stringify(o).replace(/<\//g, '<\\/')}</script>`)
+    .join('\n    ')
+}
+
+export function breadcrumbList(items: { name: string; path: string }[]): object {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((it, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: it.name,
+      item: `${ORIGIN}${it.path}`,
+    })),
+  }
+}
+
+export function articleSchema(opts: {
+  headline: string
+  description: string
+  path: string
+  inLanguage: string
+}): object {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: opts.headline,
+    description: opts.description,
+    url: `${ORIGIN}${opts.path}`,
+    inLanguage: opts.inLanguage,
+    isPartOf: { '@type': 'WebSite', name: 'Modal Runs', url: ORIGIN },
+    publisher: { '@type': 'Organization', name: 'Modal Runs', url: ORIGIN },
+  }
+}
+
+export function faqPageSchema(qa: { q: string; a: string }[]): object {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: qa.map(({ q, a }) => ({
+      '@type': 'Question',
+      name: q,
+      acceptedAnswer: { '@type': 'Answer', text: a },
+    })),
+  }
+}
+
 export function head(opts: {
   title: string
   description: string
   canonicalPath: string
   alternates?: { hreflang: string; href: string }[]
+  jsonLd?: object[]
 }): string {
   const alternates = (opts.alternates ?? [])
     .map(a => `<link rel="alternate" hreflang="${a.hreflang}" href="${a.href}" />`)
     .join('\n    ')
+  const structuredData = opts.jsonLd?.length ? jsonLd(opts.jsonLd) : ''
   return `<meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${opts.title}</title>
     <meta name="description" content="${opts.description}" />
     <link rel="canonical" href="${ORIGIN}${opts.canonicalPath}" />
     ${alternates}
+    ${structuredData}
     <meta name="theme-color" content="#050507" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />

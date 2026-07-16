@@ -124,6 +124,7 @@ const initialState: AppState = {
   showIntervals: true,
   highlightRoot: true,
   showLeftHanded: false,
+  micEchoCancellation: true,
   scalePosition: null,
   chordPosition: null,
   numFrets: 15,
@@ -832,11 +833,11 @@ export default function App() {
         if (state.backingMode === 'arp') { startMetronome(state.progressionBpm); setMetronomeOn(true) }
       }
       setMicError(null)
-      const ok = await startMic()
+      const ok = await startMic(state.micEchoCancellation)
       setListening(ok)
       if (!ok) setMicError(getMicError())
     }
-  }, [isPlaying, droneOn, listening, state.backingMode, state.progressionBpm, metronomeOn, flowChanges, state.flowChords, state.progressionPlaying, stopProgression, startProgression, up])
+  }, [isPlaying, droneOn, listening, state.backingMode, state.progressionBpm, metronomeOn, flowChanges, state.flowChords, state.progressionPlaying, state.micEchoCancellation, stopProgression, startProgression, up])
 
   const backingNoun = state.backingMode === 'chord' ? 'the chord' : state.backingMode === 'arp' ? 'the arpeggiator' : 'the drone'
 
@@ -854,11 +855,11 @@ export default function App() {
     setTunerOpen(true)
     if (!isMicRunning()) {
       setMicError(null)
-      const ok = await startMic()
+      const ok = await startMic(state.micEchoCancellation)
       tunerOwnsMic.current = ok
       if (!ok) setMicError(getMicError())
     }
-  }, [])
+  }, [state.micEchoCancellation])
 
   const closeTuner = useCallback(() => {
     setTunerOpen(false)
@@ -2801,6 +2802,14 @@ export default function App() {
             <ToggleSwitch label="Intervals" on={state.showIntervals} toggle={() => up({ showIntervals: !state.showIntervals })} />
             <ToggleSwitch label="Highlight Root" on={state.highlightRoot} toggle={() => up({ highlightRoot: !state.highlightRoot })} />
             <ToggleSwitch label="Left-Handed" on={state.showLeftHanded} toggle={() => up({ showLeftHanded: !state.showLeftHanded })} />
+          </div>
+
+          <div className="drawer-section">
+            <span className="drawer-label">{T('MICROPHONE')}</span>
+            <ToggleSwitch label={T('Echo Cancellation')} on={state.micEchoCancellation} toggle={() => up({ micEchoCancellation: !state.micEchoCancellation })} />
+            <p className="drawer-hint">
+              {T('On by default for laptop mic + laptop speakers, to cancel the backing sound bleeding back in. Turn this OFF if you’re on an audio interface or a mic’d amp — echo cancellation has nothing real to cancel there and can make notes cut in and out. Stop and restart Listen/Play after changing this.')}
+            </p>
           </div>
 
           <div className="drawer-section">

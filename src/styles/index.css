@@ -1291,6 +1291,12 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   letter-spacing: 0.1em;
   color: var(--text-3);
 }
+.drawer-hint {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-3);
+  margin-top: 2px;
+}
 .drawer-row { display: flex; gap: 10px; }
 .drawer-half { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .drawer-half .type-select { min-width: 0; width: 100%; }
@@ -2026,7 +2032,13 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   min-height: 0;
   overflow: hidden;
 }
-.jam-neck .fretboard-container { width: 100%; }
+/* .fretboard-container's default background (var(--bg-surface)) is solid —
+   correct in Explore/Modes, but here it sits directly over FlowCanvas
+   (the ambient particle "dopamine layer") and the neck fills most of the
+   stage, so almost none of that layer was ever actually visible. Drop the
+   opaque fill just in Flow so the particles drift through the neck itself,
+   not just the margins around it. */
+.jam-neck .fretboard-container { width: 100%; background: transparent; border-color: transparent; box-shadow: none; }
 .jam-summary {
   text-align: center;
   font-family: var(--font-mono);
