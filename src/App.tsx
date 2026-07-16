@@ -1421,6 +1421,7 @@ export default function App() {
                   />
                 </div>
               </div>
+              <button className="desktop-nudge-dismiss" onClick={dismissDesktopNudge}>{T('Continue on mobile')}</button>
             </div>
           </div>
         </div>
