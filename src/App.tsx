@@ -31,6 +31,7 @@ import { t as translate, tf } from './utils/i18n'
 import { nextFlowHome, describeFlowShift, describeFlowSession } from './utils/flowEngine'
 import { recordPractice } from './utils/streak'
 import { favoriteId, isFavorited, toggleFavorite, type FavoriteItem } from './utils/favorites'
+import { registerWebMcpTools } from './utils/webmcp'
 import FlowCanvas, { type FlowPulse } from './components/FlowCanvas'
 import { familyId, getClaims, claimMode, markCompleted, totalClaimed } from './utils/progress'
 import { getSweepShape, getArpeggioShapes, buildRun } from './utils/arpeggios'
@@ -871,6 +872,20 @@ export default function App() {
       if (!ok) setMicError(getMicError())
     }
   }, [isPlaying, droneOn, listening, state.backingMode, state.progressionBpm, metronomeOn, flowChanges, state.flowChords, state.progressionPlaying, state.practiceStreak, state.lastPracticeDate, state.micEchoCancellation, stopProgression, startProgression, up])
+
+  // ─── WebMCP: let an AI agent play too ───
+  // Registers once; tool handlers read fresh state through a ref (state
+  // itself changes every render, so closing over it directly would freeze
+  // the tools' view of the app at registration time). Experimental and
+  // origin-trial-gated — see utils/webmcp.ts — so this is a no-op on
+  // every browser that doesn't support it, which today is nearly all of them.
+  const stateRef = useRef(state)
+  useEffect(() => { stateRef.current = state }, [state])
+  useEffect(() => {
+    const controller = new AbortController()
+    registerWebMcpTools({ getState: () => stateRef.current, up, togglePlay, signal: controller.signal })
+    return () => controller.abort()
+  }, [up, togglePlay])
 
   const backingNoun = state.backingMode === 'chord' ? 'the chord' : state.backingMode === 'arp' ? 'the arpeggiator' : 'the drone'
 
