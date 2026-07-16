@@ -11,7 +11,14 @@ export function getCtx(): AudioContext {
   if (!ctx) {
     ctx = new AudioContext()
     masterGain = ctx.createGain()
-    masterGain.gain.value = 1.0
+    // The metronome connects straight to destination, bypassing this whole
+    // chain — everything routed through masterGain (drone/pad/arp) instead
+    // hits a dry path cut to 0.4x, then a limiter downstream with no makeup
+    // gain after it. At masterGain=1.0 that's a real, structural volume gap
+    // against the metronome, not just a mix-balance preference. This makeup
+    // gain compensates for the dry/wet split; the limiter below still catches
+    // anything that clips when it's pushed further with the Volume controls.
+    masterGain.gain.value = 2.2
 
     // Dry path
     const dryGain = ctx.createGain()
