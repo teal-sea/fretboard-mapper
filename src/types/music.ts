@@ -69,6 +69,7 @@ export interface AppState {
   showIntervals: boolean
   highlightRoot: boolean
   showLeftHanded: boolean
+  micEchoCancellation: boolean // off if you're on an external interface, not laptop mic+speakers
   scalePosition: number | null
   chordPosition: number | null // which chord-tone-anchored shape window is showing
   numFrets: number

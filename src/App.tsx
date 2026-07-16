@@ -126,6 +126,7 @@ const initialState: AppState = {
   showIntervals: true,
   highlightRoot: true,
   showLeftHanded: false,
+  micEchoCancellation: true,
   scalePosition: null,
   chordPosition: null,
   numFrets: 15,
@@ -865,11 +866,11 @@ export default function App() {
         if (state.backingMode === 'arp') { startMetronome(state.progressionBpm); setMetronomeOn(true) }
       }
       setMicError(null)
-      const ok = await startMic()
+      const ok = await startMic(state.micEchoCancellation)
       setListening(ok)
       if (!ok) setMicError(getMicError())
     }
-  }, [isPlaying, droneOn, listening, state.backingMode, state.progressionBpm, metronomeOn, flowChanges, state.flowChords, state.progressionPlaying, state.practiceStreak, state.lastPracticeDate, stopProgression, startProgression, up])
+  }, [isPlaying, droneOn, listening, state.backingMode, state.progressionBpm, metronomeOn, flowChanges, state.flowChords, state.progressionPlaying, state.practiceStreak, state.lastPracticeDate, state.micEchoCancellation, stopProgression, startProgression, up])
 
   const backingNoun = state.backingMode === 'chord' ? 'the chord' : state.backingMode === 'arp' ? 'the arpeggiator' : 'the drone'
 
@@ -887,11 +888,11 @@ export default function App() {
     setTunerOpen(true)
     if (!isMicRunning()) {
       setMicError(null)
-      const ok = await startMic()
+      const ok = await startMic(state.micEchoCancellation)
       tunerOwnsMic.current = ok
       if (!ok) setMicError(getMicError())
     }
-  }, [])
+  }, [state.micEchoCancellation])
 
   const closeTuner = useCallback(() => {
     setTunerOpen(false)
@@ -1173,9 +1174,19 @@ export default function App() {
     setFindItStreak(s => s + 1)
     setFindItLastMs(elapsed)
     setFindItRevealed(true)
+  }, [heardMidi, findItOn, findItTarget, findItRevealed])
+
+  // Advancing after a hit is its OWN effect, deliberately not folded into
+  // the detection effect above: that one lists findItRevealed as a dep (it
+  // needs to stop reacting once revealed), so setting findItRevealed(true)
+  // inside it would re-run it immediately — whose cleanup would cancel this
+  // same setTimeout before it ever fires, freezing the game on the first
+  // hit forever. This effect's only trigger is findItRevealed itself.
+  useEffect(() => {
+    if (!findItRevealed) return
     const t = setTimeout(() => setFindItTarget(null), 900)
     return () => clearTimeout(t)
-  }, [heardMidi, findItOn, findItTarget, findItRevealed])
+  }, [findItRevealed])
 
   // A dedicated board for the game: blank while hunting, lights up the
   // target's pitch class (every fret it appears at) once confirmed.
@@ -1183,6 +1194,101 @@ export default function App() {
     if (!findItOn) return board
     return computeFretboard(tuning, fretboardRoot, findItRevealed && findItTarget ? new Set([findItTarget.midi % 12]) : new Set(), state.numFrets)
   }, [findItOn, findItRevealed, findItTarget, tuning, fretboardRoot, state.numFrets, board])
+
+  // ─── Echo: call and response ───
+  // App plays a short phrase over the backing, you play it back by ear.
+  // Miss the phrase and it repeats exactly — no partial credit, no new
+  // notes to confuse what you're re-attempting. Land it and the phrase
+  // grows by one note (capped) for the next round. The neck stays dark
+  // the whole time; this is ear-only, unlike Find It's name-then-locate.
+  const ECHO_MAX_LEN = 8
+  const ECHO_NOTE_MS = 550
+  const [echoOn, setEchoOn] = useState(false)
+  const [echoPhrase, setEchoPhrase] = useState<number[]>([])
+  const [echoPlayedIdx, setEchoPlayedIdx] = useState(0)
+  const [echoStatus, setEchoStatus] = useState<'playing' | 'listening' | 'success' | 'miss'>('playing')
+  const [echoScore, setEchoScore] = useState(0)
+  const [echoStreak, setEchoStreak] = useState(0)
+  const [echoLength, setEchoLength] = useState(3)
+
+  const playEchoPhrase = useCallback((phrase: number[]) => {
+    phrase.forEach((midi, i) => setTimeout(() => playChordPad([midi], false), i * ECHO_NOTE_MS))
+  }, [])
+
+  // Starts (or restarts) a round: reset progress, play the phrase, then
+  // switch to listening once it's done playing. Shared by "a fresh phrase
+  // is needed" and "the same phrase repeats after a miss".
+  const playPhraseAndListen = useCallback((phrase: number[]) => {
+    setEchoPlayedIdx(0)
+    setEchoStatus('playing')
+    playEchoPhrase(phrase)
+    setTimeout(() => setEchoStatus('listening'), phrase.length * ECHO_NOTE_MS + 300)
+  }, [playEchoPhrase])
+
+  const startNewEchoPhrase = useCallback(() => {
+    const pool = board.flat().filter(fn => fn.isInScale)
+    if (!pool.length) { setEchoPhrase([]); return }
+    const phrase: number[] = []
+    for (let i = 0; i < echoLength; i++) {
+      let pick: number
+      do { pick = pool[Math.floor(Math.random() * pool.length)].midi } while (phrase.length > 0 && pick === phrase[phrase.length - 1])
+      phrase.push(pick)
+    }
+    setEchoPhrase(phrase)
+    playPhraseAndListen(phrase)
+  }, [board, echoLength, playPhraseAndListen])
+
+  useEffect(() => {
+    const shouldRun = state.flowJam === 'echo' && isPlaying
+    if (shouldRun && !echoOn) {
+      setEchoOn(true); setEchoScore(0); setEchoStreak(0); setEchoLength(3)
+    } else if (!shouldRun && echoOn) {
+      setEchoOn(false); setEchoPhrase([]); setEchoPlayedIdx(0)
+    }
+  }, [state.flowJam, isPlaying, echoOn])
+
+  useEffect(() => {
+    if (echoOn && echoPhrase.length === 0) startNewEchoPhrase()
+  }, [echoOn, echoPhrase, startNewEchoPhrase])
+
+  // Detection: only reacts while actively listening, and only to the note
+  // at the current position in the phrase — heardMidi holding steady on a
+  // sustained note doesn't re-fire (it only changes on an actual new note),
+  // so this naturally waits for the NEXT distinct note before checking it.
+  useEffect(() => {
+    if (!echoOn || echoStatus !== 'listening' || echoPhrase.length === 0 || heardMidi === null) return
+    const expected = echoPhrase[echoPlayedIdx]
+    if (heardMidi === expected) {
+      const nextIdx = echoPlayedIdx + 1
+      if (nextIdx >= echoPhrase.length) {
+        setEchoScore(s => s + 20 * echoPhrase.length)
+        setEchoStreak(s => s + 1)
+        setEchoLength(l => Math.min(ECHO_MAX_LEN, l + 1))
+        setEchoStatus('success')
+      } else {
+        setEchoPlayedIdx(nextIdx)
+      }
+    } else {
+      setEchoStreak(0)
+      setEchoStatus('miss')
+    }
+  }, [heardMidi, echoOn, echoStatus, echoPhrase, echoPlayedIdx])
+
+  // Advancing after success/miss is its own effect, same reason as Find
+  // It's: the detection effect above lists echoStatus as a dep, so setting
+  // it inside that effect would re-trigger it immediately and any timer
+  // scheduled there would get cancelled by its own cleanup before firing.
+  // This effect's timeout callback moves echoStatus to 'playing', which
+  // DOES re-run this effect — but the guard below excludes 'playing', so
+  // that re-entry just no-ops instead of scheduling a second timer.
+  useEffect(() => {
+    if (echoStatus !== 'success' && echoStatus !== 'miss') return
+    const t = setTimeout(() => {
+      if (echoStatus === 'miss') playPhraseAndListen(echoPhrase)
+      else setEchoPhrase([]) // triggers the "generate a new phrase" effect above
+    }, 900)
+    return () => clearTimeout(t)
+  }, [echoStatus, echoPhrase, playPhraseAndListen])
 
   // The slow drift. Re-creating the interval after every shift (sameNoteModes
   // changes) conveniently restarts the countdown, keeping the pacing even.
@@ -2876,6 +2982,14 @@ export default function App() {
             <ToggleSwitch label="Intervals" on={state.showIntervals} toggle={() => up({ showIntervals: !state.showIntervals })} />
             <ToggleSwitch label="Highlight Root" on={state.highlightRoot} toggle={() => up({ highlightRoot: !state.highlightRoot })} />
             <ToggleSwitch label="Left-Handed" on={state.showLeftHanded} toggle={() => up({ showLeftHanded: !state.showLeftHanded })} />
+          </div>
+
+          <div className="drawer-section">
+            <span className="drawer-label">{T('MICROPHONE')}</span>
+            <ToggleSwitch label={T('Echo Cancellation')} on={state.micEchoCancellation} toggle={() => up({ micEchoCancellation: !state.micEchoCancellation })} />
+            <p className="drawer-hint">
+              {T('On by default for laptop mic + laptop speakers, to cancel the backing sound bleeding back in. Turn this OFF if you’re on an audio interface or a mic’d amp — echo cancellation has nothing real to cancel there and can make notes cut in and out. Stop and restart Listen/Play after changing this.')}
+            </p>
           </div>
 
           <div className="drawer-section">
