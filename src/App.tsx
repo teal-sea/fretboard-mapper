@@ -25,6 +25,7 @@ import { intervalSemitones } from './utils/musicTheory'
 import { getScaleInsight, getChordInsight, chordsInScale, getObjective, getPrimer } from './utils/theory'
 import { getSameNoteModes, recontextualise, type SiblingMode } from './utils/modes'
 import { loadPersistedState, savePersistedState } from './utils/persist'
+import { parseUrlState, syncUrl } from './utils/urlState'
 import { displayNote, LANGUAGES } from './utils/noteNames'
 import { t as translate, tf } from './utils/i18n'
 import { nextFlowHome, describeFlowShift, describeFlowSession } from './utils/flowEngine'
@@ -165,12 +166,21 @@ const initialState: AppState = {
 }
 
 export default function App() {
-  const [state, setState] = useState<AppState>(() => ({ ...initialState, ...loadPersistedState() }))
+  // URL params last: a shared /?key=A&mode=dorian link must beat whatever
+  // the recipient was looking at when they last closed the tab.
+  const [state, setState] = useState<AppState>(() => ({
+    ...initialState,
+    ...loadPersistedState(),
+    ...parseUrlState(window.location.search),
+  }))
   const up = useCallback((p: Partial<AppState>) => setState(s => ({ ...s, ...p })), [])
 
   // Remember what you were looking at — key, mode, settings, whether you've
   // seen the intro — across a refresh. No account, no server: just this tab.
   useEffect(() => { savePersistedState(state) }, [state])
+
+  // Keep the address bar shareable: it always names the current key + mode.
+  useEffect(() => { syncUrl(state) }, [state.keyRoot, state.keyQuality])
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [chordTier, setChordTier] = useState(0) // index into HARMONY_ROWS (0=Triad, 2=7th, etc.)
 
