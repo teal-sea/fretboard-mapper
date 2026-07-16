@@ -3661,6 +3661,21 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   background: var(--bg);
 }
 .desktop-nudge-preview .fretboard-svg { min-width: 0; width: 100%; max-height: 34vh; }
+.desktop-nudge-dismiss {
+  margin-top: 4px;
+  padding: 11px 28px;
+  border: none;
+  border-radius: 999px;
+  background: var(--brand-grad);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--transition);
+}
+.desktop-nudge-dismiss:hover { transform: scale(1.04); }
+.desktop-nudge-dismiss:active { transform: scale(0.96); }
 
 @media (max-width: 620px) {
   .intro-modes { grid-template-columns: 1fr; }
