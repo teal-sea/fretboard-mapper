@@ -32,6 +32,7 @@ import {
 } from './shared'
 import { GUIDES, GUIDES_FOR_MODE, guidesIndexPage } from './guides'
 import { LOCALES, type Locale } from './locales'
+import { allChordPagePaths, writeChordPages } from './chordPages'
 
 function fmt(s: string, vars: Record<string, string | number>): string {
   return s.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''))
@@ -468,9 +469,10 @@ function localizedIndexPage(locale: Locale): string {
 
 // ─── Sitemap ─────────────────────────────────────────────────────────
 function sitemap(): string {
-  const urls = ['/', '/modes/', '/guides/']
+  const urls = ['/', '/modes/', '/guides/', '/chords/']
   for (const g of GUIDES) urls.push(`/guides/${g.slug}/`)
   for (const mode of MODES) for (let pc = 0; pc < 12; pc++) urls.push(pagePath(pc, mode))
+  urls.push(...allChordPagePaths())
   for (const locale of LOCALES) {
     urls.push(`/${locale.code}/${locale.modesSegment}/`)
     for (const mode of MODES) for (let pc = 0; pc < 12; pc++) urls.push(pagePathL(pc, mode, locale))
@@ -513,10 +515,11 @@ export function modePagesPlugin(): Plugin {
       for (const locale of LOCALES) write(`/${locale.code}/${locale.modesSegment}/`, localizedIndexPage(locale))
       for (const g of GUIDES) write(`/guides/${g.slug}/`, g.render())
       write('/guides/', guidesIndexPage())
+      const chordCount = writeChordPages(write)
       // Overwrites the placeholder copied from public/ — this one knows
       // about every generated page.
       fs.writeFileSync(path.join(outDir, 'sitemap.xml'), sitemap())
-      console.log(`  ✓ mode-pages: ${count} mode pages (en + ${LOCALES.length} locales) + ${GUIDES.length} guides + indexes + sitemap`)
+      console.log(`  ✓ mode-pages: ${count} mode pages (en + ${LOCALES.length} locales) + ${GUIDES.length} guides + ${chordCount} chord pages + indexes + sitemap`)
     },
   }
 }
