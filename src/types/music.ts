@@ -93,7 +93,7 @@ export interface AppState {
   //   'modes'   — modal playing: harmony sits still (or drifts over minutes)
   //   'changes' — playing the changes: a progression loops at tempo, bars
   //               per chord, and your lines track each chord as it arrives
-  flowJam: 'modes' | 'changes'
+  flowJam: 'modes' | 'changes' | 'findit'
   flowEvolve: FlowEvolve   // modes: stay put, drift through the sibling modes, or follow your own chord order
   flowChords: number[]     // chord order: diatonic degree indices (0–6), duplicates allowed
   flowPaceSec: number      // modes: seconds between evolution steps
