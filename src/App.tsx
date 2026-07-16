@@ -1251,17 +1251,32 @@ export default function App() {
     if (echoOn && echoPhrase.length === 0) startNewEchoPhrase()
   }, [echoOn, echoPhrase, startNewEchoPhrase])
 
-  // Detection: only reacts while actively listening, and only to the note
-  // at the current position in the phrase — heardMidi holding steady on a
-  // sustained note doesn't re-fire (it only changes on an actual new note),
-  // so this naturally waits for the NEXT distinct note before checking it.
+  // Detection: reads progress through refs, not state, and depends on
+  // ONLY [heardMidi, echoOn] — not echoPlayedIdx/echoStatus. Advancing
+  // echoPlayedIdx mid-phrase is itself a state change; if it were also a
+  // dependency here, setting it would re-run this same effect against the
+  // SAME (now stale) heardMidi value, check it against the NEXT expected
+  // note, mismatch, and immediately overwrite the correct partial match
+  // with a false "miss" — same family of bug as Find It's timeout getting
+  // cancelled by its own trigger, just one step earlier in the chain.
+  const echoPlayedIdxRef = useRef(0)
+  const echoPhraseRef = useRef<number[]>([])
+  const echoStatusRef = useRef<typeof echoStatus>('playing')
+  useEffect(() => { echoPlayedIdxRef.current = echoPlayedIdx }, [echoPlayedIdx])
+  useEffect(() => { echoPhraseRef.current = echoPhrase }, [echoPhrase])
+  useEffect(() => { echoStatusRef.current = echoStatus }, [echoStatus])
+
   useEffect(() => {
-    if (!echoOn || echoStatus !== 'listening' || echoPhrase.length === 0 || heardMidi === null) return
-    const expected = echoPhrase[echoPlayedIdx]
+    if (!echoOn || heardMidi === null) return
+    if (echoStatusRef.current !== 'listening') return
+    const phrase = echoPhraseRef.current
+    if (phrase.length === 0) return
+    const idx = echoPlayedIdxRef.current
+    const expected = phrase[idx]
     if (heardMidi === expected) {
-      const nextIdx = echoPlayedIdx + 1
-      if (nextIdx >= echoPhrase.length) {
-        setEchoScore(s => s + 20 * echoPhrase.length)
+      const nextIdx = idx + 1
+      if (nextIdx >= phrase.length) {
+        setEchoScore(s => s + 20 * phrase.length)
         setEchoStreak(s => s + 1)
         setEchoLength(l => Math.min(ECHO_MAX_LEN, l + 1))
         setEchoStatus('success')
@@ -1272,7 +1287,7 @@ export default function App() {
       setEchoStreak(0)
       setEchoStatus('miss')
     }
-  }, [heardMidi, echoOn, echoStatus, echoPhrase, echoPlayedIdx])
+  }, [heardMidi, echoOn])
 
   // Advancing after success/miss is its own effect, same reason as Find
   // It's: the detection effect above lists echoStatus as a dep, so setting
