@@ -29,6 +29,8 @@ import { parseUrlState, syncUrl } from './utils/urlState'
 import { displayNote, LANGUAGES } from './utils/noteNames'
 import { t as translate, tf } from './utils/i18n'
 import { nextFlowHome, describeFlowShift, describeFlowSession } from './utils/flowEngine'
+import { recordPractice } from './utils/streak'
+import { favoriteId, isFavorited, toggleFavorite, type FavoriteItem } from './utils/favorites'
 import FlowCanvas, { type FlowPulse } from './components/FlowCanvas'
 import { familyId, getClaims, claimMode, markCompleted, totalClaimed } from './utils/progress'
 import { getSweepShape, getArpeggioShapes, buildRun } from './utils/arpeggios'
@@ -155,6 +157,9 @@ const initialState: AppState = {
   conceptId: null,
   showTheory: true,
   onboarded: false,
+  practiceStreak: 0,
+  lastPracticeDate: null,
+  favorites: [],
   advancedMode: false,
   activeTab: 'explore',
   techniqueMode: '3nps',
@@ -428,6 +433,17 @@ export default function App() {
     ? 'chord'
     : state.advancedMode ? 'key' : 'scale'
 
+  // What the star button favorites: whatever's currently selected in
+  // Study — a chord or a scale, root + key. Null only if nothing's
+  // selected yet (shouldn't happen post-boot, but the type is honest).
+  const currentFavorite: FavoriteItem | null = state.viewMode === 'chords'
+    ? (state.selectedChordRoot && state.selectedChordKey
+        ? { viewMode: 'chords', root: state.selectedChordRoot, key: state.selectedChordKey }
+        : null)
+    : (state.selectedScaleRoot && state.selectedScaleKey
+        ? { viewMode: 'scales', root: state.selectedScaleRoot, key: state.selectedScaleKey }
+        : null)
+
   // Picking a CHORD adopts its natural parent scale as the key, so the
   // diatonic harmony below always agrees with the selection: Em7 → E Dorian,
   // Cmaj7 → C Ionian, G7 → G Mixolydian. Derived, not a lookup table — the
@@ -439,6 +455,17 @@ export default function App() {
     const seven = compatible.find(s => SCALES[s.key]?.intervals.length === 7)
     return (seven ?? compatible[0])?.key ?? state.keyQuality
   }, [state.keyQuality])
+
+  // Mirrors what the Chord/Scale quality selects already do on change —
+  // a favorite jump is just landing on that same combination directly.
+  const jumpToFavorite = useCallback((item: FavoriteItem) => {
+    if (item.viewMode === 'chords') {
+      const pk = parentScaleFor(item.root, item.key)
+      up({ selectedChordKey: item.key, selectedChordRoot: item.root, keyRoot: item.root, keyQuality: pk, selectedScaleRoot: item.root, selectedScaleKey: pk, viewMode: 'chords', chordPosition: null })
+    } else {
+      up({ viewMode: 'scales', keyQuality: item.key, selectedScaleRoot: item.root, selectedScaleKey: item.key, keyRoot: item.root, selectedChordRoot: null, selectedChordKey: null })
+    }
+  }, [up, parentScaleFor])
   const [introOpen, setIntroOpen] = useState(false)
 
   // ─── "Looks better on desktop" nudge ───
@@ -821,7 +848,13 @@ export default function App() {
       if (listening) { stopMic(); setListening(false); setHeardMidi(null) }
       if (state.backingMode === 'arp' && metronomeOn) { stopMetronome(); setMetronomeOn(false) }
     } else {
-      if (!hasTrackedPlay.current) { hasTrackedPlay.current = true; trackEvent('play') }
+      if (!hasTrackedPlay.current) {
+        hasTrackedPlay.current = true
+        trackEvent('play')
+        const today = new Date().toISOString().slice(0, 10)
+        const next = recordPractice({ streak: state.practiceStreak, lastDate: state.lastPracticeDate }, today)
+        if (next.lastDate !== state.lastPracticeDate) up({ practiceStreak: next.streak, lastPracticeDate: next.lastDate })
+      }
       if (flowChanges) {
         // Playing the changes: the progression stepper IS the backing —
         // chords advance on a bar clock and the neck tracks each one.
@@ -837,7 +870,7 @@ export default function App() {
       setListening(ok)
       if (!ok) setMicError(getMicError())
     }
-  }, [isPlaying, droneOn, listening, state.backingMode, state.progressionBpm, metronomeOn, flowChanges, state.flowChords, state.progressionPlaying, state.micEchoCancellation, stopProgression, startProgression, up])
+  }, [isPlaying, droneOn, listening, state.backingMode, state.progressionBpm, metronomeOn, flowChanges, state.flowChords, state.progressionPlaying, state.practiceStreak, state.lastPracticeDate, state.micEchoCancellation, stopProgression, startProgression, up])
 
   const backingNoun = state.backingMode === 'chord' ? 'the chord' : state.backingMode === 'arp' ? 'the arpeggiator' : 'the drone'
 
@@ -1161,6 +1194,101 @@ export default function App() {
     if (!findItOn) return board
     return computeFretboard(tuning, fretboardRoot, findItRevealed && findItTarget ? new Set([findItTarget.midi % 12]) : new Set(), state.numFrets)
   }, [findItOn, findItRevealed, findItTarget, tuning, fretboardRoot, state.numFrets, board])
+
+  // ─── Echo: call and response ───
+  // App plays a short phrase over the backing, you play it back by ear.
+  // Miss the phrase and it repeats exactly — no partial credit, no new
+  // notes to confuse what you're re-attempting. Land it and the phrase
+  // grows by one note (capped) for the next round. The neck stays dark
+  // the whole time; this is ear-only, unlike Find It's name-then-locate.
+  const ECHO_MAX_LEN = 8
+  const ECHO_NOTE_MS = 550
+  const [echoOn, setEchoOn] = useState(false)
+  const [echoPhrase, setEchoPhrase] = useState<number[]>([])
+  const [echoPlayedIdx, setEchoPlayedIdx] = useState(0)
+  const [echoStatus, setEchoStatus] = useState<'playing' | 'listening' | 'success' | 'miss'>('playing')
+  const [echoScore, setEchoScore] = useState(0)
+  const [echoStreak, setEchoStreak] = useState(0)
+  const [echoLength, setEchoLength] = useState(3)
+
+  const playEchoPhrase = useCallback((phrase: number[]) => {
+    phrase.forEach((midi, i) => setTimeout(() => playChordPad([midi], false), i * ECHO_NOTE_MS))
+  }, [])
+
+  // Starts (or restarts) a round: reset progress, play the phrase, then
+  // switch to listening once it's done playing. Shared by "a fresh phrase
+  // is needed" and "the same phrase repeats after a miss".
+  const playPhraseAndListen = useCallback((phrase: number[]) => {
+    setEchoPlayedIdx(0)
+    setEchoStatus('playing')
+    playEchoPhrase(phrase)
+    setTimeout(() => setEchoStatus('listening'), phrase.length * ECHO_NOTE_MS + 300)
+  }, [playEchoPhrase])
+
+  const startNewEchoPhrase = useCallback(() => {
+    const pool = board.flat().filter(fn => fn.isInScale)
+    if (!pool.length) { setEchoPhrase([]); return }
+    const phrase: number[] = []
+    for (let i = 0; i < echoLength; i++) {
+      let pick: number
+      do { pick = pool[Math.floor(Math.random() * pool.length)].midi } while (phrase.length > 0 && pick === phrase[phrase.length - 1])
+      phrase.push(pick)
+    }
+    setEchoPhrase(phrase)
+    playPhraseAndListen(phrase)
+  }, [board, echoLength, playPhraseAndListen])
+
+  useEffect(() => {
+    const shouldRun = state.flowJam === 'echo' && isPlaying
+    if (shouldRun && !echoOn) {
+      setEchoOn(true); setEchoScore(0); setEchoStreak(0); setEchoLength(3)
+    } else if (!shouldRun && echoOn) {
+      setEchoOn(false); setEchoPhrase([]); setEchoPlayedIdx(0)
+    }
+  }, [state.flowJam, isPlaying, echoOn])
+
+  useEffect(() => {
+    if (echoOn && echoPhrase.length === 0) startNewEchoPhrase()
+  }, [echoOn, echoPhrase, startNewEchoPhrase])
+
+  // Detection: only reacts while actively listening, and only to the note
+  // at the current position in the phrase — heardMidi holding steady on a
+  // sustained note doesn't re-fire (it only changes on an actual new note),
+  // so this naturally waits for the NEXT distinct note before checking it.
+  useEffect(() => {
+    if (!echoOn || echoStatus !== 'listening' || echoPhrase.length === 0 || heardMidi === null) return
+    const expected = echoPhrase[echoPlayedIdx]
+    if (heardMidi === expected) {
+      const nextIdx = echoPlayedIdx + 1
+      if (nextIdx >= echoPhrase.length) {
+        setEchoScore(s => s + 20 * echoPhrase.length)
+        setEchoStreak(s => s + 1)
+        setEchoLength(l => Math.min(ECHO_MAX_LEN, l + 1))
+        setEchoStatus('success')
+      } else {
+        setEchoPlayedIdx(nextIdx)
+      }
+    } else {
+      setEchoStreak(0)
+      setEchoStatus('miss')
+    }
+  }, [heardMidi, echoOn, echoStatus, echoPhrase, echoPlayedIdx])
+
+  // Advancing after success/miss is its own effect, same reason as Find
+  // It's: the detection effect above lists echoStatus as a dep, so setting
+  // it inside that effect would re-trigger it immediately and any timer
+  // scheduled there would get cancelled by its own cleanup before firing.
+  // This effect's timeout callback moves echoStatus to 'playing', which
+  // DOES re-run this effect — but the guard below excludes 'playing', so
+  // that re-entry just no-ops instead of scheduling a second timer.
+  useEffect(() => {
+    if (echoStatus !== 'success' && echoStatus !== 'miss') return
+    const t = setTimeout(() => {
+      if (echoStatus === 'miss') playPhraseAndListen(echoPhrase)
+      else setEchoPhrase([]) // triggers the "generate a new phrase" effect above
+    }, 900)
+    return () => clearTimeout(t)
+  }, [echoStatus, echoPhrase, playPhraseAndListen])
 
   // The slow drift. Re-creating the interval after every shift (sameNoteModes
   // changes) conveniently restarts the countdown, keeping the pacing even.
@@ -1589,6 +1717,16 @@ export default function App() {
         </div>
 
         <div className="shell-actions">
+          {/* Only shows once there's an actual streak (2+ days) — a bare
+              "1" on first visit reads as broken, not encouraging. */}
+          {state.practiceStreak >= 2 && (
+            <span className="streak-badge" title={`${state.practiceStreak}-day practice streak`}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 2c1 3-2 4-2 7a4 4 0 108 0c0-1-.5-2-1-2 .5 2-1 3-2 2 1-2-1-3-1-5 0-1 .5-2-2-2z" fill="currentColor" />
+              </svg>
+              {state.practiceStreak}
+            </span>
+          )}
           {/* Language + notation live in the header, not buried in Settings —
               what a note is CALLED is a first-class preference. */}
           <select
@@ -2312,7 +2450,39 @@ export default function App() {
                 ))}
               </select>
             )}
+            {currentFavorite && (
+              <button
+                type="button"
+                className={`icon-btn favorite-star ${isFavorited(state.favorites, currentFavorite) ? 'active' : ''}`}
+                onClick={() => up({ favorites: toggleFavorite(state.favorites, currentFavorite) })}
+                title={isFavorited(state.favorites, currentFavorite) ? 'Remove from favorites' : 'Add to favorites'}
+                aria-label={isFavorited(state.favorites, currentFavorite) ? 'Remove from favorites' : 'Add to favorites'}
+              >
+                {isFavorited(state.favorites, currentFavorite) ? '★' : '☆'}
+              </button>
+            )}
           </div>
+
+          {state.favorites.length > 0 && (
+            <div className="favorites-strip" aria-label="Favorites">
+              {state.favorites.map(f => (
+                <span key={favoriteId(f)} className="favorite-chip">
+                  <button type="button" onClick={() => jumpToFavorite(f)}>
+                    {dn(f.root)}{f.viewMode === 'chords' ? (CHORDS[f.key]?.suffix ?? '') : ` ${T(SCALES[f.key]?.name ?? f.key)}`}
+                  </button>
+                  <button
+                    type="button"
+                    className="favorite-remove"
+                    onClick={() => up({ favorites: toggleFavorite(state.favorites, f) })}
+                    aria-label="Remove from favorites"
+                    title="Remove from favorites"
+                  >
+                    &#215;
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
 
           <div className="quick-row">
             {renderBackingControls()}

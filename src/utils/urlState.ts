@@ -9,7 +9,7 @@
 
 import type { AppState } from '../types/music'
 import { NOTE_NAMES, NOTE_NAMES_FLAT } from '../types/music'
-import { SCALES } from './musicTheory'
+import { SCALES, CHORDS } from './musicTheory'
 import { LANGUAGES } from './noteNames'
 
 const VALID_ROOTS = new Set<string>([...NOTE_NAMES, ...NOTE_NAMES_FLAT])
@@ -48,6 +48,16 @@ export function parseUrlState(search: string): Partial<AppState> {
     out.keyQuality = mode
     out.selectedScaleKey = mode
     out.viewMode = 'scales'
+  }
+
+  // Chord pages deep-link with ?key=&chord= instead of &mode= — takes
+  // priority over a mode param if somehow both are present, since a link
+  // built for one specific view shouldn't land on the other.
+  const chord = (params.get('chord') ?? '').trim().toLowerCase()
+  if (chord && CHORDS[chord]) {
+    out.viewMode = 'chords'
+    out.selectedChordKey = chord
+    if (root) out.selectedChordRoot = root
   }
 
   const app = (params.get('app') ?? '').trim().toLowerCase() as AppState['appMode']

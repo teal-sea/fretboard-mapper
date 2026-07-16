@@ -294,3 +294,9 @@ export function footer(opts?: {
 export function appLink(rootName: string, mode: string): string {
   return `/?key=${encodeURIComponent(rootName)}&mode=${mode}`
 }
+
+// A deep link into the live app's Study view, preset to a chord — chords
+// live in 'study', not 'flow' (which is drone/scale-oriented).
+export function chordAppLink(rootName: string, chordKey: string): string {
+  return `/?key=${encodeURIComponent(rootName)}&chord=${chordKey}&app=study`
+}
