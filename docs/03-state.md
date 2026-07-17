@@ -14,7 +14,11 @@ const up = useCallback((p: Partial<AppState>) => setState(s => ({ ...s, ...p }))
 
 `up(partial)` is the **only** way state changes. State **persists to
 localStorage** (`utils/persist.ts`) via a `useEffect` on every change and is
-merged over `initialState` on load.
+merged over `initialState` on load. Subscribers additionally get a *subset*
+of this same state (favorites, streak, a few display prefs) synced to
+Postgres — still just `up()` under the hood, see `components/AccountMenu.tsx`
+in [06-components](06-components.md). Nothing about the `up(partial)`
+contract itself changes for that.
 
 Want the neck to show A Dorian, position 5, with the backing sound in that key?
 You don't navigate a UI — you write the state:

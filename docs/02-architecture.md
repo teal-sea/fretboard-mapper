@@ -3,13 +3,22 @@
 ## Stack & boundaries
 
 - **React 18** function components + hooks. **Vite 6** dev/build. **TypeScript**.
-  **Vitest** for tests (~305 across nine files). No other runtime deps
-  (Playwright is a dev-only dependency for real-WebKit mobile checks).
-- **No backend, no network.** The app is a single-page bundle served statically
-  (Vercel; `main` auto-deploys to modalruns.com). `AppState` persists to
-  **localStorage** via `utils/persist.ts`; owned sounds (`concepts.ts`, key
-  `fm.ownedSounds`) and Walk claims (`progress.ts`, key `mr.progress`) persist
-  separately.
+  **Vitest** for tests (375+ across nineteen files — check the current count,
+  it moves). No other runtime deps for the app itself (Playwright is a
+  dev-only dependency for real-WebKit mobile checks).
+- **The theory/audio engine is client-only, no network** — that part is
+  fixed. The app *as a whole* now also has a minimal backend for monetization
+  (Clerk auth, Polar payments, Neon Postgres), which is a deliberate, additive
+  exception: see [`../CLAUDE.md`](../CLAUDE.md) golden rule 4 and
+  `components/AccountMenu.tsx`. Without `VITE_CLERK_PUBLISHABLE_KEY` set, the
+  app is still exactly what this page describes — a single-page bundle served
+  statically (Vercel; `main` auto-deploys to modalruns.com), zero network
+  calls beyond loading the bundle. `AppState` persists to **localStorage** via
+  `utils/persist.ts`; owned sounds (`concepts.ts`, key `fm.ownedSounds`) and
+  Walk claims (`progress.ts`, key `mr.progress`) persist separately.
+  Subscribers additionally sync a subset of `AppState` (favorites, streak,
+  a few display prefs) to Postgres — `utils/cloudSync.ts` picks that subset,
+  `api/sync.ts` is the only thing that reads/writes it server-side.
 - Three clean layers, with a strict boundary between them:
 
 ```
