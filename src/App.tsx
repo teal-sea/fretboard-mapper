@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef, Fragment } from 'react'
+import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, Fragment } from 'react'
 import type { AppState } from './types/music'
 
 // window.va is defined by the inline script in index.html (Vercel Web
@@ -849,7 +849,12 @@ export default function App() {
   // every browser that doesn't support it, which today is nearly all of them.
   const stateRef = useRef(state)
   useEffect(() => { stateRef.current = state }, [state])
-  useEffect(() => {
+  // useLayoutEffect, not useEffect: Lighthouse's own docs flag registration
+  // timing as a real source of flaky Agentic Browsing results — a plain
+  // useEffect fires after the browser paints, useLayoutEffect fires
+  // synchronously after the DOM commit but before paint, which is as early
+  // as a real, working registration (real state, real handlers) can land.
+  useLayoutEffect(() => {
     const controller = new AbortController()
     registerWebMcpTools({ getState: () => stateRef.current, up, togglePlay, signal: controller.signal })
     return () => controller.abort()
@@ -1753,13 +1758,14 @@ export default function App() {
           >
             {state.noteStyle === 'letters' ? 'C·D·E' : 'Do·Re'}
           </button>
-          <button className="icon-btn" onClick={() => setSettingsOpen(true)} title="Settings">
+          <button className="icon-btn" onClick={() => setSettingsOpen(true)} title="Settings" aria-label="Settings">
             &#9881;
           </button>
           <button
             className="icon-btn"
             onClick={() => up({ theme: state.theme === 'dark' ? 'light' : 'dark' })}
             title="Toggle theme"
+            aria-label={state.theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
           >
             {state.theme === 'dark' ? '\u2600' : '\u263E'}
           </button>
@@ -2125,7 +2131,7 @@ export default function App() {
               <div className="collection-panel" onClick={e => e.stopPropagation()}>
                 <div className="drawer-header">
                   <span className="drawer-title">{soundsOwned} / {CONCEPTS.length} {T('sounds you own')}</span>
-                  <button className="drawer-close" onClick={() => setCollectionOpen(false)}>&times;</button>
+                  <button className="drawer-close" onClick={() => setCollectionOpen(false)} aria-label="Close">&times;</button>
                 </div>
                 <p className="collection-sub">
                   Owned means the app actually heard you land it — not just that you looked at it.
@@ -2580,7 +2586,7 @@ export default function App() {
               >
                 <span className="chord-roman">{dc.romanNumeral}</span>
                 <span className="chord-name">{dn(dc.root)}{dc.chordDef.suffix}</span>
-                <button className="chord-play" onClick={e => { e.stopPropagation(); handlePlayChord(dc) }}>&#9654;</button>
+                <button className="chord-play" aria-label={`Play ${dn(dc.root)}${dc.chordDef.suffix}`} onClick={e => { e.stopPropagation(); handlePlayChord(dc) }}>&#9654;</button>
               </button>
             )
           })}
@@ -2662,7 +2668,7 @@ export default function App() {
                 {[...Array(MAX_FRET + 1)].map((_, f) => f).filter(f => f > lo).map(f => <option key={f} value={f}>{f}</option>)}
               </select>
               {state.fretRange && (
-                <button className="fret-range-reset" title="Show whole neck"
+                <button className="fret-range-reset" title="Show whole neck" aria-label="Show whole neck"
                   onClick={() => up({ fretRange: null })}>&#10005;</button>
               )}
             </div>
@@ -2880,7 +2886,7 @@ export default function App() {
                               {dc ? (
                                 <>
                                   <span className="harmony-cell-name">{dc.fullName}</span>
-                                  <button className="harmony-cell-play"
+                                  <button className="harmony-cell-play" aria-label={`Play ${dc.fullName}`}
                                     onClick={e => { e.stopPropagation(); handlePlayChord(dc) }}>&#9654;</button>
                                 </>
                               ) : null}
@@ -2905,7 +2911,7 @@ export default function App() {
           <div className="tuner-panel" onClick={e => e.stopPropagation()}>
             <div className="drawer-header">
               <span className="drawer-title">{T('Tuner')}</span>
-              <button className="drawer-close" onClick={closeTuner}>&times;</button>
+              <button className="drawer-close" onClick={closeTuner} aria-label="Close tuner">&times;</button>
             </div>
             {micError && <p className="mic-error">{micError}</p>}
             <div className={`tuner-note ${tunerPitch && Math.abs(tunerPitch.cents) <= 5 ? 'in-tune' : ''}`}>
@@ -2948,7 +2954,7 @@ export default function App() {
       <div className={`settings-drawer ${settingsOpen ? 'open' : ''}`}>
         <div className="drawer-header">
           <span className="drawer-title">{T('Settings')}</span>
-          <button className="drawer-close" onClick={() => setSettingsOpen(false)}>&times;</button>
+          <button className="drawer-close" onClick={() => setSettingsOpen(false)} aria-label="Close settings">&times;</button>
         </div>
         <div className="drawer-body">
           <div className="drawer-section">
