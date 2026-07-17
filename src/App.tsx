@@ -1748,6 +1748,7 @@ export default function App() {
               up({ language, noteStyle: lang?.defaultStyle ?? 'letters' })
             }}
             title="Language / naming convention"
+            aria-label="Language / naming convention"
           >
             {LANGUAGES.map(l => <option key={l.key} value={l.key}>{l.key.toUpperCase()}</option>)}
           </select>
@@ -1786,11 +1787,11 @@ export default function App() {
               {T('One parent scale contains seven modes — the same notes, a different home each time. Walk the neck position by position and claim each mode by ear.')}
             </p>
             <div className="lesson-actions">
-              <select className="key-select" value={lessonKey.root}
+              <select className="key-select" value={lessonKey.root} aria-label="Root note"
                 onChange={e => setLessonKey(k => ({ ...k, root: e.target.value }))}>
                 {NOTE_NAMES.map(n => <option key={n} value={n}>{dn(n)}</option>)}
               </select>
-              <select className="key-select" value={lessonKey.quality}
+              <select className="key-select" value={lessonKey.quality} aria-label="Mode"
                 onChange={e => setLessonKey(k => ({ ...k, quality: e.target.value }))}>
                 <option value="ionian">{T('Major')}</option>
                 <option value="aeolian">{T('Minor')}</option>
@@ -2172,11 +2173,11 @@ export default function App() {
             <div className="jam-setup">
               <div className="jam-setup-row">
                 <span className="study-bar-label">{T('Key')}</span>
-                <select className="key-select" value={state.keyRoot}
+                <select className="key-select" value={state.keyRoot} aria-label="Root note"
                   onChange={e => up({ keyRoot: e.target.value, selectedScaleRoot: e.target.value, selectedScaleKey: state.keyQuality })}>
                   {NOTE_NAMES.map(n => <option key={n} value={n}>{dn(n)}</option>)}
                 </select>
-                <select className="key-select" value={state.keyQuality}
+                <select className="key-select" value={state.keyQuality} aria-label="Mode"
                   onChange={e => up({ keyQuality: e.target.value, selectedScaleKey: e.target.value })}>
                   {KEY_QUALITIES.map(q => <option key={q.key} value={q.key}>{T(q.label)}</option>)}
                 </select>
@@ -2652,7 +2653,7 @@ export default function App() {
           return (
             <div className="fret-range-bar">
               <span className="fret-range-label">{T('Frets')}</span>
-              <select className="fret-range-select" value={lo}
+              <select className="fret-range-select" value={lo} aria-label="Lowest fret"
                 onChange={e => {
                   const newLo = Number(e.target.value)
                   up({ fretRange: [newLo, Math.max(hi, newLo + 1)] })
@@ -2660,7 +2661,7 @@ export default function App() {
                 {[...Array(MAX_FRET)].map((_, f) => <option key={f} value={f}>{f}</option>)}
               </select>
               <span className="fret-range-dash">–</span>
-              <select className="fret-range-select" value={Math.min(hi, MAX_FRET)}
+              <select className="fret-range-select" value={Math.min(hi, MAX_FRET)} aria-label="Highest fret"
                 onChange={e => {
                   const newHi = Number(e.target.value)
                   up({ fretRange: [Math.min(lo, newHi - 1), newHi], numFrets: Math.max(state.numFrets, newHi) })
@@ -2959,7 +2960,7 @@ export default function App() {
         <div className="drawer-body">
           <div className="drawer-section">
             <span className="drawer-label">THEME</span>
-            <select className="type-select" value={state.colorTheme}
+            <select className="type-select" value={state.colorTheme} aria-label="Color theme"
               onChange={e => up({ colorTheme: e.target.value as AppState['colorTheme'] })}>
               {THEME_OPTIONS.map(t => (
                 <option key={t.key} value={t.key}>{t.label}</option>
@@ -2974,7 +2975,7 @@ export default function App() {
                   'strat'; the renderer still supports both if it returns. */}
               <div className="drawer-half">
                 <span className="drawer-label">{T('TUNING')}</span>
-                <select className="type-select" value={state.tuningKey}
+                <select className="type-select" value={state.tuningKey} aria-label="Tuning"
                   onChange={e => up({ tuningKey: e.target.value })}>
                   {Object.entries(TUNINGS).map(([key, t]) => (
                     <option key={key} value={key}>{t.name}</option>
@@ -2988,14 +2989,14 @@ export default function App() {
             <div className="drawer-row">
               <div className="drawer-half">
                 <span className="drawer-label">FRETS</span>
-                <select className="type-select" value={state.numFrets}
+                <select className="type-select" value={state.numFrets} aria-label="Number of frets"
                   onChange={e => up({ numFrets: Number(e.target.value) })}>
                   {[12, 15, 17, 19, 21, 24].map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>
               <div className="drawer-half">
                 <span className="drawer-label">INLAYS</span>
-                <select className="type-select" value={state.inlayStyle}
+                <select className="type-select" value={state.inlayStyle} aria-label="Fretboard inlay style"
                   onChange={e => up({ inlayStyle: e.target.value as any })}>
                   <option value="dots">Dots</option>
                   <option value="blocks">Blocks</option>
@@ -3103,6 +3104,7 @@ function DrawerSlider({ label, value, max, onChange }: {
         max={max}
         step={0.01}
         value={value}
+        aria-label={label}
         onChange={e => onChange(Number(e.target.value))}
       />
       <span className="slider-row-value">{Math.round((value / max) * 100)}%</span>
