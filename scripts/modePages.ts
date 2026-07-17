@@ -78,6 +78,18 @@ function indexAlternates(): { hreflang: string; href: string }[] {
   ]
 }
 
+// Homepage alternates point at '/', not '/modes/' — a distinct page from
+// indexAlternates above. English's '/' is the real SPA (index.html, built
+// by Vite directly, not this plugin); the locale homepages below are the
+// ones actually generated here.
+function homeAlternates(): { hreflang: string; href: string }[] {
+  return [
+    { hreflang: 'en', href: `${ORIGIN}/` },
+    ...LOCALES.map(l => ({ hreflang: l.code, href: `${ORIGIN}/${l.code}/` })),
+    { hreflang: 'x-default', href: `${ORIGIN}/` },
+  ]
+}
+
 // ─── Fretboard SVG ───────────────────────────────────────────────────
 // Schematic neck, frets 0–12, standard tuning, every scale tone labelled
 // and coloured by interval with the app's own palette. Positions come from
@@ -416,6 +428,55 @@ function indexPage(): string {
 `
 }
 
+// ─── The localized /{lang}/ homepage ──────────────────────────────────
+// Previously missing entirely — every locale 404'd at its own root, only
+// the /{lang}/{modes}/ cluster existed. hreflang alternates on the mode
+// pages and index pages pointed language-cluster crawl paths at each
+// other, but there was no actual localized landing page to send someone
+// searching in Spanish/French/Italian/Portuguese to; they'd land on the
+// English '/' regardless of language. This is a real page (not just a
+// redirect) with its own translated copy, matching the depth of the
+// English homepage's <noscript> fallback content.
+function localizedHomePage(locale: Locale): string {
+  const t = locale.t
+  const canonicalPath = `/${locale.code}/`
+  const modesPath = `/${locale.code}/${locale.modesSegment}/`
+  const structuredData = [
+    breadcrumbList([{ name: 'Modal Runs', path: '/' }, { name: t.homeH1, path: canonicalPath }]),
+    articleSchema({ headline: t.homeTitle, description: t.homeDesc, path: canonicalPath, inLanguage: locale.code }),
+  ]
+
+  return `<!DOCTYPE html>
+<html lang="${locale.htmlLang}">
+<head>
+    ${head({
+      title: t.homeTitle,
+      description: t.homeDesc,
+      canonicalPath,
+      alternates: homeAlternates(),
+      jsonLd: structuredData,
+    })}
+</head>
+<body>
+  ${SITE_HEADER}
+  <main>
+    <h1>${t.homeH1}</h1>
+    <p class="lead">${t.homeLead}</p>
+    <a class="cta" href="/?lang=${locale.code}">${t.footerApp} →</a>
+    <p><a href="${modesPath}">${t.footerModes}</a></p>
+  </main>
+  ${footer({
+    modesHref: modesPath,
+    modesLabel: t.footerModes,
+    appLabel: t.footerApp,
+    tag: t.footerTag,
+    showGuides: false,
+  })}
+</body>
+</html>
+`
+}
+
 // ─── The localized /{lang}/{modes}/ index ────────────────────────────
 function localizedIndexPage(locale: Locale): string {
   const t = locale.t
@@ -474,6 +535,7 @@ function sitemap(): string {
   for (const mode of MODES) for (let pc = 0; pc < 12; pc++) urls.push(pagePath(pc, mode))
   urls.push(...allChordPagePaths())
   for (const locale of LOCALES) {
+    urls.push(`/${locale.code}/`)
     urls.push(`/${locale.code}/${locale.modesSegment}/`)
     for (const mode of MODES) for (let pc = 0; pc < 12; pc++) urls.push(pagePathL(pc, mode, locale))
   }
@@ -512,7 +574,10 @@ export function modePagesPlugin(): Plugin {
         }
       }
       write('/modes/', indexPage())
-      for (const locale of LOCALES) write(`/${locale.code}/${locale.modesSegment}/`, localizedIndexPage(locale))
+      for (const locale of LOCALES) {
+        write(`/${locale.code}/`, localizedHomePage(locale))
+        write(`/${locale.code}/${locale.modesSegment}/`, localizedIndexPage(locale))
+      }
       for (const g of GUIDES) write(`/guides/${g.slug}/`, g.render())
       write('/guides/', guidesIndexPage())
       const chordCount = writeChordPages(write)

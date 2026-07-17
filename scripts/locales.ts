@@ -116,6 +116,10 @@ const es: Locale = {
     footerModes: 'Todos los modos',
     footerApp: 'Abrir la app',
     footerTag: 'Modal Runs — práctica de guitarra gratis que te escucha.',
+    homeTitle: 'Modal Runs — Te escucha mientras tocas',
+    homeDesc: 'Un visualizador interactivo del mástil (diapasón) que te escucha: mantén un drone en cualquier tonalidad, improvisa, y Modal Runs ilumina cada nota que tocas en el mástil en tiempo real — un entrenamiento auditivo real. Encuentra los modos de oído en vez de memorizarlos. Gratis.',
+    homeH1: 'Modal Runs — te escucha mientras tocas',
+    homeLead: 'Mantén un drone en cualquier tonalidad, improvisa, y Modal Runs te escucha por el micrófono — iluminando cada nota que tocas en el mástil y diciéndote cuándo llegas a la nota que te pidió. Aprende los modos de oído en vez de memorizarlos. Gratis, en el navegador, sin registro.',
   },
 }
 
@@ -206,6 +210,10 @@ const fr: Locale = {
     footerModes: 'Tous les modes',
     footerApp: 'Ouvrir l’app',
     footerTag: 'Modal Runs — pratique de la guitare gratuite, qui écoute.',
+    homeTitle: 'Modal Runs — Il t’écoute pendant que tu joues',
+    homeDesc: 'Une cartographie interactive du manche qui t’écoute : garde un drone dans n’importe quelle tonalité, improvise, et Modal Runs illumine les notes du manche de guitare que tu joues en temps réel — un vrai entraînement auditif, à l’oreille. Trouve les modes à l’oreille plutôt que de les mémoriser. Gratuit.',
+    homeH1: 'Modal Runs — il t’écoute pendant que tu joues',
+    homeLead: 'Garde un drone dans n’importe quelle tonalité, improvise, et Modal Runs t’écoute au micro — illuminant chaque note que tu joues sur le manche et te disant quand tu tombes sur la note demandée. Apprends les modes à l’oreille plutôt que de les mémoriser. Gratuit, dans le navigateur, sans inscription.',
   },
 }
 
@@ -296,6 +304,10 @@ const it: Locale = {
     footerModes: 'Tutti i modi',
     footerApp: 'Apri l’app',
     footerTag: 'Modal Runs — pratica di chitarra gratuita che ti ascolta.',
+    homeTitle: 'Modal Runs — Ti ascolta mentre suoni',
+    homeDesc: 'Una mappa interattiva della tastiera (il manico) che ti ascolta: mantieni un drone in qualsiasi tonalità, improvvisa, e Modal Runs illumina ogni nota che suoni sul manico in tempo reale — un vero allenamento dell’orecchio. Trova i modi a orecchio invece di memorizzarli. Gratis.',
+    homeH1: 'Modal Runs — ti ascolta mentre suoni',
+    homeLead: 'Mantieni un drone in qualsiasi tonalità, improvvisa, e Modal Runs ti ascolta dal microfono — illuminando ogni nota che suoni sul manico e dicendoti quando raggiungi la nota richiesta. Impara i modi a orecchio invece di memorizzarli. Gratis, nel browser, senza registrazione.',
   },
 }
 
@@ -386,6 +398,10 @@ const pt: Locale = {
     footerModes: 'Todos os modos',
     footerApp: 'Abrir o app',
     footerTag: 'Modal Runs — prática de guitarra grátis que te escuta.',
+    homeTitle: 'Modal Runs — Ele te escuta enquanto você toca',
+    homeDesc: 'Um mapa interativo do braço que te escuta: mantenha um drone em qualquer tom, improvise, e o Modal Runs ilumina cada nota no braço que você toca em tempo real — as notas no braço, o campo harmônico, tudo mapeado. Encontre os modos gregos de ouvido em vez de decorá-los. Grátis.',
+    homeH1: 'Modal Runs — ele te escuta enquanto você toca',
+    homeLead: 'Mantenha um drone em qualquer tom, improvise, e o Modal Runs te escuta pelo microfone — iluminando cada nota que você toca no braço e avisando quando você acerta a nota pedida. Aprenda os modos de ouvido em vez de decorá-los. Grátis, no navegador, sem cadastro.',
   },
 }
 
