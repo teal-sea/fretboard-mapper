@@ -107,8 +107,8 @@ export default function AccountMenu({ state, up }: { state: AppState; up: (parti
             &#9881;&#65039;
           </button>
         ) : (
-          <button className="upgrade-btn" onClick={startCheckout} disabled={loading}>
-            Upgrade
+          <button className="upgrade-btn" onClick={startCheckout} disabled={loading} title="Sync favorites, streak, and preferences across devices">
+            Sync — $4/mo
           </button>
         )}
         <UserButton afterSignOutUrl="/" />

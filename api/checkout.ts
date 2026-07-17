@@ -6,6 +6,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { Polar } from '@polar-sh/sdk'
 import { verifyToken } from '@clerk/backend'
+import { extractBearerToken } from './_auth'
 
 const polar = new Polar({ accessToken: process.env.POLAR_ACCESS_TOKEN! })
 
@@ -15,8 +16,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return
   }
 
-  const authHeader = req.headers.authorization
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+  const token = extractBearerToken(req.headers.authorization)
   if (!token) {
     res.status(401).json({ error: 'Missing session token' })
     return

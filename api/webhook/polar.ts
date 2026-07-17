@@ -10,6 +10,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks'
 import { createClerkClient } from '@clerk/backend'
+import { deriveSubscriptionUpdate } from './_deriveSubscriptionUpdate'
 
 export const config = { api: { bodyParser: false } }
 
@@ -20,9 +21,6 @@ async function readRawBody(req: VercelRequest): Promise<string> {
   for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
   return Buffer.concat(chunks).toString('utf8')
 }
-
-const ACTIVE_TYPES = new Set(['subscription.active', 'subscription.created', 'subscription.uncanceled'])
-const INACTIVE_TYPES = new Set(['subscription.canceled', 'subscription.revoked'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -43,19 +41,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     throw err
   }
 
-  if (ACTIVE_TYPES.has(event.type) || INACTIVE_TYPES.has(event.type)) {
-    // Only subscription.* events carry `data.customer`; narrowed by the type checks above.
-    const subscription = event.data as { customer: { externalId?: string | null }; id: string }
-    const clerkUserId = subscription.customer.externalId
-    if (!clerkUserId) {
-      console.error('Polar webhook: subscription has no externalId, cannot map to a Clerk user', event.type)
-      res.status(200).json({ received: true, warning: 'no externalId on customer' })
-      return
-    }
+  // Every subscription.* payload shape carries `data.{id,customer}`; other
+  // event types (order.*, product.*, ...) don't, but deriveSubscriptionUpdate
+  // checks event.type before touching those fields, so the cast is safe.
+  const result = deriveSubscriptionUpdate(event as { type: string; data: { id: string; customer: { externalId?: string | null } } })
 
-    const subscribed = ACTIVE_TYPES.has(event.type)
-    await clerk.users.updateUserMetadata(clerkUserId, {
-      publicMetadata: { subscribed, polarSubscriptionId: subscription.id },
+  if (result.kind === 'missingExternalId') {
+    console.error('Polar webhook: subscription has no externalId, cannot map to a Clerk user', result.eventType)
+    res.status(200).json({ received: true, warning: 'no externalId on customer' })
+    return
+  }
+
+  if (result.kind === 'update') {
+    await clerk.users.updateUserMetadata(result.update.clerkUserId, {
+      publicMetadata: { subscribed: result.update.subscribed, polarSubscriptionId: result.update.polarSubscriptionId },
     })
   }
 
