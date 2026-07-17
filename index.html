@@ -9,6 +9,18 @@
     <link rel="canonical" href="https://modalruns.com/" />
     <meta name="theme-color" content="#050507" />
 
+    <!-- Fonts: <link> here (not @import in CSS) so the browser discovers and
+         starts fetching them immediately, in parallel with the app's own
+         CSS/JS — the later they arrive, the more already-painted layout
+         shifts when font-display: swap swaps them in. preconnect warms the
+         connection to each font's actual file host ahead of the request. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700,800,900&display=swap" />
+
     <!-- Chrome origin trial: WebMCP (utils/webmcp.ts). Registered for
          https://modalruns.com, expires Nov 16 2026 — renew before then or
          the tools silently stop registering (feature-detected, so nothing
