@@ -1,6 +1,10 @@
 /* ─── Reset & Fonts ─────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
-@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700,800,900&display=swap');
+/* Font stylesheets load via <link> tags in index.html <head>, not @import
+   here — @import can't be discovered until the browser has already fetched
+   and started parsing this file, which delays the fonts and makes their
+   swap-driven reflow (font-display: swap) land later and more visibly. A
+   <link> in <head> is discovered immediately, in parallel with everything
+   else, cutting the CLS this caused. */
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
