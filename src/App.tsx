@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, Fragment } from 'react'
 import type { AppState } from './types/music'
+import AccountMenu from './components/AccountMenu'
 
 // window.va is defined by the inline script in index.html (Vercel Web
 // Analytics). A single-page app never changes URL, so every session reads
@@ -1770,6 +1771,7 @@ export default function App() {
           >
             {state.theme === 'dark' ? '\u2600' : '\u263E'}
           </button>
+          {import.meta.env.VITE_CLERK_PUBLISHABLE_KEY && <AccountMenu state={state} up={up} />}
         </div>
       </header>
 

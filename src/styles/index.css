@@ -271,6 +271,30 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   color: var(--text);
   box-shadow: 0 0 10px var(--accent-glow);
 }
+.account-menu {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.upgrade-btn {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  background: var(--accent-dim);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.upgrade-btn:hover {
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+.upgrade-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
 .favorite-star {
   font-size: 17px;
   color: var(--text-2);
@@ -3892,6 +3916,9 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
      the streak is a nice-to-have, not worth fighting EN/notation/settings/
      theme for space. Still visible in Settings if we ever want it there. */
   .streak-badge { display: none; }
+  /* Same fixed-budget reasoning as streak-badge above: login/upgrade
+     is a real feature but loses the fight for space at this width. */
+  .account-menu { display: none; }
   .lang-select { height: 30px; font-size: 11px; padding: 0 20px 0 8px; }
   /* .notation-toggle is also .icon-btn — without this it inherits the
      30px FIXED width above and "C·D·E"/"Do·Re" spills out of the box. */
