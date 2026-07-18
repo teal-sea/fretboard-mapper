@@ -295,6 +295,51 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   opacity: 0.6;
   cursor: default;
 }
+
+/* ─── Post-checkout celebration (the ?upgraded=1 veil) ─── */
+.upgrade-card {
+  max-width: 440px;
+  padding: 40px 32px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg-raised);
+  text-align: center;
+  box-shadow: 0 0 60px rgba(152,70,234,0.25);
+}
+.upgrade-logo {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 18px;
+}
+.upgrade-title {
+  margin: 0 0 12px;
+  font-size: 34px;
+  font-weight: 800;
+  background: var(--brand-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.upgrade-sub {
+  margin: 0 0 26px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-2);
+}
+.upgrade-go {
+  padding: 12px 34px;
+  border: none;
+  border-radius: 999px;
+  background: var(--brand-grad);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.upgrade-go:hover {
+  box-shadow: 0 0 18px rgba(247,73,162,0.45);
+}
 .favorite-star {
   font-size: 17px;
   color: var(--text-2);
