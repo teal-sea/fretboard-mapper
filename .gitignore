@@ -13,3 +13,4 @@ tsconfig.tsbuildinfo
 
 # OS
 .DS_Store
+.env*
