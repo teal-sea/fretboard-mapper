@@ -2221,7 +2221,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   content: '';
   position: absolute;
   inset: 0;
-  background: url('/mark.png') center 38% / min(50vmin, 460px) no-repeat;
+  background: url('/mark.webp') center 38% / min(50vmin, 460px) no-repeat;
   opacity: 0.05;
   pointer-events: none;
 }
@@ -2442,7 +2442,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   --wm-h: 34px;                                   /* display height of the band */
   width: calc(972 / 145 * var(--wm-h));           /* band aspect: 972 × 145 */
   height: var(--wm-h);
-  background: url('/logo.png') no-repeat left bottom;
+  background: url('/logo.webp') no-repeat left bottom;
   background-size: calc(972 / 145 * var(--wm-h)) auto;
   filter: drop-shadow(0 0 10px rgba(247,73,162,0.3));
 }

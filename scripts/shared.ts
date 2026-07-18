@@ -277,7 +277,7 @@ export function head(opts: {
 }
 
 export const siteHeader = (cta = 'Make practice stick · $5/mo'): string =>
-  `<header class="site"><img src="/mark.png" alt="" /><a href="/">Modal Runs</a><a class="upgrade-pill" href="/">${cta}</a></header>`
+  `<header class="site"><img src="/mark.webp" alt="" /><a href="/">Modal Runs</a><a class="upgrade-pill" href="/">${cta}</a></header>`
 export const SITE_HEADER = siteHeader()
 
 export function footer(opts?: {
