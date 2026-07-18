@@ -64,7 +64,9 @@ describe('parseUrlState', () => {
   it('parses lang with its note-style default, like the in-app switcher', () => {
     expect(parseUrlState('?lang=es')).toEqual({ language: 'es', noteStyle: 'solfege' })
     expect(parseUrlState('?lang=en')).toEqual({ language: 'en', noteStyle: 'letters' })
-    expect(parseUrlState('?lang=de')).toEqual({})
+    expect(parseUrlState('?lang=de')).toEqual({ language: 'de', noteStyle: 'letters' })
+    expect(parseUrlState('?lang=ja')).toEqual({ language: 'ja', noteStyle: 'solfege' })
+    expect(parseUrlState('?lang=xx')).toEqual({})
   })
 
   it('returns empty partial for empty search', () => {

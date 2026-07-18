@@ -11,6 +11,7 @@
 
 import type { Language } from './noteNames'
 import { CONTENT } from './i18nContent'
+import { EXTRA } from './i18nExtra'
 
 type Entry = Partial<Record<Language, string>>
 
@@ -255,7 +256,7 @@ const STRINGS: Record<string, Entry> = {
 
 export function t(key: string, lang: Language): string {
   if (lang === 'en') return key
-  return STRINGS[key]?.[lang] ?? CONTENT[key]?.[lang] ?? key
+  return EXTRA[lang]?.[key] ?? STRINGS[key]?.[lang] ?? CONTENT[key]?.[lang] ?? key
 }
 
 export function tf(key: string, lang: Language, vars: Record<string, string | number>): string {

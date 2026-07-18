@@ -1,4 +1,5 @@
 import type { FavoriteItem } from '../utils/favorites'
+import type { Language } from '../utils/noteNames'
 
 export const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const
 export const NOTE_NAMES_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'] as const
@@ -75,7 +76,7 @@ export interface AppState {
   numFrets: number
   fretRange: [number, number] | null // visible fret window [lo, hi]; null = whole neck
   intervalColors: Record<string, string>
-  language: 'en' | 'es' | 'fr' | 'it' | 'pt' // sets the note-naming convention default
+  language: Language // sets the note-naming convention default
   noteStyle: 'letters' | 'solfege'           // C-D-E vs Do-Re-Mi, user-overridable
   theme: ThemeMode
   colorTheme: ColorTheme

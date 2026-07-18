@@ -9,6 +9,18 @@
 
 import type { Language } from '../src/utils/noteNames'
 import type { ModeKey } from './shared'
+import { de } from './locales/de'
+import { nl } from './locales/nl'
+import { pl } from './locales/pl'
+import { ru } from './locales/ru'
+import { uk } from './locales/uk'
+import { tr } from './locales/tr'
+import { ja } from './locales/ja'
+import { ko } from './locales/ko'
+import { zh } from './locales/zh'
+import { vi } from './locales/vi'
+import { id } from './locales/id'
+import { hi } from './locales/hi'
 
 export interface LocaleCopy {
   hook: string
@@ -20,13 +32,17 @@ export interface LocaleCopy {
 export interface Locale {
   code: Language
   htmlLang: string
-  modesSegment: string          // 'modos' → /es/modos/…
-  sharpWord: string             // for slugs: do-sostenido-dorico
+  modesSegment: string          // 'modos' → /es/modos/…  (ASCII, it's a URL)
+  sharpWord: string             // for slugs: do-sostenido-dorico (ASCII)
   flatWord: string
   modeNames: Record<ModeKey, string>
   majorLabel: string            // "Do mayor" in the relative-key line
   copy: Record<ModeKey, LocaleCopy>
   t: Record<string, string>
+  // Non-Latin-script locales (Cyrillic, CJK, Devanagari) MUST set both:
+  // display names stay in the native script, but URLs need ASCII slugs.
+  slugSolfege?: string[]        // 7 romanized note names for slugs: ['do','re',…]
+  modeSlugs?: Record<ModeKey, string>  // romanized mode names for slugs
 }
 
 // ─── Español ─────────────────────────────────────────────────────────
@@ -409,4 +425,7 @@ const pt: Locale = {
   },
 }
 
-export const LOCALES: Locale[] = [es, fr, it, pt]
+export const LOCALES: Locale[] = [
+  es, fr, it, pt,
+  de, nl, pl, ru, uk, tr, ja, ko, zh, vi, id, hi,
+]
