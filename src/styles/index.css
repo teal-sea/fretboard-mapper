@@ -280,16 +280,16 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   height: 34px;
   padding: 0 14px;
   border-radius: var(--radius);
-  border: 1px solid var(--ember);
-  background: var(--ember-dim);
-  color: var(--ember);
+  border: 1px solid var(--neon-pink);
+  background: rgba(247,73,162,0.12);
+  color: var(--neon-pink);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition);
 }
 .upgrade-btn:hover {
-  box-shadow: 0 0 10px var(--ember-dim);
+  box-shadow: 0 0 10px rgba(247,73,162,0.35);
 }
 .upgrade-btn:disabled {
   opacity: 0.6;
