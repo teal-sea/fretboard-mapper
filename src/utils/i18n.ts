@@ -11,7 +11,11 @@
 
 import type { Language } from './noteNames'
 import { CONTENT } from './i18nContent'
-import { EXTRA } from './i18nExtra'
+import { extraFor, ensureExtra } from './i18nExtra'
+
+// Re-exported so callers load a language's lazy table then re-render; see
+// i18nExtra/index.ts. English + es/fr/it/pt resolve instantly (no chunk).
+export { ensureExtra }
 
 type Entry = Partial<Record<Language, string>>
 
@@ -256,7 +260,7 @@ const STRINGS: Record<string, Entry> = {
 
 export function t(key: string, lang: Language): string {
   if (lang === 'en') return key
-  return EXTRA[lang]?.[key] ?? STRINGS[key]?.[lang] ?? CONTENT[key]?.[lang] ?? key
+  return extraFor(lang)?.[key] ?? STRINGS[key]?.[lang] ?? CONTENT[key]?.[lang] ?? key
 }
 
 export function tf(key: string, lang: Language, vars: Record<string, string | number>): string {

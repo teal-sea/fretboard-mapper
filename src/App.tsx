@@ -28,7 +28,7 @@ import { getSameNoteModes, recontextualise, type SiblingMode } from './utils/mod
 import { loadPersistedState, savePersistedState } from './utils/persist'
 import { parseUrlState, syncUrl } from './utils/urlState'
 import { displayNote, LANGUAGES } from './utils/noteNames'
-import { t as translate, tf } from './utils/i18n'
+import { t as translate, tf, ensureExtra } from './utils/i18n'
 import { nextFlowHome, describeFlowShift, describeFlowSession } from './utils/flowEngine'
 import { recordPractice } from './utils/streak'
 import { favoriteId, isFavorited, toggleFavorite, type FavoriteItem } from './utils/favorites'
@@ -197,9 +197,22 @@ export default function App() {
   const keyScale = SCALES[state.keyQuality]
   const flats = useFlats(state.keyRoot)
 
+  // Non-English UI strings for the twelve batch-two languages live in lazy
+  // import() chunks (see utils/i18nExtra) — only the active language is ever
+  // fetched. Load it when the language changes and bump a counter so every
+  // T()/tf() call re-runs once the table lands; until then t() falls back to
+  // English, same as any missing key. English + es/fr/it/pt have no chunk,
+  // so ensureExtra resolves instantly and this bumps once, harmlessly.
+  const [i18nEpoch, setI18nEpoch] = useState(0)
+  useEffect(() => {
+    let alive = true
+    ensureExtra(state.language).then(() => { if (alive) setI18nEpoch(e => e + 1) })
+    return () => { alive = false }
+  }, [state.language])
+
   // UI text in the user's language; missing translations fall back to
   // English inside t(), so this can never break a render.
-  const T = useCallback((s: string) => translate(s, state.language), [state.language])
+  const T = useCallback((s: string) => translate(s, state.language), [state.language, i18nEpoch])
 
   // Display-only note naming: the engine speaks letters forever; dn() turns
   // a letter spelling into what the user's language calls it (C → Do) at
