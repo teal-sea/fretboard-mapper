@@ -152,10 +152,11 @@ const initialState: AppState = {
   flowEvolve: 'diatonic',
   flowChords: [0, 3, 4],
   flowPaceSec: 120,
-  // First visit lands on Flow — the ten-seconds-to-playing promise. The mic
-  // is only requested when Play is pressed (togglePlay/openTuner), never on
-  // load, so landing here must not prompt for anything.
-  appMode: 'flow',
+  // Every visit lands on Modes (internal name 'learn') — Thomas's call,
+  // 2026-07: the lesson shelf sells the idea better than an empty Flow
+  // stage. appMode is deliberately not persisted, so this IS the landing
+  // tab for everyone; shared /?app= links still override it.
+  appMode: 'learn',
   conceptId: null,
   showTheory: true,
   onboarded: false,
