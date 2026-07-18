@@ -1727,6 +1727,7 @@ export default function App() {
           </button>
         </div>
 
+        <div className="shell-right">
         <div className="shell-actions">
           {/* Only shows once there's an actual streak (2+ days) — a bare
               "1" on first visit reads as broken, not encouraging. */}
@@ -1771,7 +1772,8 @@ export default function App() {
           >
             {state.theme === 'dark' ? '\u2600' : '\u263E'}
           </button>
-          {import.meta.env.VITE_CLERK_PUBLISHABLE_KEY && <AccountMenu state={state} up={up} />}
+        </div>
+        {import.meta.env.VITE_CLERK_PUBLISHABLE_KEY && <AccountMenu state={state} up={up} />}
         </div>
       </header>
 

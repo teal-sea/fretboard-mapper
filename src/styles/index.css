@@ -2394,6 +2394,12 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   background-size: calc(972 / 145 * var(--wm-h)) auto;
   filter: drop-shadow(0 0 10px rgba(247,73,162,0.3));
 }
+.shell-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
 .shell-actions {
   display: flex;
   align-items: center;
@@ -3916,9 +3922,13 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
      the streak is a nice-to-have, not worth fighting EN/notation/settings/
      theme for space. Still visible in Settings if we ever want it there. */
   .streak-badge { display: none; }
-  /* Same fixed-budget reasoning as streak-badge above: login/upgrade
-     is a real feature but loses the fight for space at this width. */
-  .account-menu { display: none; }
+  /* The icon row can't fit login/upgrade, but hiding the ONLY path to
+     paying on a phone is worse than spending a row on it. Dissolve the
+     desktop wrapper so the account menu becomes a grid child of the
+     header and give it its own centered row under the mode switch. */
+  .shell-right { display: contents; }
+  .account-menu { grid-column: 1 / -1; grid-row: 3; justify-content: center; }
+  .upgrade-btn { height: 30px; font-size: 12px; padding: 0 12px; }
   .lang-select { height: 30px; font-size: 11px; padding: 0 20px 0 8px; }
   /* .notation-toggle is also .icon-btn — without this it inherits the
      30px FIXED width above and "C·D·E"/"Do·Re" spills out of the box. */
