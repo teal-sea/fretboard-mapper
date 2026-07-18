@@ -92,6 +92,11 @@ export default function AccountMenu({ state, up }: { state: AppState; up: (parti
     <div className="account-menu">
       <SignedOut>
         <SignInButton mode="modal">
+          <button className="upgrade-btn" title="Create a free account, then keep your streak, favorites, and settings on every device">
+            &#128293; Keep your streak — $5/mo
+          </button>
+        </SignInButton>
+        <SignInButton mode="modal">
           <button className="icon-btn" title="Log in" aria-label="Log in">&#128100;</button>
         </SignInButton>
       </SignedOut>
