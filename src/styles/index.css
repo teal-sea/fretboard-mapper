@@ -324,7 +324,9 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   margin: 0 0 26px;
   font-size: 15px;
   line-height: 1.55;
-  color: var(--text-2);
+  /* --text-2 sinks into the raised card behind the veil — this copy is
+     the thank-you, not a caption. It gets full-strength text. */
+  color: var(--text);
 }
 .upgrade-go {
   padding: 12px 34px;
