@@ -89,13 +89,13 @@ export default function AccountMenu({ state, up }: { state: AppState; up: (parti
   }, [getToken])
 
   const streak = state.practiceStreak
-  const ctaLabel = streak >= 2 ? `Keep your ${streak}-day streak · $5/mo` : `Save your progress · $5/mo`
+  const ctaLabel = streak >= 2 ? `Keep your ${streak}-day streak · $5/mo` : `Make practice stick · $5/mo`
   return (
     <div className="account-menu">
       <SignedOut>
         <SignInButton mode="modal">
           <button className="upgrade-btn" title="Create a free account, then keep your streak, favorites, and settings on every device">
-            &#128293; {ctaLabel}
+            {ctaLabel}
           </button>
         </SignInButton>
         <SignInButton mode="modal">
@@ -115,7 +115,7 @@ export default function AccountMenu({ state, up }: { state: AppState; up: (parti
           </button>
         ) : (
           <button className="upgrade-btn" onClick={startCheckout} disabled={loading} title="Your streak, favorites, and settings — synced and safe on every device">
-            &#128293; {ctaLabel}
+            {ctaLabel}
           </button>
         )}
         <UserButton afterSignOutUrl="/" />
