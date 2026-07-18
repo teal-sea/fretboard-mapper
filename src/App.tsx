@@ -470,6 +470,25 @@ export default function App() {
   }, [up, parentScaleFor])
   const [introOpen, setIntroOpen] = useState(false)
 
+  // ─── Post-checkout celebration ───
+  // Polar redirects back with ?upgraded=1. syncUrl strips it on mount, so
+  // capture it in the initializer — and leave a session flag for AccountMenu,
+  // which polls Clerk until the webhook flips the subscribed metadata.
+  const [upgradedOpen, setUpgradedOpen] = useState(() => {
+    try {
+      const paid = new URLSearchParams(window.location.search).get('upgraded') === '1'
+      if (paid) sessionStorage.setItem('mr-upgraded', '1')
+      return paid
+    } catch { return false }
+  })
+  const dismissUpgraded = useCallback(() => {
+    // The reward is the instrument itself: close on a resolved chord in the
+    // key they were just practicing in (quality follows the key — rule 6).
+    const minor = MINOR_QUALITIES.has(state.keyQuality)
+    playChordPad(chordToMidi(noteIndex(state.keyRoot), minor ? [0, 3, 7, 12, 15] : [0, 4, 7, 12, 16]), false)
+    setUpgradedOpen(false)
+  }, [state.keyRoot, state.keyQuality])
+
   // ─── "Looks better on desktop" nudge ───
   // Reddit sends a lot of phones. This never blocks the app (same rule as
   // rotate-prompt below) — it's a once-ever aside, dismissed for good,
@@ -1624,6 +1643,21 @@ export default function App() {
              time colors or layout change; a live instance of the actual
              <Fretboard /> never can. Same board/tuning/colors the visitor
              is already looking at, just framed like a monitor. ─── */}
+      {/* ─── They just paid. Say it back with the product: a thank-you in
+             brand voice, closed by a resolved chord in their own key. ─── */}
+      {upgradedOpen && (
+        <div className="intro-veil upgrade-veil">
+          <div className="upgrade-card">
+            <img className="upgrade-logo" src="/logo.png" alt="Modal Runs" />
+            <h1 className="upgrade-title">{T('You’re in.')}</h1>
+            <p className="upgrade-sub">
+              {T('Your streak, favorites, and settings now follow you to every device — and you’re keeping an independent tool alive. That matters.')}
+            </p>
+            <button className="upgrade-go" onClick={dismissUpgraded}>{T('Hear it')}</button>
+          </div>
+        </div>
+      )}
+
       {desktopNudgeOpen && (
         <div className="intro-veil desktop-nudge-veil">
           <div className="desktop-nudge-card">

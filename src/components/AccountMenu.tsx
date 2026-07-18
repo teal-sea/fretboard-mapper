@@ -46,6 +46,19 @@ export default function AccountMenu({ state, up }: { state: AppState; up: (parti
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subscribed])
 
+  // After checkout, App.tsx leaves this session flag (from ?upgraded=1).
+  // The Polar webhook that flips publicMetadata.subscribed races our page
+  // load — poll reload() until it lands so the $5 CTA swaps to the manage
+  // gear without the user having to refresh. Give up after a minute.
+  useEffect(() => {
+    if (!user) return
+    if (subscribed) { sessionStorage.removeItem('mr-upgraded'); return }
+    if (sessionStorage.getItem('mr-upgraded') !== '1') return
+    const poll = setInterval(() => { user.reload().catch(() => {}) }, 3000)
+    const giveUp = setTimeout(() => clearInterval(poll), 60000)
+    return () => { clearInterval(poll); clearTimeout(giveUp) }
+  }, [user, subscribed])
+
   const synced = pickSyncedState(state)
   useEffect(() => {
     if (!subscribed) return
