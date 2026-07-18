@@ -86,6 +86,7 @@ const es: Locale = {
     },
   },
   t: {
+    upgradeCta: 'Convierte la práctica en hábito · $5/mes',
     title: '{name} en la guitarra — Notas, mapa del mástil y drone | Modal Runs',
     metaDesc: '{name} en la guitarra: {notes}. Un visualizador interactivo del mástil (diapasón), acordes diatónicos y un drone gratis para improvisar — Modal Runs te escucha por el micrófono e ilumina lo que tocas en tiempo real.',
     h1: '{name} en la guitarra',
@@ -180,6 +181,7 @@ const fr: Locale = {
     },
   },
   t: {
+    upgradeCta: 'Fais de la pratique une habitude · 5 $/mois',
     title: '{name} à la guitare — Notes, schéma du manche et drone | Modal Runs',
     metaDesc: '{name} à la guitare : {notes} — les notes du manche de guitare. Une cartographie interactive du manche, accords diatoniques et un drone gratuit pour improviser — Modal Runs t’écoute au micro et illumine ce que tu joues.',
     h1: '{name} à la guitare',
@@ -274,6 +276,7 @@ const it: Locale = {
     },
   },
   t: {
+    upgradeCta: 'Rendi la pratica un’abitudine · 5 $/mese',
     title: '{name} alla chitarra — Note, mappa della tastiera e drone | Modal Runs',
     metaDesc: '{name} alla chitarra: {notes}. Una mappa interattiva della tastiera (il manico), accordi diatonici e un drone gratis per improvvisare — Modal Runs ti ascolta dal microfono in tempo reale e illumina quello che suoni.',
     h1: '{name} alla chitarra',
@@ -368,6 +371,7 @@ const pt: Locale = {
     },
   },
   t: {
+    upgradeCta: 'Torne a prática um hábito · $5/mês',
     title: '{name} no violão e na guitarra — Notas, mapa do braço e drone | Modal Runs',
     metaDesc: '{name} na guitarra: {notes} — as notas no braço. Mapa interativo do braço, o campo harmônico (acordes diatônicos) e um drone grátis para improvisar — o Modal Runs te escuta pelo microfone e ilumina o que você toca.',
     h1: '{name} na guitarra',
