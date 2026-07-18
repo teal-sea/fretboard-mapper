@@ -27,10 +27,25 @@ describe('displayNote', () => {
     expect(displayNote('A', 'solfege', 'pt')).toBe('Lá')
   })
 
-  it('uses Si, not Ti — all five languages here say Si', () => {
-    for (const { key } of LANGUAGES) {
+  it('uses Si, not Ti — every Latin-script fixed-do language says Si', () => {
+    for (const key of ['en', 'es', 'fr', 'it', 'pt', 'tr', 'vi', 'zh', 'id', 'hi'] as const) {
       expect(displayNote('B', 'solfege', key)).toBe('Si')
     }
+    // Non-Latin scripts say Si in their own alphabet.
+    expect(displayNote('B', 'solfege', 'ru')).toBe('Си')
+    expect(displayNote('B', 'solfege', 'uk')).toBe('Сі')
+    expect(displayNote('B', 'solfege', 'ja')).toBe('シ')
+    expect(displayNote('B', 'solfege', 'ko')).toBe('시')
+  })
+
+  it('German-convention languages write B as H and Bb as B', () => {
+    for (const key of ['de', 'pl'] as const) {
+      expect(displayNote('B', 'letters', key)).toBe('H')
+      expect(displayNote('Bb', 'letters', key)).toBe('B')
+      expect(displayNote('C', 'letters', key)).toBe('C')
+    }
+    expect(displayNote('B', 'letters', 'en')).toBe('B')
+    expect(displayNote('B', 'letters', 'nl')).toBe('B')
   })
 
   it('passes unparseable labels through instead of crashing', () => {
@@ -39,9 +54,9 @@ describe('displayNote', () => {
   })
 
   it('every language declares a sensible default style', () => {
-    expect(LANGUAGES.find(l => l.key === 'en')!.defaultStyle).toBe('letters')
-    for (const l of LANGUAGES.filter(l => l.key !== 'en')) {
-      expect(l.defaultStyle).toBe('solfege')
+    const letters = new Set(['en', 'de', 'nl', 'pl', 'zh', 'id', 'hi'])
+    for (const l of LANGUAGES) {
+      expect(l.defaultStyle).toBe(letters.has(l.key) ? 'letters' : 'solfege')
     }
   })
 })

@@ -50,13 +50,19 @@ function foldAccents(s: string): string {
 }
 
 function slugRootL(engineName: string, locale: Locale): string {
-  const solfege = foldAccents(dispNote(engineName, locale)).toLowerCase()
+  // Non-Latin locales provide romanized slug notes; URLs stay ASCII even
+  // when the page displays До or ド.
+  const letterIdx = 'CDEFGAB'.indexOf(engineName.charAt(0).toUpperCase())
+  const base = locale.slugSolfege && letterIdx >= 0
+    ? locale.slugSolfege[letterIdx] + engineName.slice(1)
+    : dispNote(engineName, locale)
+  const solfege = foldAccents(base).toLowerCase()
   return solfege.replace('#', `-${locale.sharpWord}`).replace(/(.)b$/, `$1-${locale.flatWord}`)
 }
 
 function pagePathL(rootPc: number, mode: ModeKey, locale: Locale): string {
   const root = rootNameFor(rootPc, mode)
-  const modeSlug = foldAccents(locale.modeNames[mode]).toLowerCase()
+  const modeSlug = foldAccents(locale.modeSlugs?.[mode] ?? locale.modeNames[mode]).toLowerCase()
   return `/${locale.code}/${locale.modesSegment}/${slugRootL(root, locale)}-${modeSlug}/`
 }
 
