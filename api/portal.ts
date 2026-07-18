@@ -4,7 +4,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { Polar } from '@polar-sh/sdk'
 import { verifyToken } from '@clerk/backend'
-import { extractBearerToken } from './_auth'
+import { extractBearerToken } from './authHelper'
 
 const polar = new Polar({ accessToken: process.env.POLAR_ACCESS_TOKEN! })
 

@@ -10,7 +10,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks'
 import { createClerkClient } from '@clerk/backend'
-import { deriveSubscriptionUpdate } from './_deriveSubscriptionUpdate'
+import { deriveSubscriptionUpdate } from './deriveSubscriptionUpdate'
 
 export const config = { api: { bodyParser: false } }
 

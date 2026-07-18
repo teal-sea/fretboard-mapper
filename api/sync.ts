@@ -6,7 +6,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { verifyToken, createClerkClient } from '@clerk/backend'
 import { neon } from '@neondatabase/serverless'
-import { extractBearerToken } from './_auth'
+import { extractBearerToken } from './authHelper'
 
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY! })
 const sql = neon(process.env.DATABASE_URL!)
