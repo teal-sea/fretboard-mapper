@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { deriveSubscriptionUpdate } from './_deriveSubscriptionUpdate'
+import { deriveSubscriptionUpdate } from './deriveSubscriptionUpdate'
 
 // No default value for externalId: a default parameter silently substitutes
 // for an explicitly-passed `undefined`, which would make the "missing
