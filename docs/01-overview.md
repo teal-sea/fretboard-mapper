@@ -56,4 +56,8 @@ to explore this session* and configures the rest of the loop automatically. See
    course.
 3. **Correct by construction.** Theory is computed, never guessed, so the player
    can trust every dot on the neck.
-4. **Zero setup.** Client-only, instant load, no account, no backend.
+4. **Zero setup.** Client-only, instant load, no account, no backend — still
+   true for the core tool. An optional account exists only for subscribers
+   who want their favorites/streak/prefs synced across devices; nothing
+   about picking up the guitar and playing requires it. See
+   [02-architecture](02-architecture.md).

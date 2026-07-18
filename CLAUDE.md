@@ -20,9 +20,13 @@ Live: https://fretboard-mapper-zeta.vercel.app · Repo: `teal-sea/fretboard-mapp
 ## Stack
 
 - **React 18** + **Vite 6** + **TypeScript** (~5.6). Vitest 4 for tests.
-- **Zero runtime dependencies** beyond `react`/`react-dom`. No state library, no
-  music-theory library (`tonal` etc.), **no backend, no database, no persistence.**
-  Everything is client-side and deterministic.
+- **Zero runtime dependencies for the app itself** beyond `react`/`react-dom`. No
+  state library, no music-theory library (`tonal` etc.) — the fretboard/theory/audio
+  engine is client-side and deterministic, full stop, and stays that way (golden rule 2).
+- **Monetization infra is the one deliberate exception**: Clerk (auth), Polar
+  (payments/subscriptions), Neon (Postgres, cross-device sync of favorites/streak/
+  prefs for subscribers) — see `.env.example` and `api/`. The core tool works fully,
+  free, and unauthenticated with none of this configured; it's additive, not load-bearing.
 - Deployed on **Vercel**.
 
 ## Commands
@@ -44,13 +48,14 @@ while). If you notice it's stale again, fix it, don't just work around it.
 
 ```
 src/
-  main.tsx                  # React entry
+  main.tsx                  # React entry; wraps in ClerkProvider iff VITE_CLERK_PUBLISHABLE_KEY is set
   App.tsx                   # ALL app state + UI orchestration (see docs/03-state.md)
   types/music.ts            # AppState + domain types
   components/
     Fretboard.tsx           # the neck renderer (docs/06-components.md)
     FlowCanvas.tsx          # Flow's ambient particle layer (docs/06-components.md)
     KeyMapView.tsx          # ⚠️ dead code, not mounted anywhere (docs/06-components.md)
+    AccountMenu.tsx         # login/upgrade/manage-subscription + cloud sync effect (Clerk-gated)
   utils/
     musicTheory.ts          # deterministic theory engine (docs/04-music-theory.md)
     theory.ts               # "why it works" insight text (scale/chord → prose)
@@ -62,6 +67,7 @@ src/
     modes.ts / walk.ts / runner.ts / flowEngine.ts   # Flow/Learn session engines
     progress.ts / favorites.ts / streak.ts           # separately-persisted progress (not AppState)
     persist.ts               # AppState -> localStorage (the only place that touches it)
+    cloudSync.ts              # AppState subset synced to Postgres for subscribers (pure helpers)
     urlState.ts               # shareable-URL <-> AppState sync
     noteNames.ts               # note-name display (letters vs solfège, per language)
     i18n.ts / i18nContent.ts   # ES/FR/IT/PT translation lookup + string tables
@@ -70,6 +76,13 @@ src/
   styles/index.css          # all styling (CSS variables + theme classes)
 scripts/                    # SSG build step: /modes/, /guides/, /chords/ pages,
                              # llms.txt, sitemap — runs as part of `npm run build`
+api/                         # Vercel serverless functions — the only place secrets live
+  checkout.ts                 # creates a Polar checkout session for the logged-in user
+  portal.ts                   # creates a Polar customer-portal session (manage/cancel)
+  sync.ts                     # GET/POST cross-device AppState subset, subscriber-gated
+  webhook/polar.ts             # verifies Polar webhooks, is the ONLY writer of the
+                                # Clerk subscribed flag — never trust a client claim
+db/schema.sql                # Postgres (Neon) schema for api/sync.ts
 ```
 
 ## The golden rules (don't fight these)
@@ -90,9 +103,12 @@ scripts/                    # SSG build step: /modes/, /guides/, /chords/ pages,
 3. **Notes are pitch classes 0–11 internally** (0=C … 11=B). MIDI numbers exist
    only inside `audioEngine.ts`. Keep that boundary.
 
-4. **Client-only, for now.** There is no server. If a feature needs a secret
-   (e.g. a live Claude API call), the path is a Vercel serverless function in an
-   `api/` folder with the key server-side — never ship a key to the browser.
+4. **The theory/audio engine is client-only — that's not up for debate.** Anything
+   *else* that needs a secret (payments, auth, sync — see the monetization exception
+   above) goes through a Vercel serverless function in `api/` with the key
+   server-side. Never ship a secret key to the browser, and never let the browser
+   or a webhook-adjacent client claim "I'm subscribed" — `api/webhook/polar.ts` is
+   the only writer of the Clerk `subscribed` flag; everything else only reads it.
 
 5. **Audio routes through one shared `AudioContext`** (`getCtx()`). Every new
    sound source connects through `masterGain` (dry + reverb) and **must clean up

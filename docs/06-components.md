@@ -108,6 +108,38 @@ not exported.
 field) or delete it. See [08-roadmap](08-roadmap.md). Leaving dead code around
 misleads future readers.
 
+## `AccountMenu.tsx` — login, upgrade, manage-subscription, cloud sync
+
+Only mounted by `App.tsx` when `import.meta.env.VITE_CLERK_PUBLISHABLE_KEY` is
+set (see `main.tsx`) — every hook inside it assumes a `ClerkProvider` ancestor
+exists, so it can't be rendered unconditionally. Renders the header's
+login/upgrade/manage-subscription controls (`@clerk/clerk-react`'s
+`SignedIn`/`SignedOut`/`SignInButton`/`UserButton`) and, for subscribers,
+*is* the cross-device sync feature — there's no separate sync component.
+
+```ts
+<AccountMenu state={state} up={up} />
+```
+
+Takes `state`/`up` as props rather than reading `AppState` itself, so it can
+pull down the server's copy and merge it in (`up(appState)`) and push local
+changes back up, without becoming a second source of truth.
+
+**The pull/push guard, and why it exists:** on becoming subscribed, one effect
+pulls the server's saved state and calls `up()` with it. That `up()` call
+changes `state`, which would immediately re-trigger the *push* effect and echo
+the just-pulled data straight back to the server — wasted round-trip, and a
+race if the two ever disagree. A `justPulled` ref, set right before the pull's
+`up()` call and checked (then cleared) at the top of the push effect, breaks
+that loop. Same family of bug as the Find It/Echo effects below — a state
+change made by one effect being misread as new input by another — same fix
+shape: read the guard through a ref, not state, so checking it isn't itself a
+dependency that re-triggers anything.
+
+`utils/cloudSync.ts`'s `pickSyncedState` decides exactly which `AppState`
+keys make the round trip (favorites, streak, a handful of display prefs) —
+extend `SYNCED_KEYS` there, not by hand-picking fields inside this component.
+
 ## Flow's ear-training games (Find It, Echo) — not components, but a pattern
 
 Live inline in `App.tsx`, selected via `flowJam` (`docs/03-state.md`). Both

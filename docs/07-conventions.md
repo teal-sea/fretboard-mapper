@@ -54,9 +54,9 @@
 
 - Hosted on **Vercel** (`fretboard-mapper-zeta.vercel.app`). Build command is the
   default Vite `npm run build`; output `dist/`.
-- If/when the repo is connected to Vercel's Git integration, pushes to `main`
-  auto-deploy and PRs get preview URLs. If it isn't connected yet, that's a
-  one-time setup (`vercel git connect` or the Vercel dashboard) — a good early
-  task so PR previews become available.
+- Connected to Vercel's Git integration: pushes to `main` auto-deploy, and PRs
+  get preview URLs (gated behind Vercel's own deployment protection — normal,
+  not a build failure; check `get_deployment_build_logs` for actual errors,
+  not just a "Blocked" state).
 - **Secrets never ship to the browser.** A live API integration needs a Vercel
   serverless function (`api/…`) holding the key server-side.

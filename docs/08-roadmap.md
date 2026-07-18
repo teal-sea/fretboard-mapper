@@ -20,10 +20,11 @@ Most of this exists. The frontier is the **concept** step.
 | Chord pad + metronome + progression stepper | ✅ shipped |
 | **Evolving modal drone** | ✅ shipped (PR: `worktree-evolving-drone`) |
 | Concept "brain" (what to explore this session) | ⬜ not started — the frontier |
-| Session persistence (localStorage) | ⬜ not started |
+| Session persistence (localStorage) | ✅ shipped (`utils/persist.ts`) — was stale here, fixed |
 | One-tap "start session" entry | ⬜ not started |
 | Vercel Git integration / PR previews | ⬜ nice-to-have |
 | Resolve `KeyMapView` dead code (adopt or delete) | ⬜ small cleanup |
+| Monetization infra (Clerk auth, Polar subscriptions, Neon cross-device sync) | 🟡 built, not live — code merged and tested, needs real Clerk/Polar/Neon accounts provisioned (see `.env.example`) before the login/upgrade UI activates |
 
 ## Next: the concept engine
 
@@ -56,7 +57,10 @@ A Vercel serverless function (`api/concept.ts`) where Claude picks each session'
 concept from a **constrained schema** (a `SCALES` key, a `CHORDS` key, a note
 name, a position index — never raw fret numbers).
 - ✅ Infinite variety, adaptive to what's been covered / a mood request.
-- ➖ Adds a backend, a server-side key, and ~1–3s latency per session.
+- ➖ Adds a server-side key and ~1–3s latency per session. (Used to also mean
+  "adds a backend" — as of the monetization infra, `api/` already exists for
+  Clerk/Polar/Neon, so this would just be one more endpoint in it, not the
+  first thing to introduce server-side code to the project.)
 - ⚠️ **Constrain the output to enums the engine knows** — the app renders the
   actual notes, so the model can't hallucinate frets (see golden rule #2).
 
