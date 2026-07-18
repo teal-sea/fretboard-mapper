@@ -108,7 +108,7 @@ export default function AccountMenu({ state, up }: { state: AppState; up: (parti
           </button>
         ) : (
           <button className="upgrade-btn" onClick={startCheckout} disabled={loading} title="Your streak, favorites, and settings — synced and safe on every device">
-            &#128293; Keep your streak — $4/mo
+            &#128293; Keep your streak — $5/mo
           </button>
         )}
         <UserButton afterSignOutUrl="/" />
