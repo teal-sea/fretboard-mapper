@@ -15,6 +15,38 @@ import { CONTENT } from './i18nContent'
 type Entry = Partial<Record<Language, string>>
 
 const STRINGS: Record<string, Entry> = {
+  // ─── Account / upgrade ───
+  'Make practice stick · $5/mo': {
+    es: 'Convierte la práctica en hábito · $5/mes',
+    fr: 'Fais de la pratique une habitude · 5 $/mois',
+    it: 'Rendi la pratica un’abitudine · 5 $/mese',
+    pt: 'Torne a prática um hábito · $5/mês',
+  },
+  'Keep your {n}-day streak · $5/mo': {
+    es: 'Mantén tu racha de {n} días · $5/mes',
+    fr: 'Garde ta série de {n} jours · 5 $/mois',
+    it: 'Mantieni la tua striscia di {n} giorni · 5 $/mese',
+    pt: 'Mantenha sua sequência de {n} dias · $5/mês',
+  },
+  'You’re in.': {
+    es: 'Ya estás dentro.',
+    fr: 'Tu y es.',
+    it: 'Ci sei.',
+    pt: 'Você está dentro.',
+  },
+  'Your streak, favorites, and settings now follow you to every device — and you’re keeping an independent tool alive. That matters.': {
+    es: 'Tu racha, favoritos y ajustes ahora te siguen en todos tus dispositivos — y mantienes viva una herramienta independiente. Eso importa.',
+    fr: 'Ta série, tes favoris et tes réglages te suivent désormais sur tous tes appareils — et tu fais vivre un outil indépendant. Ça compte.',
+    it: 'La tua striscia, i preferiti e le impostazioni ora ti seguono su ogni dispositivo — e tieni in vita uno strumento indipendente. Conta.',
+    pt: 'Sua sequência, favoritos e ajustes agora seguem você em todos os dispositivos — e você mantém viva uma ferramenta independente. Isso importa.',
+  },
+  'Hear it': {
+    es: 'Escúchalo',
+    fr: 'Écoute',
+    it: 'Ascolta',
+    pt: 'Ouça',
+  },
+
   // ─── Tabs ───
   'Modes':   { es: 'Modos', fr: 'Modes', it: 'Modi', pt: 'Modos' },
   'Explore': { es: 'Explora', fr: 'Explorer', it: 'Esplora', pt: 'Explorar' },

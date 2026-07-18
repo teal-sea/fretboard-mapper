@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { SignedIn, SignedOut, SignInButton, UserButton, useAuth, useUser } from '@clerk/clerk-react'
 import type { AppState } from '../types/music'
 import { pickSyncedState, type SyncedState } from '../utils/cloudSync'
+import { t, tf } from '../utils/i18n'
 
 async function callApi(path: string, token: string | null): Promise<{ url?: string; error?: string }> {
   const res = await fetch(path, {
@@ -102,7 +103,9 @@ export default function AccountMenu({ state, up }: { state: AppState; up: (parti
   }, [getToken])
 
   const streak = state.practiceStreak
-  const ctaLabel = streak >= 2 ? `Keep your ${streak}-day streak · $5/mo` : `Make practice stick · $5/mo`
+  const ctaLabel = streak >= 2
+    ? tf('Keep your {n}-day streak · $5/mo', state.language, { n: streak })
+    : t('Make practice stick · $5/mo', state.language)
   return (
     <div className="account-menu">
       <SignedOut>

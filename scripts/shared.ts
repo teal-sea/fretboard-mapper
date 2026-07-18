@@ -150,6 +150,10 @@ export const CSS = `
   header.site { display: flex; align-items: center; gap: 10px; padding: 18px 20px; max-width: 780px; margin: 0 auto }
   header.site img { width: 34px; height: 34px; filter: drop-shadow(0 0 10px rgba(152,70,234,0.5)) }
   header.site a { color: #e8e6f0; font-weight: 600; letter-spacing: 0.02em }
+  /* Same gradient-brim CTA as the app header (.upgrade-btn) — the one
+     brand button, on every static page too. */
+  header.site .upgrade-pill { margin-left: auto; padding: 8px 14px; border: 2px solid transparent; border-radius: 10px; font-size: 13px; font-weight: 600; color: #e8e6f0; background: linear-gradient(#12121a, #12121a) padding-box, linear-gradient(100deg, #09cede, #2987e6 28%, #9846ea 55%, #f749a2 80%, #f57064) border-box; white-space: nowrap }
+  header.site .upgrade-pill:hover { text-decoration: none; box-shadow: 0 0 12px rgba(152,70,234,0.4) }
   h1 { font-size: 1.9rem; line-height: 1.25; margin: 18px 0 14px; background: linear-gradient(90deg, #09cede, #9846ea, #f749a2); -webkit-background-clip: text; background-clip: text; color: transparent }
   h2 { font-size: 1.15rem; margin: 36px 0 10px; color: #fff }
   p { margin: 10px 0; color: #bdb8d0 }
@@ -272,7 +276,9 @@ export function head(opts: {
     <script defer src="/_vercel/insights/script.js"></script>`
 }
 
-export const SITE_HEADER = `<header class="site"><img src="/mark.png" alt="" /><a href="/">Modal Runs</a></header>`
+export const siteHeader = (cta = 'Make practice stick · $5/mo'): string =>
+  `<header class="site"><img src="/mark.png" alt="" /><a href="/">Modal Runs</a><a class="upgrade-pill" href="/">${cta}</a></header>`
+export const SITE_HEADER = siteHeader()
 
 export function footer(opts?: {
   modesHref: string

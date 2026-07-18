@@ -28,7 +28,7 @@ import { displayNote } from '../src/utils/noteNames'
 import {
   ORIGIN, MAJOR, MODES, type ModeKey, MODE_COPY, ENHARMONIC,
   parentPc, usesFlats, rootNameFor, pageSlug, pagePath, appLink,
-  head, SITE_HEADER, footer, breadcrumbList, articleSchema, faqPageSchema,
+  head, SITE_HEADER, siteHeader, footer, breadcrumbList, articleSchema, faqPageSchema,
 } from './shared'
 import { GUIDES, GUIDES_FOR_MODE, guidesIndexPage } from './guides'
 import { LOCALES, type Locale } from './locales'
@@ -333,7 +333,7 @@ function localizedModePage(rootPc: number, mode: ModeKey, locale: Locale): strin
     })}
 </head>
 <body>
-  ${SITE_HEADER}
+  ${siteHeader(t.upgradeCta)}
   <main>
     <h1>${fmt(t.h1, { ...vars, name: `${displayName}${alt ? ` <span style="font-size:0.6em;color:#8a84a3">(${dispAlt})</span>` : ''}` })}</h1>
     <p class="lead">${fmt(t.lead, vars)}</p>
@@ -458,7 +458,7 @@ function localizedHomePage(locale: Locale): string {
     })}
 </head>
 <body>
-  ${SITE_HEADER}
+  ${siteHeader(t.upgradeCta)}
   <main>
     <h1>${t.homeH1}</h1>
     <p class="lead">${t.homeLead}</p>
@@ -509,7 +509,7 @@ function localizedIndexPage(locale: Locale): string {
     })}
 </head>
 <body>
-  ${SITE_HEADER}
+  ${siteHeader(t.upgradeCta)}
   <main>
     <h1>${t.indexH1}</h1>
     <p class="lead">${t.indexLead}</p>
