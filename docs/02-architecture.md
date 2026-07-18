@@ -50,6 +50,17 @@ insights), `arpeggios.ts` (run shapes), `progress.ts` (Walk-claim persistence),
 `persist.ts` (AppState persistence), `pitchDetect.ts` (pitch DSP).
 `micInput.ts` sits with `audioEngine.ts` on the side-effect side.
 
+**The language layer** (pure, English-fallback by construction):
+`noteNames.ts` converts letter spellings to fixed-do solfège for display
+(`displayNote('C#','solfege','es') → 'Do#'`) — the engine itself speaks
+letters forever; `i18n.ts` + `i18nContent.ts` are the UI/prose translation
+dictionaries (`t(key, lang)` / `tf(key, lang, vars)`), keyed by the English
+string so call sites stay readable and a missing translation renders English
+instead of breaking. Engine functions that compose sentences
+(`theory.ts`, `walk.ts`, `runner.ts`, `modes.ts`, `flowEngine.ts`) take a
+`lang` parameter defaulting to `'en'`, which is why every test passes
+without mentioning language.
+
 ## Data flow (unidirectional)
 
 1. **Source of truth:** one `AppState` object in `App.tsx`, initialized as

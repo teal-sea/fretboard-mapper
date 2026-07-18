@@ -51,6 +51,17 @@ domain state (only `containerWidth` from the observer).
 `viewBox` is swapped dynamically for zoom-to-position or fret-window cropping.
 Fret numbers are drawn as `<text>` along the bottom.
 
+### ⚠️ Neon glow: SVG halo layers, not CSS filters
+
+**iOS Safari silently ignores the CSS `filter` property on SVG elements.**
+This shipped as a real bug: every note dot glowed on desktop and rendered
+completely flat on actual iPhones, and no desktop-browser or Playwright-WebKit
+check caught it. The glow is therefore built from **layered `<circle>` halos**
+(r×2 and r×1.4 at low opacity behind each in-position dot) which render
+everywhere; the inline `drop-shadow` filter is kept purely as a desktop bonus.
+If you add any new glow effect to the neck, build it from SVG shapes first and
+treat CSS filters as progressive enhancement — never the other way around.
+
 ## `FlowCanvas.tsx` — Flow's ambient particle layer
 
 A full-stage `<canvas>` behind Flow's UI, mounted once per Flow session. Pure
