@@ -1649,7 +1649,7 @@ export default function App() {
       {upgradedOpen && (
         <div className="intro-veil upgrade-veil">
           <div className="upgrade-card">
-            <img className="upgrade-logo" src="/logo.png" alt="Modal Runs" />
+            <img className="upgrade-logo" src="/logo.webp" alt="Modal Runs" />
             <h1 className="upgrade-title">{T('You’re in.')}</h1>
             <p className="upgrade-sub">
               {T('Your streak, favorites, and settings now follow you to every device — and you’re keeping an independent tool alive. That matters.')}
@@ -1666,12 +1666,12 @@ export default function App() {
               &#10005;
             </button>
             <div className="desktop-nudge">
-              <img className="desktop-nudge-logo" src="/mark.png" alt="" />
+              <img className="desktop-nudge-logo" src="/mark.webp" alt="" />
               <h2 className="desktop-nudge-title"><span className="desktop-nudge-title-brand">modalruns</span> {T('looks best on desktop')}</h2>
               <p className="desktop-nudge-sub">
                 {T('The whole neck, every mode, side by side — a bigger screen shows a lot more of it at once. Totally playable here too.')}
               </p>
-              <img className="desktop-nudge-frame" src="/desktop-nudge-art.png" alt="Modal Runs open on a desktop monitor" />
+              <img className="desktop-nudge-frame" src="/desktop-nudge-art.webp" alt="Modal Runs open on a desktop monitor" />
               <button className="desktop-nudge-dismiss" onClick={dismissDesktopNudge}>{T('Continue on mobile')}</button>
             </div>
           </div>
@@ -1684,7 +1684,7 @@ export default function App() {
       {introOpen && (
         <div className="intro-veil in-stage">
           <div className="intro">
-            <img className="intro-logo" src="/logo.png" alt="Modal Runs" />
+            <img className="intro-logo" src="/logo.webp" alt="Modal Runs" />
             <h1 className="intro-title">
               {T('It')} <em>{T('listens while you play,')}</em> {T('and answers on the neck.')}
             </h1>
@@ -1744,7 +1744,7 @@ export default function App() {
       {/* ─── The shell: one switch between two first-class modes ─── */}
       <header className="shell-header">
         <div className="shell-brand">
-          <img className="shell-logo" src="/mark.png" alt="Modal Runs" width={44} height={44} />
+          <img className="shell-logo" src="/mark.webp" alt="Modal Runs" width={44} height={44} />
           <span className="shell-wordmark" role="img" aria-label="modalruns" />
         </div>
 
