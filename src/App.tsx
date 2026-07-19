@@ -894,6 +894,13 @@ export default function App() {
 
   const backingNoun = state.backingMode === 'chord' ? 'the chord' : state.backingMode === 'arp' ? 'the arpeggiator' : 'the drone'
 
+  // One clamp for every BPM stepper on the page (backing bar, jam setup,
+  // practice panel) — the 40–200 range lives in exactly one place.
+  const bumpBpm = useCallback(
+    (delta: number) => setState(s => ({ ...s, progressionBpm: Math.min(200, Math.max(40, s.progressionBpm + delta)) })),
+    []
+  )
+
   // ─── Tuner ───
   // The pitch pipe already reports cents-off-nearest-note; the tuner is just
   // that number with a needle. It borrows the mic if Play already has it
@@ -980,13 +987,35 @@ export default function App() {
       {(state.backingMode === 'arp' || metronomeOn) && (
         <div className="backing-bpm">
           <button type="button" className="backing-bpm-btn"
-            onClick={() => up({ progressionBpm: Math.max(40, state.progressionBpm - 5) })}>&minus;</button>
+            onClick={() => bumpBpm(-5)}>&minus;</button>
           <span className="backing-bpm-val">{state.progressionBpm}</span>
           <button type="button" className="backing-bpm-btn"
-            onClick={() => up({ progressionBpm: Math.min(200, state.progressionBpm + 5) })}>+</button>
+            onClick={() => bumpBpm(5)}>+</button>
         </div>
       )}
     </div>
+  )
+
+  // Play button + heard-note readout, shared by all three stages — same
+  // markup everywhere so they can't drift apart (the renderBackingControls
+  // rule, applied to the other two transport widgets).
+  const renderPlayButton = (small = false) => (
+    <button
+      key={justTapped}
+      className={`play-btn${small ? ' small' : ''} ${isPlaying ? 'on' : ''}`}
+      onClick={togglePlay}
+      title={isPlaying ? `Stop ${backingNoun} and the mic` : `Start ${backingNoun} and let it hear you`}
+      aria-label={isPlaying ? 'Stop' : 'Play'}
+    >
+      <span className="play-icon">{isPlaying ? '⏸' : '▶'}</span>
+    </button>
+  )
+  const renderHeardNote = (cls: string) => listening && (
+    <span className={cls}>
+      {heardMidi !== null
+        ? <>{dn(noteName(heardMidi % 12, flats))}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
+        : '···'}
+    </span>
   )
 
   // BPM changes retime a running click immediately — without this the stepper
@@ -1789,22 +1818,8 @@ export default function App() {
             )}
             <button className="flow-ctl" onClick={() => up({ conceptId: null })}>‹ {T('Lessons')}</button>
             {renderBackingControls()}
-            <button
-              key={justTapped}
-              className={`play-btn ${isPlaying ? 'on' : ''}`}
-              onClick={togglePlay}
-              title={isPlaying ? `Stop ${backingNoun} and the mic` : `Start ${backingNoun} and let it hear you`}
-              aria-label={isPlaying ? 'Stop' : 'Play'}
-            >
-              <span className="play-icon">{isPlaying ? '⏸' : '▶'}</span>
-            </button>
-            {listening && (
-              <span className={`flow-readout ${hearingFocus ? 'hit' : ''}`}>
-                {heardMidi !== null
-                  ? <>{dn(noteName(heardMidi % 12, flats))}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
-                  : '···'}
-              </span>
-            )}
+            {renderPlayButton()}
+            {renderHeardNote(`flow-readout ${hearingFocus ? 'hit' : ''}`)}
             {listening && (
               <div className="mic-meter" title="Mic level — play louder if the bar isn't reaching the line">
                 <div className="mic-meter-track">
@@ -2007,10 +2022,10 @@ export default function App() {
                   <span className="study-bar-label">{T('Tempo')}</span>
                   <div className="backing-bpm">
                     <button type="button" className="backing-bpm-btn"
-                      onClick={() => up({ progressionBpm: Math.max(40, state.progressionBpm - 5) })}>&minus;</button>
+                      onClick={() => bumpBpm(-5)}>&minus;</button>
                     <span className="backing-bpm-val">{state.progressionBpm}</span>
                     <button type="button" className="backing-bpm-btn"
-                      onClick={() => up({ progressionBpm: Math.min(200, state.progressionBpm + 5) })}>+</button>
+                      onClick={() => bumpBpm(5)}>+</button>
                   </div>
                   <span className="study-bar-label">{T('Bars each')}</span>
                   <div className="backing-switch" role="group" aria-label="Bars per chord">
@@ -2085,22 +2100,8 @@ export default function App() {
 
           <footer className="flow-controls">
             {renderBackingControls(state.flowJam === 'modes' || state.flowJam === 'findit' || state.flowJam === 'echo')}
-            <button
-              key={justTapped}
-              className={`play-btn ${isPlaying ? 'on' : ''}`}
-              onClick={togglePlay}
-              title={isPlaying ? `Stop ${backingNoun} and the mic` : `Start ${backingNoun} and let it hear you`}
-              aria-label={isPlaying ? 'Stop' : 'Play'}
-            >
-              <span className="play-icon">{isPlaying ? '⏸' : '▶'}</span>
-            </button>
-            {listening && (
-              <span className="flow-readout">
-                {heardMidi !== null
-                  ? <>{dn(noteName(heardMidi % 12, flats))}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
-                  : '···'}
-              </span>
-            )}
+            {renderPlayButton()}
+            {renderHeardNote('flow-readout')}
           </footer>
 
           {micError && <p className="flow-coach mic-error"><span className="flow-pip" />{micError}</p>}
@@ -2221,22 +2222,8 @@ export default function App() {
 
           <div className="quick-row">
             {renderBackingControls()}
-            <button
-              key={justTapped}
-              className={`play-btn small ${isPlaying ? 'on' : ''}`}
-              onClick={togglePlay}
-              title={isPlaying ? `Stop ${backingNoun} and the mic` : `Start ${backingNoun} and let it hear you`}
-              aria-label={isPlaying ? 'Stop' : 'Play'}
-            >
-              <span className="play-icon">{isPlaying ? '⏸' : '▶'}</span>
-            </button>
-            {listening && (
-              <span className="heard-readout">
-                {heardMidi !== null
-                  ? <>{dn(noteName(heardMidi % 12, flats))}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
-                  : '···'}
-              </span>
-            )}
+            {renderPlayButton(true)}
+            {renderHeardNote('heard-readout')}
           </div>
         </div>
 
@@ -2484,9 +2471,9 @@ export default function App() {
             <CollapsibleSection title="PRACTICE" variant="panel">
               <div className="progression-header">
                 <div className="progression-bpm">
-                  <button className="progression-bpm-btn" onClick={() => up({ progressionBpm: Math.max(40, state.progressionBpm - 5) })}>-</button>
+                  <button className="progression-bpm-btn" onClick={() => bumpBpm(-5)}>-</button>
                   <span className="progression-bpm-val">{state.progressionBpm} BPM</span>
-                  <button className="progression-bpm-btn" onClick={() => up({ progressionBpm: Math.min(200, state.progressionBpm + 5) })}>+</button>
+                  <button className="progression-bpm-btn" onClick={() => bumpBpm(5)}>+</button>
                 </div>
                 <div className="progression-bars-row">
                   <span className="progression-bars-label">Bars/chord</span>
