@@ -23,7 +23,7 @@
 
 ```
   ┌────────────────────────── UI layer ──────────────────────────┐
-  │  App.tsx  ·  components/Fretboard.tsx  ·  styles/index.css     │
+  │  App.tsx  ·  components/*  ·  hooks/*  ·  styles/index.css    │
   │  Holds AppState, renders, wires events.                        │
   └───────────────┬───────────────────────────┬──────────────────┘
                   │ pure calls                 │ imperative calls
