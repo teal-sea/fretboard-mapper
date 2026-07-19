@@ -493,6 +493,7 @@ function localizedIndexPage(locale: Locale): string {
     ).join('\n      ')
     return `<h2>${locale.modeNames[mode]}</h2>
     <p>${locale.copy[mode].hook}</p>
+    <p><strong>${t.formulaHeading}: ${formulaString(SCALES[mode].intervals)}</strong></p>
     <div class="grid">
       ${cells}
     </div>`
