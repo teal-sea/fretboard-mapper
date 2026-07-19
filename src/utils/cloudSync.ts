@@ -23,3 +23,16 @@ export function pickSyncedState(state: AppState): SyncedState {
   for (const key of SYNCED_KEYS) (picked as any)[key] = state[key]
   return picked
 }
+
+// Filter an UNTRUSTED payload down to the synced whitelist. Used on both
+// sides of the wire: the API refuses to store keys outside it, and the pull
+// path refuses to merge them into AppState — so a corrupted row can never
+// poison state on every device that syncs.
+export function pickSyncedPartial(raw: unknown): Partial<SyncedState> {
+  const picked: Partial<SyncedState> = {}
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return picked
+  for (const key of SYNCED_KEYS) {
+    if (key in raw) (picked as any)[key] = (raw as Record<string, unknown>)[key]
+  }
+  return picked
+}

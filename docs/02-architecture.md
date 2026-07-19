@@ -106,9 +106,9 @@ compute a partial and call `up()`. See [03-state](03-state.md).
 
 ## Non-obvious facts
 
-- **`KeyMapView.tsx` is currently dead code** — not imported anywhere. It's a
-  functional alternate "key map" view wired to real APIs but unmounted. Either
-  adopt it or delete it; don't assume it's live. See [06-components](06-components.md).
+- **`KeyMapView.tsx` was deleted** — it was never mounted. If a per-degree key
+  map returns, rebuild it against the theory engine rather than restoring the
+  file. See [06-components](06-components.md).
 - **No routing.** The Study/Flow split is `AppState.appMode`, not a route;
   "pages" are conditional panels toggled by state (`appMode`, `advancedMode`,
   `activeTab`, `settingsOpen`).

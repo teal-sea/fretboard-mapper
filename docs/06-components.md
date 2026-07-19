@@ -85,28 +85,39 @@ particle layer ever looks "broken" or invisible again, check
 itself — the canvas can be running perfectly and still have nowhere visible
 to render.
 
-## `KeyMapView.tsx` — ⚠️ currently dead code
+## `SettingsDrawer.tsx` — the global prefs slide-over
 
-A functional alternate "Key Map" view, **not imported or mounted anywhere** (grep
-confirms: the only reference is its own declaration). It's wired to real APIs, so
-it works if adopted — but don't assume it's live.
+Pure state-in / `up()`-out: theme, tuning, frets, inlays, display toggles, mic
+echo-cancellation, drone/pad voicing sliders, and the interval-color grid. Owns
+no state of its own; `App` passes `open`/`onClose` plus `state`/`up`/`T`.
+`THEME_OPTIONS` lives here with its only consumer.
 
-```ts
-function KeyMapView({ state, onSelectChord }: {
-  state: AppState
-  onSelectChord: (root: string, chordKey: string) => void
-}): JSX.Element
-```
-Reads `SCALES[state.keyQuality]`, calls `getDiatonicChords(state.keyRoot, scale)`,
-and renders one expandable `DegreeCard` per degree — showing the primary
-(`inner[0]`) chord's Roman numeral, name, voicing count, and a play button; when
-expanded, lists all voicings as `VoicingPill`s that can select/play the chord or
-reveal `getCompatibleScales(...)` tags. `DegreeCard`/`VoicingPill` are in-file,
-not exported.
+## `controls.tsx` — `ToggleSwitch` / `DrawerSlider` / `CollapsibleSection`
 
-**Decision pending:** adopt it as an alternate view (toggle via an `AppState`
-field) or delete it. See [08-roadmap](08-roadmap.md). Leaving dead code around
-misleads future readers.
+Dumb shared widgets used by the drawer and Study's advanced panel
+(`CollapsibleSection variant="panel"`). No app state.
+
+## `Veils.tsx` — upgrade celebration, desktop nudge, intro
+
+The three full-screen overlays. The desktop nudge owns its own
+`localStorage`-backed once-ever state internally; the upgrade veil's
+resolved-chord payoff and the intro's `onboarded` writes stay in `App`
+and arrive as callbacks (`onDismissUpgraded`, `onIntroChoose`).
+
+## `hooks/` — the extracted practice engines
+
+`useFindIt`, `useEcho`, `useWalk`, `useRun`. Each owns its *transient*
+per-round/per-attempt state (deliberately outside `AppState`, see
+[03-state](03-state.md)) and receives `board`/`tuning`/mic flags from `App`;
+anything shared (key, scale, chord on the neck) still changes only through
+`up()`. Effect topology in these hooks is deliberate — the self-cancellation
+comments inside them explain dependency arrays that look wrong but aren't.
+
+## `KeyMapView.tsx` — deleted
+
+The old unmounted "Key Map" view was removed (it had never been reachable).
+If a per-degree key map returns, rebuild it against `getDiatonicChords` +
+`getChordVoicings` rather than resurrecting the deleted file.
 
 ## `AccountMenu.tsx` — login, upgrade, manage-subscription, cloud sync
 
