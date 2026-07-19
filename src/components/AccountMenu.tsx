@@ -3,7 +3,7 @@
 // VITE_CLERK_PUBLISHABLE_KEY is set (see main.tsx) — every hook here
 // assumes a ClerkProvider ancestor exists.
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { SignedIn, SignedOut, SignInButton, UserButton, useAuth, useUser } from '@clerk/clerk-react'
+import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton, useAuth, useUser } from '@clerk/clerk-react'
 import type { AppState } from '../types/music'
 import { pickSyncedState, type SyncedState } from '../utils/cloudSync'
 import { t, tf } from '../utils/i18n'
@@ -109,11 +109,11 @@ export default function AccountMenu({ state, up }: { state: AppState; up: (parti
   return (
     <div className="account-menu">
       <SignedOut>
-        <SignInButton mode="modal">
+        <SignUpButton mode="modal">
           <button className="upgrade-btn" title="Create a free account, then keep your streak, favorites, and settings on every device">
             {ctaLabel}
           </button>
-        </SignInButton>
+        </SignUpButton>
         <SignInButton mode="modal">
           <button className="icon-btn" title="Log in" aria-label="Log in">&#128100;</button>
         </SignInButton>
