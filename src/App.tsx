@@ -26,7 +26,7 @@ import { CONCEPTS, getNextConcept, markSeen, loadOwned, markOwned, type Concept 
 import { startMic, stopMic, readPitch, recalibrateMic, getMicError, getLastRms, getRmsGate, isMicRunning } from './utils/micInput'
 import { intervalSemitones } from './utils/musicTheory'
 import { getScaleInsight, getChordInsight, chordsInScale, getObjective, getPrimer } from './utils/theory'
-import { getSameNoteModes, recontextualise, type SiblingMode } from './utils/modes'
+import { getSameNoteModes, type SiblingMode } from './utils/modes'
 import { loadPersistedState, savePersistedState } from './utils/persist'
 import { parseUrlState, syncUrl } from './utils/urlState'
 import { displayNote, LANGUAGES } from './utils/noteNames'
@@ -36,16 +36,11 @@ import { recordPractice } from './utils/streak'
 import { favoriteId, isFavorited, toggleFavorite, type FavoriteItem } from './utils/favorites'
 import { registerWebMcpTools } from './utils/webmcp'
 import FlowCanvas, { type FlowPulse } from './components/FlowCanvas'
-import { familyId, getClaims, claimMode, markCompleted, totalClaimed } from './utils/progress'
-import { getSweepShape, getArpeggioShapes, buildRun } from './utils/arpeggios'
-import {
-  getWalkPositions, currentWalkIndex, describeStep,
-  initWalk, feedWalk, enterPosition, walkProgress,
-} from './utils/walk'
-import { initRun, advanceRun, scoreRun, stepStates } from './utils/runner'
-import type { RunNoteMark } from './components/Fretboard'
+import { totalClaimed } from './utils/progress'
 import { useFindIt } from './hooks/useFindIt'
 import { useEcho } from './hooks/useEcho'
+import { useWalk } from './hooks/useWalk'
+import { useRun } from './hooks/useRun'
 
 // ─── Harmony Map row definitions ────────────────────────────
 const HARMONY_ROWS = [
@@ -1276,178 +1271,18 @@ export default function App() {
     return noteName(focusPc, useFlats(currentConcept.root))
   }, [currentConcept, focusPc])
 
-  // ═══ THE WALK ═══════════════════════════════════════════════════
-  // Same seven notes, seven positions, seven modes. Move up the neck and the
-  // drone moves home with you. Claim each mode by improvising in its position
-  // and resolving to its tonic.
+  // ═══ THE WALK — hooks/useWalk owns the attempt; claims persist via utils/progress ═══
   const isWalk = Boolean(currentConcept?.walk)
+  const { walkPositions, walkIdx, walkPos, walkState, walkStory, walkProg, goToPosition, walkComplete } = useWalk({
+    active: isWalk, conceptId: currentConcept?.id, state, up, tuning,
+    listening, heardMidi, dn, setSoundsOwned, setJustLanded,
+  })
 
-  const walkPositions = useMemo(() => {
-    if (!isWalk) return []
-    return getWalkPositions(
-      state.selectedScaleRoot || state.keyRoot,
-      state.selectedScaleKey || state.keyQuality,
-      tuning,
-      state.numFrets
-    )
-  }, [isWalk, state.selectedScaleRoot, state.keyRoot, state.selectedScaleKey, state.keyQuality, tuning, state.numFrets])
-
-  const walkIdx = useMemo(
-    () => currentWalkIndex(walkPositions, state.selectedScaleRoot || state.keyRoot),
-    [walkPositions, state.selectedScaleRoot, state.keyRoot]
-  )
-  const walkPos = walkPositions[walkIdx] ?? null
-
-  const [walkState, setWalkState] = useState(initWalk)
-  const [walkStory, setWalkStory] = useState<string | null>(null)
-
-  // Which scale family are we walking? A minor and C major are the SAME walk,
-  // so a mode you claimed from one door stays claimed through the other.
-  const walkFamily = useMemo(
-    () => familyId(
-      state.selectedScaleRoot || state.keyRoot,
-      state.selectedScaleKey || state.keyQuality
-    ),
-    [state.selectedScaleRoot, state.keyRoot, state.selectedScaleKey, state.keyQuality]
-  )
-
-  // Pick up where you left off. Modes you've already earned are still yours.
-  useEffect(() => {
-    if (!isWalk) return
-    setWalkState({ ...initWalk(), claimed: getClaims(walkFamily) })
-    setWalkStory(null)
-  }, [isWalk, currentConcept?.id, walkFamily])
-
-  const scalePcs = useMemo(() => {
-    const sk = state.selectedScaleKey || state.keyQuality
-    const sr = state.selectedScaleRoot || state.keyRoot
-    const sc = SCALES[sk]
-    return sc ? getScaleNotes(sr, sc) : new Set<number>()
-  }, [state.selectedScaleKey, state.keyQuality, state.selectedScaleRoot, state.keyRoot])
-
-  // The mic drives the game.
-  useEffect(() => {
-    if (!isWalk || !walkPos || !listening || heardMidi === null) return
-    setWalkState(s => feedWalk(s, { position: walkPos, scalePcs, heardMidi }))
-  }, [heardMidi, isWalk, walkPos, listening, scalePcs])
-
-  const walkProg = useMemo(
-    () => (walkPos ? walkProgress(walkState, walkPos, state.language, dn(walkPos.tonic)) : null),
-    [walkState, walkPos, state.language, dn]
-  )
-
-  // Step to a position: the notes on the neck do NOT move. Only home does.
-  const goToPosition = useCallback((i: number) => {
-    const p = walkPositions[i]
-    if (!p) return
-    setWalkStory(describeStep(walkPos, p, state.language, { tonic: dn(p.tonic), from: walkPos ? dn(walkPos.tonic) : undefined }))
-    setWalkState(enterPosition)
-    up({
-      keyRoot: p.tonic,
-      keyQuality: p.modeKey,
-      selectedScaleRoot: p.tonic,
-      selectedScaleKey: p.modeKey,
-      viewMode: 'scales',
-      selectedChordRoot: null,
-      selectedChordKey: null,
-      scalePosition: null,
-      chordPosition: null,
-      fretRange: null,
-    })
-    // If the drone is already on it follows you home; it does not switch itself on.
-  }, [walkPositions, walkPos, up])
-
-  // Claiming a mode is owning a sound — and it is written down immediately, so
-  // closing the tab can never take it back.
-  useEffect(() => {
-    if (!walkState.justClaimed) return
-    claimMode(walkFamily, walkState.justClaimed)
-    setSoundsOwned(loadOwned().length + totalClaimed())
-    setJustLanded(true)
-    const t = setTimeout(() => setJustLanded(false), 900)
-    return () => clearTimeout(t)
-  }, [walkState.justClaimed, walkFamily])
-
-  const walkComplete = isWalk && walkPositions.length > 0 &&
-    walkState.claimed.length >= walkPositions.length
-
-  useEffect(() => {
-    if (walkComplete) markCompleted(walkFamily)
-  }, [walkComplete, walkFamily])
-
-  // ─── The run player: the app follows your hands through the arpeggio ───
-  const currentRun = useMemo(() => {
-    if (!currentConcept?.run) return null
-    const chord = CHORDS[currentConcept.run.chordKey]
-    if (!chord) return null
-
-    // Sweeps need a rakeable (one-note-per-string) shape; everything else can
-    // use a full position shape, which has more notes in it.
-    const shape =
-      currentConcept.run.kind === 'sweep'
-        ? getSweepShape(currentConcept.root, chord, tuning, currentConcept.run.shapeIndex ?? 0, state.numFrets)
-        : getArpeggioShapes(currentConcept.root, chord, tuning, state.numFrets)[
-            currentConcept.run.shapeIndex ?? 1
-          ] ?? getArpeggioShapes(currentConcept.root, chord, tuning, state.numFrets)[0]
-
-    if (!shape) return null
-    return buildRun(shape, currentConcept.run.kind)
-  }, [currentConcept, tuning, state.numFrets])
-
-  const [runState, setRunState] = useState(initRun)
-
-  // New exercise → fresh attempt.
-  useEffect(() => { setRunState(initRun()) }, [currentConcept?.id])
-
-  // The mic drives the run. One heard note = at most one advance (heardMidi only
-  // changes when the NOTE changes, so a sustained note can't run away with it).
-  useEffect(() => {
-    if (!currentRun || !listening || heardMidi === null) return
-    setRunState(s => advanceRun(currentRun, s, heardMidi, Date.now()))
-  }, [heardMidi, currentRun, listening])
-
-  const runMarks = useMemo((): RunNoteMark[] | null => {
-    if (!currentRun) return null
-    return stepStates(currentRun, runState).map(s => ({
-      stringIndex: s.step.note.stringIndex,
-      fret: s.step.note.fret,
-      order: s.order,
-      status: s.status,
-      roll: s.step.roll,
-    }))
-  }, [currentRun, runState])
-
-  const runResult = useMemo(
-    () => (currentRun ? scoreRun(currentRun, runState, state.language) : null),
-    [currentRun, runState, state.language]
-  )
-
-  // The payoff: same shape, move the drone, and it means something else entirely.
-  const [twistTonic, setTwistTonic] = useState<string | null>(null)
-
-  const twist = useMemo(() => {
-    if (!currentConcept?.run || !twistTonic) return null
-    const chord = CHORDS[currentConcept.run.chordKey]
-    if (!chord) return null
-    return recontextualise(currentConcept.root, chord.intervals, twistTonic, state.language, dn)
-  }, [currentConcept, twistTonic])
-
-  // Where can we move home to and still keep every note of the shape in key?
-  const twistOptions = useMemo(() => {
-    if (!currentConcept?.run) return []
-    return getSameNoteModes(currentConcept.root, currentConcept.mode)
-      .filter(s => !s.isCurrent)
-      .slice(0, 3)
-  }, [currentConcept])
-
-  const applyTwist = useCallback((s: SiblingMode) => {
-    setTwistTonic(s.root)
-    // Move ONLY the drone's home. The shape under the hands does not move.
-    // A running drone retunes to the new home; a silent one stays silent.
-    up({ keyRoot: s.root, keyQuality: s.scaleKey, selectedScaleRoot: s.root, selectedScaleKey: s.scaleKey })
-  }, [up])
-
-  useEffect(() => { setTwistTonic(null) }, [currentConcept?.id])
+  // ─── The run player (hooks/useRun): mic-driven arpeggio runs + the Twist ───
+  const { currentRun, runState, runMarks, runResult, twist, twistOptions, applyTwist, resetRun } = useRun({
+    concept: currentConcept, tuning, numFrets: state.numFrets,
+    listening, heardMidi, language: state.language, dn, up,
+  })
 
   // The objective, in words someone who's never heard the word "mode" can act on.
   const objective = useMemo(() => {
@@ -1808,7 +1643,7 @@ export default function App() {
                     {Math.min(runState.index + (runState.done ? 1 : 0), currentRun.steps.length)}
                     /{currentRun.steps.length}
                   </span>
-                  <button className="run-reset" onClick={() => setRunState(initRun())}>restart</button>
+                  <button className="run-reset" onClick={resetRun}>restart</button>
                 </div>
                 <p className="run-hint">{currentRun.hint}</p>
               </>
