@@ -117,14 +117,16 @@ driving layer will most often set.
 | `micEchoCancellation` | `boolean` | Passed straight through to `getUserMedia`'s `echoCancellation` constraint (`startMic()`). On by default — correct for the laptop-speaker-to-laptop-mic loop the app's own backing sound bleeds through. Wrong for a real mic on an external interface (no acoustic feedback path for AEC to cancel, so its adaptive filter chews on the actual signal instead) — Settings → Microphone lets you turn it off. Affects both Play and the Tuner, which share `startMic()`. |
 
 > **Not in `AppState`:** `droneOn`, `listening`, `metronomeOn`, `micError`,
-> `heardMidi`, `micLevel`, and the Flow-session ephemera (`focusFound`,
-> `walkState`, `runState`, `collectionOpen`…) are local `useState` in `App.tsx`
-> — side-effect flags and per-session game state that shouldn't persist. Find
-> It (`findItOn`, `findItTarget`, `findItRevealed`, `findItScore`,
-> `findItStreak`, `findItLastMs`, `findItStrings`, `findItFretRange`) and Echo
-> (`echoOn`, `echoPhrase`, `echoPlayedIdx`, `echoStatus`, `echoScore`,
-> `echoStreak`, `echoLength`) follow the same rule — a game's live progress is
-> exactly the kind of per-session state that shouldn't survive a refresh.
+> `heardMidi`, `micLevel`, and Flow-session ephemera (`focusFound`,
+> `collectionOpen`…) are local `useState` in `App.tsx` — side-effect flags and
+> per-session state that shouldn't persist. The four practice engines follow
+> the same rule but live in their own hooks under `src/hooks/`: Find It's
+> round state in `useFindIt`, Echo's phrase state in `useEcho`, the walk
+> attempt (`walkState`) in `useWalk`, and the run attempt (`runState`) in
+> `useRun`. A game's live progress is exactly the kind of per-session state
+> that shouldn't survive a refresh; the hooks receive `state`/`up` and the mic
+> flags from `App`, and anything *shared* (key, scale, chord on the neck)
+> still changes only through `up()`.
 > Separately-persisted progress lives in `utils/concepts.ts` (`fm.ownedSounds`)
 > and `utils/progress.ts` (`mr.progress`), not in `AppState`.
 

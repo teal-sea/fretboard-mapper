@@ -37,4 +37,5 @@ be read by both humans and LLM agents. If you're an agent starting a task, read
 
 Everything the user sees on the neck is **derived** from `AppState` via pure
 functions. Nothing is stored in the DOM or in component-local state (except
-transient audio flags). Change `AppState`, and the whole view + audio follow.
+transient audio flags and the per-round game state in `src/hooks/` — see
+[03-state](03-state.md)). Change `AppState`, and the whole view + audio follow.
