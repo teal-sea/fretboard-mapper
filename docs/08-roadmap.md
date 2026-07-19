@@ -23,7 +23,7 @@ Most of this exists. The frontier is the **concept** step.
 | Session persistence (localStorage) | ✅ shipped (`utils/persist.ts`) — was stale here, fixed |
 | One-tap "start session" entry | ⬜ not started |
 | Vercel Git integration / PR previews | ⬜ nice-to-have |
-| Resolve `KeyMapView` dead code (adopt or delete) | ⬜ small cleanup |
+| Resolve `KeyMapView` dead code (adopt or delete) | ✅ deleted |
 | Monetization infra (Clerk auth, Polar subscriptions, Neon cross-device sync) | 🟡 built, not live — code merged and tested, needs real Clerk/Polar/Neon accounts provisioned (see `.env.example`) before the login/upgrade UI activates |
 
 ## Next: the concept engine
@@ -97,6 +97,9 @@ mostly UX assembly.
 
 - **Connect Vercel Git integration** → PR preview URLs (makes audio/visual review
   possible without local runs).
-- **Resolve `KeyMapView`** — adopt it as a toggleable alternate view, or delete it.
-- Consider extracting the big `App.tsx` (~900 lines) into a few feature sections
-  if it keeps growing — but only when it genuinely hurts, not preemptively.
+- ~~**Resolve `KeyMapView`**~~ — deleted.
+- ~~Consider extracting the big `App.tsx`~~ — done: the four practice engines
+  live in `src/hooks/`, the settings drawer and veils in `src/components/`.
+  The remaining audio/transport block (progression + backing + togglePlay)
+  stays in `App.tsx` deliberately — it's one coupled unit and the next
+  candidate only if it grows.
