@@ -18,13 +18,17 @@ Most of this exists. The frontier is the **concept** step.
 | Decode/display layer (scales, harmony, intervals, positions) | ✅ shipped, tested |
 | Technique shapes (3NPS / sweep / tapping) | ✅ shipped |
 | Chord pad + metronome + progression stepper | ✅ shipped |
-| **Evolving modal drone** | ✅ shipped (PR: `worktree-evolving-drone`) |
-| Concept "brain" (what to explore this session) | ⬜ not started — the frontier |
-| Session persistence (localStorage) | ✅ shipped (`utils/persist.ts`) — was stale here, fixed |
-| One-tap "start session" entry | ⬜ not started |
-| Vercel Git integration / PR previews | ⬜ nice-to-have |
+| Evolving modal drone (+ pad/arp backing modes) | ✅ shipped |
+| Mic pitch detection (McLeod/NSDF) + note-commit pipeline | ✅ shipped, DSP tested |
+| Concept "brain" — Path A curated catalog (`utils/concepts.ts`, Learn mode, `getNextConcept`) | ✅ shipped; adaptive Path B is the new frontier |
+| One-tap "start session" entry | ✅ shipped (`startSession`, Lesson 1 Start) |
+| The Walk / Find It / Echo / run player | ✅ shipped, engines extracted to `src/hooks/` (2026-07-19) |
+| SSG/SEO surface (1,428 mode + 300 chord pages, 9 guides, 16 locales, llms.txt) | ✅ shipped — untested generators, inspect `dist/` after touching `scripts/` |
+| Session persistence (localStorage) | ✅ shipped (`utils/persist.ts`) |
+| Vercel Git integration / PR previews | ✅ connected — main auto-deploys to production on merge, pushes get preview URLs |
 | Resolve `KeyMapView` dead code (adopt or delete) | ✅ deleted |
-| Monetization infra (Clerk auth, Polar subscriptions, Neon cross-device sync) | 🟡 built, not live — code merged and tested, needs real Clerk/Polar/Neon accounts provisioned (see `.env.example`) before the login/upgrade UI activates |
+| Monetization infra (Clerk auth, Polar subscriptions, Neon cross-device sync) | ✅ live — production env fully provisioned (Clerk keys landed 2026-07-19) |
+| CI (build + test gating PRs) | 🟡 workflow written, push blocked — git/gh OAuth tokens lack the `workflow` scope; one-time `gh auth refresh -h github.com -s workflow`, then push from the `production-refactor` worktree |
 
 ## Next: the concept engine
 
@@ -95,8 +99,9 @@ mostly UX assembly.
 
 ## Housekeeping worth doing early
 
-- **Connect Vercel Git integration** → PR preview URLs (makes audio/visual review
-  possible without local runs).
+- ~~**Connect Vercel Git integration**~~ — done; merges to main auto-deploy
+  production, every push gets a preview URL. Consequence: **merging IS
+  shipping** — audio changes need a human ear on the preview BEFORE merge.
 - ~~**Resolve `KeyMapView`**~~ — deleted.
 - ~~Consider extracting the big `App.tsx`~~ — done: the four practice engines
   live in `src/hooks/`, the settings drawer and veils in `src/components/`.

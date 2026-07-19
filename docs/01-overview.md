@@ -2,21 +2,29 @@
 
 ## What the app is today
 
-A polished, client-side **guitar fretboard visualizer** with a built-in synth.
-A user picks a **key** and a **mode/scale or chord**, and the neck lights up with
-the right notes — labeled by note name and/or interval, colored per interval,
-croppable to a fret window or a single CAGED-style position. On top of the
-visualizer sit several practice tools:
+**Modal Runs** (modalruns.com): a client-side guitar practice tool that
+*listens*. Hold a drone in any key, improvise, and the app hears you through
+the mic (McLeod pitch detection, in-browser) — lighting up what you played on
+the neck and confirming when you land the note it asked for. Three faces, one
+`appMode` switch:
 
-- **Harmony map** — the diatonic chords of the key, organized by tier (triads,
-  7ths, 9ths, …), each playable through an ethereal chord-pad synth.
-- **Progression stepper** — sequence diatonic chords at a BPM with a metronome;
-  the board auto-follows the current chord and previews the *next* chord as
-  outline rings so you can anticipate the change.
-- **Technique patterns** — 3-notes-per-string scale shapes, sweep-picking
-  arpeggios, and wide-interval tapping voicings, overlaid on the neck.
-- **Evolving drone** *(newest)* — a self-generating ambient pad in the current
-  key you improvise over. See [05-audio-engine](05-audio-engine.md).
+- **Modes (Learn)** — the landing. Lesson 1 is **the Walk**: seven positions,
+  seven modes, same notes — move up the neck, the drone moves home with you,
+  claim each mode by ear (claims persist). Plus one-sound drills and
+  mic-driven **arpeggio runs** with the Twist (same shape, new home).
+- **Flow** — the endless jam. Drone/pad/arp backing, slow modal drift through
+  same-note siblings, an ambient particle canvas that answers your notes, and
+  two ear games: **Find It** (locate the note it plays — exact octave) and
+  **Echo** (repeat a growing phrase by ear).
+- **Explore (Study)** — the full mapper: any scale/chord in any key, positions
+  and voicings up the neck, the **harmony map** (diatonic chords by tier, each
+  playable), the **progression stepper** (board follows the chord, previews
+  the next), and **technique patterns** (3NPS / sweep / tapping).
+
+Around the core: a chromatic tuner, favorites + practice streak, interval
+color theming, 16-language localization, a 1,700+-page computed SEO surface
+(mode/chord/guide pages — see `scripts/`), and optional $5/mo cross-device
+sync (Clerk + Polar + Neon; the tool is fully free without it).
 
 ## The vision it's growing toward
 
@@ -41,11 +49,12 @@ Three intrinsic-reward drivers the tool is built around:
    (what)       (where/feel)      (how to grab it)     (do it)
 ```
 
-The pieces of this loop mostly **already exist** as deterministic features. The
-open frontier is the **"concept" step** — an intelligent layer that picks *what
-to explore this session* and configures the rest of the loop automatically. See
-[08-roadmap](08-roadmap.md) for how that should slot in (spoiler: it just calls
-`up({...})`).
+This loop **exists end-to-end now**: the concept step shipped as a curated
+concept catalog (`utils/concepts.ts` + Learn mode + `getNextConcept`) —
+Path A from [08-roadmap](08-roadmap.md). The open frontier has moved one
+level up: an *adaptive* concept brain (what to explore next, given what your
+ear has already claimed) — which still just computes a partial and calls
+`up({...})`.
 
 ## Design principles
 

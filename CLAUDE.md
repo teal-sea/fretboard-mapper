@@ -1,15 +1,11 @@
 # CLAUDE.md — Fretboard Mapper
 
-Orientation for any AI agent or developer working in this repo. Read this
-first, then **the wiki**: [`wiki/index.md`](wiki/index.md) is the navigable
-knowledge graph of every subsystem (Obsidian-style `[[wikilinks]]`; open
-`wiki/` as a vault to see the graph). `wiki/hot.md` lists live issues,
-`wiki/log.md` the change history. The deeper reference tables live under
-[`docs/`](docs/README.md).
-
-**Maintenance rule:** when you ship a meaningful change, update the affected
-wiki page(s), add a dated entry to `wiki/log.md`, and prune `wiki/hot.md`.
-The wiki drifting is worse than the wiki not existing.
+Orientation for any AI agent or developer working in this repo. Read this first,
+then the deeper docs under [`docs/`](docs/README.md) — that tree IS the
+project's LLM developer wiki. **Maintenance rule:** when you ship a meaningful
+change, update the affected page(s) in the same PR; the wiki drifting is worse
+than it not existing (it has drifted badly before — 01-overview once described
+an app three modes behind reality).
 
 ## What this is
 
