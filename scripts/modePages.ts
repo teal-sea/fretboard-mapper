@@ -199,7 +199,7 @@ function modePage(rootPc: number, mode: ModeKey): string {
     return `<tr><td>${c.romanNumeral}</td><td><strong>${name}</strong></td><td>${c.chordDef.name}</td></tr>`
   }).join('\n')
 
-  const title = `${displayName}${alt ? ` (${alt})` : ''} Scale on Guitar — Notes, Fretboard Map & Drone | Modal Runs`
+  const title = `${displayName}${alt ? ` (${alt})` : ''} Mode on Guitar — Scale, Chords & Fretboard Map | Modal Runs`
   const description = `${displayName} on guitar: ${notesList}. An interactive fretboard visualization of the diatonic chords, every note mapped across the neck, plus a free drone to improvise over — Modal Runs listens through your mic and lights up what you play.`
 
   const relativeLine = mode === 'ionian'
@@ -390,8 +390,8 @@ function localizedModePage(rootPc: number, mode: ModeKey, locale: Locale): strin
 
 // ─── The /modes/ index (English) ─────────────────────────────────────
 function indexPage(): string {
-  const title = 'Guitar Modes in Every Key — Fretboard Maps, Notes & Drones | Modal Runs'
-  const description = 'A fretboard visualization for all seven modes in all twelve keys: every guitar neck note, diatonic chords, and a free drone to improvise over. Modal Runs listens through your mic while you practice.'
+  const title = 'Guitar Modes in Every Key — Formulas, Notes & Fretboard Maps | Modal Runs'
+  const description = 'All seven guitar modes in all twelve keys: the formula and notes of each mode, every neck position mapped, diatonic chords, and a free drone to improvise over. Modal Runs listens through your mic while you practice.'
 
   const sections = MODES.map(mode => {
     const copy = MODE_COPY[mode]
@@ -400,6 +400,7 @@ function indexPage(): string {
     ).join('\n      ')
     return `<h2>${copy.title}</h2>
     <p>${copy.hook}</p>
+    <p><strong>Formula: ${formulaString(SCALES[mode].intervals)}</strong></p>
     <div class="grid">
       ${cells}
     </div>`
