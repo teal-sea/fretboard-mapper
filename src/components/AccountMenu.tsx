@@ -110,7 +110,7 @@ export default function AccountMenu({ state, up }: { state: AppState; up: (parti
     <div className="account-menu">
       <SignedOut>
         <SignUpButton mode="modal">
-          <button className="upgrade-btn" title="Create a free account, then keep your streak, favorites, and settings on every device">
+          <button className="upgrade-btn" title="Sign up free — then $5/mo syncs your streak, favorites, and settings to every device">
             {ctaLabel}
           </button>
         </SignUpButton>
