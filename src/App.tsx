@@ -229,6 +229,8 @@ export default function App() {
     for (const n of ['C','C#','Db','D','D#','Eb','E','F','F#','Gb','G','G#','Ab','A','A#','Bb','B']) m[n] = dn(n)
     return m
   }, [state.noteStyle, dn])
+  // Stable array so a memoized Fretboard isn't defeated by a fresh .map()
+  const tuningLabels = useMemo(() => tuning.labels.map(dn), [tuning, dn])
 
   // Diatonic chords for current key
   const diatonicChords = useMemo(
@@ -325,7 +327,12 @@ export default function App() {
     }
     if (keyScale) return { activeNotes: getScaleNotes(state.keyRoot, keyScale), fretboardRoot: state.keyRoot }
     return { activeNotes: new Set<number>(), fretboardRoot: state.keyRoot }
-  }, [state, keyScale])
+    // Depend on the fields actually read — depending on `state` itself meant
+    // every volume/theme/color change rebuilt the Sets and, downstream, the
+    // whole board via computeFretboard.
+  }, [state.activeTab, state.keyRoot, state.keyQuality, state.selectedScaleKey,
+      state.selectedScaleRoot, state.viewMode, state.selectedChordKey,
+      state.selectedChordRoot, state.progressionPlaying, keyScale])
 
   const board = useMemo(
     () => computeFretboard(tuning, fretboardRoot, activeNotes, state.numFrets),
@@ -2067,7 +2074,7 @@ export default function App() {
               posRange={isWalk && walkPos ? walkPos.range : activePosRange}
               numFrets={state.numFrets}
               fretRange={state.fretRange}
-              tuningLabels={tuning.labels.map(dn)}
+              tuningLabels={tuningLabels}
               noteMap={noteMap}
               highlightedPositions={state.activeTab === 'technique' ? highlightedPosSet : null}
               guitarModel={state.guitarModel}
@@ -2420,7 +2427,7 @@ export default function App() {
               posRange={null}
               numFrets={state.numFrets}
               fretRange={null}
-              tuningLabels={tuning.labels.map(dn)}
+              tuningLabels={tuningLabels}
               noteMap={noteMap}
               guitarModel={state.guitarModel}
               chordToneNotes={flowChanges && state.progressionPlaying ? chordToneNotes : null}
@@ -2740,8 +2747,8 @@ export default function App() {
           posRange={activePosRange}
           numFrets={state.numFrets}
           fretRange={state.fretRange}
-          tuningLabels={tuning.labels.map(dn)}
-              noteMap={noteMap}
+          tuningLabels={tuningLabels}
+          noteMap={noteMap}
           chordToneNotes={state.viewMode === 'chords' && state.activeTab !== 'technique' && !chordShapeSet ? chordToneNotes : null}
           chordRootIndex={state.viewMode === 'chords' && state.activeTab !== 'technique' && !chordShapeSet ? chordRootIndex : null}
           highlightedPositions={state.activeTab === 'technique' ? highlightedPosSet : chordShapeSet}
