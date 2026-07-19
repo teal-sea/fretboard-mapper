@@ -192,46 +192,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   opacity: 0.7;
 }
 
-/* ─── Context Bar (Header) ─────────────────────────────────────────── */
-.context-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 20px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: var(--glass);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-bottom: 1px solid var(--glass-border);
-}
-.context-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.context-logo {
-  font-family: var(--font-mono);
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.06em;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.context-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-2);
-  letter-spacing: -0.01em;
-}
-.context-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+/* ─── Header controls ──────────────────────────────────────────────── */
 .icon-btn {
   width: 34px;
   height: 34px;
@@ -444,115 +405,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 }
 .quick-root-select { font-family: var(--font-mono); font-weight: 700; }
 
-/* ─── Main Stage ───────────────────────────────────────────────────── */
-.main-stage {
-  position: relative;
-  z-index: 1;
-  max-width: 1800px;
-  margin: 0 auto;
-  padding: 20px 24px 60px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* ─── Note Selector Pills ──────────────────────────────────────────── */
-.note-row {
-  display: flex;
-  justify-content: center;
-}
-.note-pills {
-  display: inline-flex;
-  gap: 2px;
-  padding: 3px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-.note-pill {
-  min-width: 36px;
-  height: 32px;
-  font-size: 11px;
-  font-weight: 600;
-  font-family: var(--font-mono);
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-3);
-  cursor: pointer;
-  transition: all var(--transition);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-.note-pill.diatonic {
-  flex-direction: column;
-  gap: 1px;
-  min-width: 48px;
-  padding: 5px 10px;
-}
-.pill-roman {
-  font-size: 8px;
-  font-weight: 700;
-  opacity: 0.45;
-  letter-spacing: 0.02em;
-  line-height: 1;
-}
-.pill-note {
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
-}
-.note-pill.diatonic.active .pill-roman { opacity: 0.7; }
-.note-pill:hover { color: var(--text-2); background: var(--bg-hover); }
-.note-pill.active {
-  background: var(--accent);
-  color: #000;
-  font-weight: 700;
-  box-shadow: 0 0 18px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.2);
-  transform: scale(1.06);
-}
-
-/* ─── Control Strip ────────────────────────────────────────────────── */
-.control-strip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-/* View toggle (Scale | Chord) */
-.view-toggle {
-  display: flex;
-  gap: 2px;
-  padding: 3px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-.view-btn {
-  padding: 8px 22px;
-  font-size: 12px;
-  font-weight: 700;
-  font-family: var(--font-sans);
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-2);
-  cursor: pointer;
-  transition: all var(--transition);
-  letter-spacing: 0.03em;
-}
-.view-btn:hover { color: var(--text); background: var(--bg-hover); }
-.view-btn.active {
-  background: var(--accent);
-  color: #000;
-  box-shadow: 0 0 14px var(--accent-glow);
-}
-
-/* Type / Scale / Chord select */
+/* ─── Type / Scale / Chord select ──────────────────────────────────── */
 .type-select {
   padding: 8px 32px 8px 12px;
   font-size: 12px;
@@ -574,21 +427,6 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 .type-select:hover { border-color: var(--accent); }
 
 /* Key selector (advanced mode) */
-.key-selector {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  padding-left: 12px;
-  border-left: 1px solid var(--border);
-  margin-left: 4px;
-}
-.key-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-3);
-}
 .key-select {
   padding: 7px 28px 7px 10px;
   font-size: 12px;
@@ -606,39 +444,6 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   transition: border-color var(--transition);
 }
 .key-select:focus { outline: none; border-color: var(--accent); }
-
-/* ─── Hero Section ─────────────────────────────────────────────────── */
-.hero {
-  text-align: center;
-  padding: 2px 0;
-}
-.hero-label {
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.035em;
-  color: var(--text);
-  line-height: 1.15;
-}
-.hero-formula {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-3);
-  margin-top: 4px;
-  letter-spacing: 0.05em;
-}
-.hero-chord-badge {
-  display: inline-block;
-  margin-top: 6px;
-  padding: 3px 12px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--accent);
-  background: var(--accent-dim);
-  border: 1px solid rgba(212,160,23,0.15);
-  border-radius: 20px;
-}
 
 /* ─── Note Legend ──────────────────────────────────────────────────── */
 .note-legend {
@@ -668,32 +473,6 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 .legend-chip.chord-tone .legend-circle {
   box-shadow: 0 0 8px var(--accent-glow);
 }
-
-/* ─── Modes Row ────────────────────────────────────────────────────── */
-.modes-row {
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.mode-pill {
-  padding: 3px 10px;
-  font-size: 10px;
-  font-weight: 600;
-  font-family: var(--font-sans);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  background: var(--bg-surface);
-  color: var(--text-2);
-  cursor: pointer;
-  transition: all var(--transition);
-}
-.mode-pill.active {
-  background: var(--accent-dim);
-  color: var(--accent);
-  border-color: var(--accent);
-}
-.mode-pill:hover:not(.active) { background: var(--bg-hover); }
 
 /* ─── Fretboard ────────────────────────────────────────────────────── */
 .fretboard-container {
@@ -829,36 +608,6 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 @keyframes panel-enter {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-/* ─── Tab Bar ──────────────────────────────────────────────────────── */
-.tab-bar {
-  display: flex;
-  gap: 2px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 3px;
-  width: fit-content;
-}
-.tab-btn {
-  padding: 7px 20px;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: var(--font-sans);
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-2);
-  cursor: pointer;
-  transition: all var(--transition);
-  letter-spacing: 0.02em;
-}
-.tab-btn:hover { background: var(--bg-hover); color: var(--text); }
-.tab-btn.active {
-  background: var(--accent);
-  color: #000;
-  box-shadow: 0 0 12px var(--accent-glow);
 }
 
 /* ─── Chord Section ────────────────────────────────────────────────── */
@@ -1053,26 +802,10 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 .compat-btn.active { background: var(--accent-dim); color: var(--accent); font-weight: 600; }
 
 /* ─── Progression Panel ────────────────────────────────────────────── */
-.progression-panel {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
 .progression-header {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-.progression-title {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-3);
 }
 .progression-bpm {
   display: flex;
@@ -1454,56 +1187,6 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   pointer-events: all;
 }
 
-/* ─── Theme Swatches ───────────────────────────────────────────────── */
-.theme-swatches {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.theme-swatch {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-raised);
-  cursor: pointer;
-  transition: all var(--transition);
-  min-width: 52px;
-}
-.theme-swatch:hover {
-  border-color: var(--text-3);
-  background: var(--bg-hover);
-}
-.theme-swatch.active {
-  border-color: var(--accent);
-  background: var(--accent-dim);
-  box-shadow: 0 0 12px var(--accent-glow);
-}
-.theme-swatch-dot {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.1);
-  transition: transform var(--transition);
-}
-.theme-swatch.active .theme-swatch-dot {
-  transform: scale(1.15);
-  border-color: rgba(255,255,255,0.3);
-}
-.theme-swatch-name {
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-.theme-swatch.active .theme-swatch-name {
-  color: var(--text);
-}
-
 /* ─── Toggle Switch ────────────────────────────────────────────────── */
 .switch-row {
   display: flex;
@@ -1695,119 +1378,14 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 
 /* ─── Responsive ───────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .main-stage { padding: 12px 12px 40px; gap: 12px; }
-  .note-pills { overflow-x: auto; max-width: 100%; }
-  .note-pill { min-width: 30px; height: 28px; font-size: 10px; }
-  .control-strip { flex-direction: column; gap: 8px; }
   .type-select { min-width: 100%; }
-  .key-selector { border-left: none; padding-left: 0; margin-left: 0; flex-wrap: wrap; }
-  .hero-label { font-size: 22px; }
   .bottom-strip { flex-direction: column; gap: 8px; }
   .position-bar { justify-content: center; }
   .chord-grid { grid-template-columns: 1fr; }
   .settings-drawer { width: 100%; }
-  .context-title { display: none; }
-}
-
-@media (max-width: 480px) {
-  .main-stage { padding: 8px 8px 30px; gap: 10px; }
-  .note-pill { min-width: 26px; height: 26px; font-size: 9px; }
-  .hero-label { font-size: 18px; }
-  .hero-formula { font-size: 11px; }
 }
 
 /* ─── Flow mode: the session engine ─────────────────────────── */
-
-/* The front door */
-.start-session {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  max-width: 520px;
-  margin: 4px auto 2px;
-  padding: 18px 24px;
-  border: 1px solid var(--accent);
-  border-radius: var(--radius);
-  background: linear-gradient(135deg, var(--accent-dim), transparent);
-  color: var(--text);
-  cursor: pointer;
-  transition: all var(--transition);
-}
-.start-session:hover {
-  background: linear-gradient(135deg, var(--accent-glow), var(--accent-dim));
-  box-shadow: 0 0 26px var(--accent-glow);
-  transform: translateY(-1px);
-}
-.start-session-main {
-  font-family: var(--font-sans);
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--accent-2);
-}
-.start-session-sub {
-  font-size: 11px;
-  color: var(--text-2);
-  letter-spacing: 0.05em;
-}
-
-/* One idea. Never a lecture. */
-.concept-card {
-  width: 100%;
-  max-width: 720px;
-  margin: 4px auto 0;
-  padding: 18px 22px;
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--accent);
-  border-radius: var(--radius);
-  background: var(--bg-surface);
-}
-.concept-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.concept-title {
-  font-family: var(--font-sans);
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: 0.01em;
-}
-.concept-focus {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: var(--text-2);
-  white-space: nowrap;
-}
-.concept-focus b {
-  display: inline-block;
-  min-width: 22px;
-  padding: 1px 7px;
-  margin-left: 4px;
-  border-radius: 10px;
-  background: var(--accent);
-  color: #000;
-  font-weight: 800;
-  text-align: center;
-}
-.concept-hook {
-  margin-top: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--accent-2);
-}
-.concept-listen {
-  margin: 8px 0 0;
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--text-2);
-}
 
 /* The only buttons that exist during a session */
 .flow-controls {
@@ -1818,44 +1396,6 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   flex-wrap: wrap;
   margin-top: 4px;
 }
-.flow-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 16px;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-raised);
-  color: var(--text-2);
-  cursor: pointer;
-  transition: all var(--transition);
-}
-.flow-btn:hover { color: var(--text); border-color: var(--accent); }
-.flow-btn.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #000;
-}
-.flow-btn.primary:hover { box-shadow: 0 0 16px var(--accent-glow); }
-.flow-btn.ghost { background: transparent; }
-.flow-btn .flow-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--text-3, #666);
-  transition: background var(--transition);
-}
-.flow-btn.on { color: var(--text); border-color: var(--accent); }
-.flow-btn.on .flow-dot {
-  background: var(--accent);
-  animation: drone-pulse 2.4s ease-in-out infinite;
-}
-
-/* Ambient drone toggle */
 /* ─── Play: one button that starts the drone + the mic together ───
    Drone and Listen used to be two separate, easy-to-miss toggles — one of
    them (Listen alone) played total silence, which read as broken. This is
@@ -2331,12 +1871,6 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   color: var(--text-2);
   margin-left: 1px;
 }
-.heard-readout.focus-hit {
-  border-color: var(--accent);
-  color: var(--accent-2);
-  box-shadow: 0 0 14px var(--accent-glow);
-}
-
 /* Mic permission / device errors — Listen fails loud, not silent */
 .mic-error {
   display: flex;
@@ -2352,27 +1886,6 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 .study-mic-error {
   margin: 10px 0 0;
   width: fit-content;
-}
-
-/* The focus badge reacts when your hands find the note */
-.concept-focus b {
-  transition: all var(--transition);
-}
-.concept-focus b.hit {
-  box-shadow: 0 0 16px var(--accent-glow), 0 0 4px var(--accent);
-  animation: focus-hit-pulse 0.8s ease-in-out infinite;
-}
-.concept-focus b.found:not(.hit) {
-  box-shadow: 0 0 8px var(--accent-glow);
-}
-.concept-focus .focus-check {
-  margin-left: 6px;
-  color: var(--accent-2);
-  font-weight: 800;
-}
-@keyframes focus-hit-pulse {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.12); }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -2508,8 +2021,6 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   background: linear-gradient(100deg, var(--neon-magenta), var(--neon-pink), var(--neon-coral));
   box-shadow: 0 0 14px rgba(247,73,162,0.45);
 }
-.mode-btn .mode-ico { font-size: 11px; opacity: 0.8; }
-
 /* ═══ STUDY ═══════════════════════════════════════════════════════ */
 .study-stage {
   display: flex;
@@ -2523,8 +2034,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
 
 /* One toolbar row instead of four stacked strips. Not a card — no border,
    no background, no padding-box — it sits directly on the page like part
-   of the header, so .modes-strip below it is the only glowing panel on
-   the screen instead of two stacked copies of the same treatment. */
+   of the header. */
 .study-bar {
   display: flex;
   align-items: center;
@@ -3295,109 +2805,10 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
   animation: shift-in 420ms var(--spring);
 }
 
-/* ═══ Same notes, different home — modal relativity ═══════════════
-   The chips below all use the identical notes on the neck. This is the
-   central idea of the app, so it gets real estate and the accent colour. */
-.modes-strip {
-  display: grid;
-  gap: 10px;
-  padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background:
-    linear-gradient(180deg, var(--accent-dim), transparent 70%),
-    var(--bg-surface);
-}
-.modes-head {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.modes-label {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--accent);
-  white-space: nowrap;
-}
-.modes-hint {
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--text-2);
-}
-.modes-row {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.mode-chip {
-  display: grid;
-  gap: 1px;
-  justify-items: center;
-  min-width: 82px;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg-raised);
-  cursor: pointer;
-  transition: all var(--transition);
-}
-.mode-chip:hover {
-  border-color: var(--accent);
-  transform: translateY(-1px);
-}
-/* The "you are here" chip — this is the app's whole thesis (same notes,
-   different home), so it's the one place a flat accent colour undersells
-   it. The actual logo gradient instead of one hue skimmed off it. */
-.mode-chip.active {
-  background: var(--brand-grad);
-  border-color: transparent;
-}
-.mode-chip-root {
-  font-family: var(--font-mono);
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--text);
-}
-.mode-chip-name {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--text-2);
-}
-.mode-chip.active .mode-chip-root { color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.35); }
-.mode-chip.active .mode-chip-name { color: rgba(255,255,255,0.85); text-shadow: 0 1px 3px rgba(0,0,0,0.35); }
-
-.modes-shift {
-  position: relative;
-  margin: 0;
-  padding: 11px 34px 11px 14px;
-  border-radius: 10px;
-  border-left: 2px solid var(--ember);
-  background: var(--ember-dim);
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--text);
-  animation: shift-in 500ms var(--spring);
-}
 @keyframes shift-in {
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: none; }
 }
-.modes-dismiss {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  border: none;
-  background: none;
-  color: var(--text-3);
-  font-size: 15px;
-  cursor: pointer;
-  line-height: 1;
-  padding: 2px 5px;
-}
-.modes-dismiss:hover { color: var(--text); }
 
 /* The mode explained against the tonic you're actually sitting on */
 /* The payoff sentence. It's the point of the whole app, so it reads as the
@@ -3861,14 +3272,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
     padding: 6px 0;
   }
   .study-bar-sep { display: none; }
-  /* The neck is the actual content — everything above it is chrome, and on
-     a phone that chrome was running almost a full screen before you ever
-     saw a fret. The hint sentence explains what the chip row already shows
-     at a glance; cut it here specifically to get to the neck faster. */
-  .modes-hint { display: none; }
-  .modes-strip { padding: 10px 12px; gap: 6px; }
   .note-legend { padding: 2px 0; }
-  .modes-row,
   .chord-grid-main,
   .chord-tier-bar,
   .position-bar {
@@ -3882,12 +3286,10 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
     -webkit-mask-image: linear-gradient(to right, transparent 0, black 14px, black calc(100% - 22px), transparent 100%);
     mask-image: linear-gradient(to right, transparent 0, black 14px, black calc(100% - 22px), transparent 100%);
   }
-  .modes-row::-webkit-scrollbar,
   .chord-grid-main::-webkit-scrollbar,
   .position-bar::-webkit-scrollbar { display: none; }
   .chord-grid-main { display: flex; gap: 6px; }
   .chord-grid-main .chord-btn { flex: 0 0 auto; min-width: 104px; }
-  .modes-head { flex-direction: column; align-items: flex-start; gap: 2px; }
   .study-head { flex-direction: column; gap: 2px; text-align: center; }
   .theory-context { font-size: 14px; }
   .fretboard-svg { max-height: 46vh; }
@@ -4034,9 +3436,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
     display: block;
     margin-top: 2px;
   }
-  .flow-actions,
-  .flow-controls,
-  .walk-nav {
+  .flow-controls {
     flex-wrap: wrap;
     justify-content: center;
     gap: 8px;
@@ -4046,11 +3446,4 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overf
     gap: 8px 14px;
     font-size: 10px;
   }
-  .flow-hint {
-    display: block;
-    text-align: center;
-    line-height: 1.5;
-  }
-  .modes-row { gap: 6px; }
-  .mode-chip { flex: 0 0 auto; }
 }
