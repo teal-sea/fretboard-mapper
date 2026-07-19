@@ -25,6 +25,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://api.fontshare.com" />
     <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin />
+
+    <!-- The first-visit mobile modal's monitor shot is the LCP element on
+         touch devices, and JS doesn't render it until the bundle runs — so
+         its fetch would otherwise start late. Preload it (touch-only, so
+         desktop never pays for it) to start it in parallel with the JS. -->
+    <link rel="preload" as="image" href="/desktop-nudge-art.webp" media="(hover: none) and (pointer: coarse)" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'" />
     <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700,800,900&display=swap" media="print" onload="this.media='all'" />
     <noscript>
@@ -97,21 +103,37 @@
     <script defer src="/_vercel/insights/script.js"></script>
   </head>
   <body>
-    <!-- Brand splash: the mark breathes while the bundle loads. Inline so it
-         paints before ANY JavaScript; React removes it on first render. -->
+    <!-- Brand splash + prerendered hero: a real fretboard (rendered from the
+         theory engine at build time — see scripts/modePages.ts, which fills
+         the HERO marker below) paints straight from static HTML, so First/
+         Largest Contentful Paint land real content before ANY JavaScript.
+         React removes the whole layer on first render. All-inline so it
+         needs no bundle, no font, no extra request. -->
     <style>
       #splash { position: fixed; inset: 0; z-index: 999; display: grid; place-items: center;
-                background: #050507; transition: opacity 0.35s ease; }
+                background: #050507; transition: opacity 0.35s ease; padding: 22px; box-sizing: border-box; }
       #splash.done { opacity: 0; pointer-events: none; }
-      #splash img { width: 110px; height: 110px;
-                    filter: drop-shadow(0 0 24px rgba(152,70,234,0.6));
-                    animation: splash-pulse 1.3s ease-in-out infinite; }
+      .splash-hero { display: flex; flex-direction: column; align-items: center; gap: 16px;
+                     width: 100%; max-width: 720px; }
+      .splash-mark { width: 84px; height: 84px;
+                     filter: drop-shadow(0 0 24px rgba(152,70,234,0.6));
+                     animation: splash-pulse 1.3s ease-in-out infinite; }
+      .splash-tag { margin: 0; color: #b9b3d0; font-family: system-ui, -apple-system, sans-serif;
+                    font-size: 15px; line-height: 1.4; text-align: center; }
+      .splash-board { width: 100%; }
+      .splash-board svg { width: 100%; height: auto; display: block; border-radius: 10px; }
       @keyframes splash-pulse {
         0%, 100% { transform: scale(1); opacity: 0.85; }
         50%      { transform: scale(1.08); opacity: 1; }
       }
     </style>
-    <div id="splash"><img src="/mark.webp" alt="" /></div>
+    <div id="splash">
+      <div class="splash-hero">
+        <img class="splash-mark" src="/mark.webp" alt="" width="84" height="84" />
+        <p class="splash-tag">Hold a drone in any key. Improvise. It hears you and lights up the neck.</p>
+        <!--PRERENDERED_HERO-->
+      </div>
+    </div>
     <div id="root"></div>
     <!-- For crawlers and agents that don't run JavaScript (most AI crawlers
          don't): the pitch in plain HTML, plus the door into the static

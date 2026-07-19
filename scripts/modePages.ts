@@ -587,6 +587,28 @@ export function modePagesPlugin(): Plugin {
       for (const g of GUIDES) write(`/guides/${g.slug}/`, g.render())
       write('/guides/', guidesIndexPage())
       const chordCount = writeChordPages(write)
+
+      // Prerender a real fretboard into the root's splash so First/Largest
+      // Contentful Paint land actual content painted from static HTML —
+      // before the bundle runs — instead of a bare pulsing logo. Same
+      // engine-driven SVG the mode pages use (golden rule 2: the engine
+      // computes the frets, never hardcoded). C Ionian = the app's default
+      // landing key, so it matches what React renders a beat later. If the
+      // marker's ever missing, we just skip it rather than fail the build.
+      const rootIndex = path.join(outDir, 'index.html')
+      const marker = '<!--PRERENDERED_HERO-->'
+      let rootHtml = fs.readFileSync(rootIndex, 'utf8')
+      if (rootHtml.includes(marker)) {
+        const heroSvg = fretboardSvg(
+          'C', 'ionian', false, n => n,
+          'C major scale across the guitar fretboard — every note of the scale lit on the neck'
+        )
+        rootHtml = rootHtml.replace(marker, `<div class="splash-board">${heroSvg}</div>`)
+        fs.writeFileSync(rootIndex, rootHtml)
+      } else {
+        console.warn('  ⚠ root hero marker not found in index.html — splash left as-is')
+      }
+
       // Overwrites the placeholder copied from public/ — this one knows
       // about every generated page.
       fs.writeFileSync(path.join(outDir, 'sitemap.xml'), sitemap())
