@@ -169,11 +169,17 @@ const initialState: AppState = {
 export default function App() {
   // URL params last: a shared /?key=A&mode=dorian link must beat whatever
   // the recipient was looking at when they last closed the tab.
+  // A true first visit (no saved state, no shared link) lands in Flow with
+  // the neck as hero — the landing page IS the product, framed by one line
+  // and one button instead of the lessons list or a settings panel.
+  const firstVisit = useRef(loadPersistedState() === null && !window.location.search)
   const [state, setState] = useState<AppState>(() => ({
     ...initialState,
     ...loadPersistedState(),
     ...parseUrlState(window.location.search),
+    ...(firstVisit.current ? { appMode: 'flow' as const } : {}),
   }))
+  const [showHero, setShowHero] = useState(firstVisit.current)
   const up = useCallback((p: Partial<AppState>) => setState(s => ({ ...s, ...p })), [])
 
   // Remember what you were looking at — key, mode, settings, whether you've
@@ -827,6 +833,11 @@ export default function App() {
   const isPlaying = droneOn || listening || (state.appMode === 'flow' && state.progressionPlaying)
   const [justTapped, setJustTapped] = useState(0)
   const flowChanges = state.appMode === 'flow' && state.flowJam === 'changes'
+
+  // The hero is a one-shot: playing anything or leaving Flow retires it.
+  useEffect(() => {
+    if (showHero && (isPlaying || state.appMode !== 'flow')) setShowHero(false)
+  }, [showHero, isPlaying, state.appMode])
   const hasTrackedPlay = useRef(false)
   const togglePlay = useCallback(async () => {
     setJustTapped(n => n + 1)
@@ -1783,7 +1794,24 @@ export default function App() {
             homeColor={state.intervalColors['R'] || '#FFC233'}
           />
 
-          {!isPlaying && (
+          {/* First-visit hero: the whole pitch in three lines, one primary
+              action. It replaces the jam panel until they either play or
+              opt into the lessons — the neck below stays the real hero. */}
+          {showHero && !isPlaying && (
+            <div className="first-hero">
+              <h1 className="first-hero-title">{T('Learn the fretboard')} <em>{T('by playing it.')}</em></h1>
+              <p className="first-hero-sub">{T('Play any note — it lights up on the neck, in real time.')}</p>
+              <button className="first-hero-cta" onClick={() => { setShowHero(false); togglePlay() }}>
+                {T('Start playing')} →
+                <small>{T('Free · no signup · just your guitar and a mic')}</small>
+              </button>
+              <button className="first-hero-alt" onClick={() => { setShowHero(false); up({ appMode: 'learn' }) }}>
+                {T('Or start with the lessons')}
+              </button>
+            </div>
+          )}
+
+          {!isPlaying && !showHero && (
             <div className="jam-setup">
               <div className="jam-setup-row">
                 <span className="study-bar-label">{T('Key')}</span>
