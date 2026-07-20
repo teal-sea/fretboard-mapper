@@ -24,7 +24,7 @@ import {
   noteIndex, noteName, formulaString, intervalName,
 } from '../src/utils/musicTheory'
 import { DEFAULT_INTERVAL_COLORS } from '../src/utils/defaultColors'
-import { displayNote } from '../src/utils/noteNames'
+import { displayNote, LANGUAGES } from '../src/utils/noteNames'
 import {
   ORIGIN, MAJOR, MODES, type ModeKey, MODE_COPY, ENHARMONIC,
   parentPc, usesFlats, rootNameFor, pageSlug, pagePath, appLink,
@@ -33,6 +33,7 @@ import {
 import { GUIDES, GUIDES_FOR_MODE, guidesIndexPage } from './guides'
 import { LOCALES, type Locale } from './locales'
 import { allChordPagePaths, writeChordPages } from './chordPages'
+import { allFretboardPagePaths, writeFretboardPages, fretboardPagePath, fretboardH1 } from './fretboardPage'
 
 function fmt(s: string, vars: Record<string, string | number>): string {
   return s.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''))
@@ -42,7 +43,12 @@ function fmt(s: string, vars: Record<string, string | number>): string {
 // 'Db' → 'Reb' (display) and 'Db' → 're-bemol' (slug); mode names fold
 // their accents for slugs: Dórico → dorico.
 function dispNote(engineName: string, locale: Locale): string {
-  return displayNote(engineName, 'solfege', locale.code)
+  // Each language's own convention: solfège where solfège is spoken,
+  // letters where letters are (incl. German/Polish H) — same lookup the
+  // app itself defaults to. Slugs are unaffected (slugSolfege covers
+  // every letter-style locale).
+  const style = LANGUAGES.find(l => l.key === locale.code)?.defaultStyle ?? 'solfege'
+  return displayNote(engineName, style, locale.code)
 }
 
 function foldAccents(s: string): string {
@@ -424,7 +430,7 @@ function indexPage(): string {
   ${SITE_HEADER}
   <main>
     <h1>Every mode, every key</h1>
-    <p class="lead">The seven modes of the major scale, mapped across the guitar neck in all twelve keys — with the notes, the chords that live inside each one, and a drone to improvise over. Pick a key; the page shows you the map, and <a href="/">the app</a> listens while you play it. New to modes? Start with the <a href="/guides/">guides</a>.</p>
+    <p class="lead">The seven modes of the major scale, mapped across the guitar neck in all twelve keys — with the notes, the chords that live inside each one, and a drone to improvise over. Pick a key; the page shows you the map, and <a href="/">the app</a> listens while you play it. New to modes? Start with the <a href="/guides/">guides</a>. New to the neck itself? Start with the <a href="/fretboard/">fretboard map — every note on the neck</a>.</p>
     <p>${languages}</p>
 
     ${sections}
@@ -521,6 +527,7 @@ function localizedIndexPage(locale: Locale): string {
   <main>
     <h1>${t.indexH1}</h1>
     <p class="lead">${t.indexLead}</p>
+    <p><a href="${fretboardPagePath(locale)}">${fretboardH1(locale)}</a></p>
 
     ${sections}
   </main>
@@ -542,6 +549,7 @@ function sitemap(): string {
   for (const g of GUIDES) urls.push(`/guides/${g.slug}/`)
   for (const mode of MODES) for (let pc = 0; pc < 12; pc++) urls.push(pagePath(pc, mode))
   urls.push(...allChordPagePaths())
+  urls.push(...allFretboardPagePaths())
   for (const locale of LOCALES) {
     urls.push(`/${locale.code}/`)
     urls.push(`/${locale.code}/${locale.modesSegment}/`)
@@ -589,6 +597,7 @@ export function modePagesPlugin(): Plugin {
       for (const g of GUIDES) write(`/guides/${g.slug}/`, g.render())
       write('/guides/', guidesIndexPage())
       const chordCount = writeChordPages(write)
+      const fretboardCount = writeFretboardPages(write)
 
       // Prerender a real fretboard into the root's splash so First/Largest
       // Contentful Paint land actual content painted from static HTML —
@@ -614,7 +623,7 @@ export function modePagesPlugin(): Plugin {
       // Overwrites the placeholder copied from public/ — this one knows
       // about every generated page.
       fs.writeFileSync(path.join(outDir, 'sitemap.xml'), sitemap())
-      console.log(`  ✓ mode-pages: ${count} mode pages (en + ${LOCALES.length} locales) + ${GUIDES.length} guides + ${chordCount} chord pages + indexes + sitemap`)
+      console.log(`  ✓ mode-pages: ${count} mode pages (en + ${LOCALES.length} locales) + ${GUIDES.length} guides + ${chordCount} chord pages + ${fretboardCount} fretboard pages + indexes + sitemap`)
     },
   }
 }

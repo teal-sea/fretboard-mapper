@@ -74,7 +74,7 @@ src/
     defaultColors.ts           # interval -> color map
     webmcp.ts                  # origin-trial WebMCP tool registration (no-op most browsers)
   styles/index.css          # all styling (CSS variables + theme classes)
-scripts/                    # SSG build step: /modes/, /guides/, /chords/ pages,
+scripts/                    # SSG build step: /modes/, /guides/, /chords/, /fretboard/ pages,
                              # llms.txt, sitemap — runs as part of `npm run build`
 api/                         # Vercel serverless functions — the only place secrets live
   checkout.ts                 # creates a Polar checkout session for the logged-in user
