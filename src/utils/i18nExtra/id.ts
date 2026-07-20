@@ -204,9 +204,8 @@ export const id: Record<string, string> = {
   'Aeolian': 'Aeolian',
 
   // ─── Landing / intro ───
-  'It': 'Dia',
-  'listens while you play,': 'mendengarkan saat kamu bermain,',
-  'and answers on the neck.': 'dan menjawab di neck.',
+  'Learn the fretboard': 'Pelajari fretboard',
+  'by playing it.': 'dengan memainkannya.',
   'In 1959, Miles Davis walked into a studio bored of chasing chord changes and cut an album built on almost none.': 'Pada 1959, Miles Davis masuk studio karena bosan mengejar pergantian akor, lalu merekam album yang dibangun nyaris tanpa akor sama sekali.',
   '— still the best-selling jazz record ever made — runs on scales instead of progressions. He called it modal jazz: hold one note underneath (a drone), improvise inside a single scale (a mode), and let the mode do the emotional work a wall of chords usually does.': '— sampai sekarang rekaman jazz terlaris sepanjang masa — berjalan di atas tangga nada, bukan progresi. Dia menyebutnya modal jazz: tahan satu nada di bawah (drone), improvisasi di dalam satu tangga nada (mode), dan biarkan mode-nya melakukan kerja emosional yang biasanya dilakukan tembok akor.',
   'That’s this app, on a fretboard. Hold a drone in any key and the neck fills with the notes that work over it. Play, and Modal Runs hears you through the mic — it lights up what you just played and tells you the moment you land the note it’s hunting for. Move the tonic and the same seven notes turn from A Aeolian into D Dorian — same frets, same notes, just a different one as home. Seven different moods out of one shape. You find them by ear, the way Miles did — not off a chart.': 'Itulah aplikasi ini, di atas fretboard. Tahan drone di nada dasar mana pun dan neck-nya terisi nada-nada yang cocok di atasnya. Mainkan, dan Modal Runs mendengarmu lewat mic — dia menyalakan apa yang barusan kamu mainkan dan memberi tahu begitu kamu mendarat di nada yang dia buru. Pindahkan tonikanya dan tujuh nada yang sama berubah dari A Aeolian jadi D Dorian — fret sama, nada sama, cuma rumahnya yang beda. Tujuh suasana berbeda dari satu shape. Kamu menemukannya dengan telinga, seperti Miles — bukan dari bagan.',

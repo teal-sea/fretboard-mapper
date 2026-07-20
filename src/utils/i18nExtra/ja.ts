@@ -205,9 +205,8 @@ export const ja: Record<string, string> = {
   'Aeolian': 'エオリアン',
 
   // ─── Landing page ───
-  'It': 'このアプリは',
-  'listens while you play,': 'あなたの演奏を聴き、',
-  'and answers on the neck.': 'ネックの上で答えます。',
+  'Learn the fretboard': '指板は',
+  'by playing it.': '弾いて覚える。',
   'In 1959, Miles Davis walked into a studio bored of chasing chord changes and cut an album built on almost none.': '1959年、コードチェンジを追いかけることに飽きたマイルス・デイヴィスはスタジオに入り、コード進行をほとんど持たないアルバムを録音しました。',
   '— still the best-selling jazz record ever made — runs on scales instead of progressions. He called it modal jazz: hold one note underneath (a drone), improvise inside a single scale (a mode), and let the mode do the emotional work a wall of chords usually does.': '— いまなお史上最も売れたジャズレコード — は、進行の代わりにスケールで動いています。彼はそれをモード・ジャズと呼びました:下で1音を鳴らし続け(ドローン)、1つのスケール(モード)の中でアドリブし、いつもならコードの壁が担う感情の仕事をモードに任せる、というものです。',
   'That’s this app, on a fretboard. Hold a drone in any key and the neck fills with the notes that work over it. Play, and Modal Runs hears you through the mic — it lights up what you just played and tells you the moment you land the note it’s hunting for. Move the tonic and the same seven notes turn from A Aeolian into D Dorian — same frets, same notes, just a different one as home. Seven different moods out of one shape. You find them by ear, the way Miles did — not off a chart.': 'それを指板の上でやるのが、このアプリです。好きなキーでドローンを鳴らすと、その上で使える音がネックいっぱいに現れます。弾けば、Modal Runsがマイクであなたを聴き取り — 弾いた音を光らせ、探している音に着地した瞬間を教えてくれます。トニックを動かせば、同じ7音がAエオリアンからDドリアンに変わります — 同じフレット、同じ音、「家」だけが違う。1つのシェイプから7つのムード。それをマイルスと同じように、譜面ではなく耳で見つけるのです。',

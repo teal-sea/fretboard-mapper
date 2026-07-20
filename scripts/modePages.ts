@@ -430,7 +430,7 @@ function indexPage(): string {
   ${SITE_HEADER}
   <main>
     <h1>Every mode, every key</h1>
-    <p class="lead">The seven modes of the major scale, mapped across the guitar neck in all twelve keys — with the notes, the chords that live inside each one, and a drone to improvise over. Pick a key; the page shows you the map, and <a href="/">the app</a> listens while you play it. New to modes? Start with the <a href="/guides/">guides</a>. New to the neck itself? Start with the <a href="/fretboard/">fretboard map — every note on the neck</a>.</p>
+    <p class="lead">The seven modes of the major scale, mapped across the guitar neck in all twelve keys — with the notes, the chords that live inside each one, and a drone to improvise over. Pick a key; the page shows you the map, and <a href="/">the app</a> lights up what you play on it. New to modes? Start with the <a href="/guides/">guides</a>. New to the neck itself? Start with the <a href="/fretboard/">fretboard map — every note on the neck</a>.</p>
     <p>${languages}</p>
 
     ${sections}

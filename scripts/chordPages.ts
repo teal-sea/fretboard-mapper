@@ -186,7 +186,7 @@ function chordPage(rootPc: number, chordKey: string): string {
       ${sameCategory.map(k => `<li><a href="${chordPagePath(rootPc, k)}">${root}${CHORDS[k].suffix} <span style="opacity:0.6">(${CHORDS[k].name})</span></a></li>`).join('\n      ')}
     </ul>
   </main>
-  ${footer({ modesHref: '/chords/', modesLabel: 'All chords', appLabel: 'Open the app', tag: 'Modal Runs — free guitar practice that listens.' })}
+  ${footer({ modesHref: '/chords/', modesLabel: 'All chords', appLabel: 'Open the app', tag: 'Modal Runs — learn the fretboard by playing it. Free.' })}
 </body>
 </html>
 `
@@ -230,7 +230,7 @@ function chordsIndexPage(): string {
 
     ${sections}
   </main>
-  ${footer({ modesHref: '/chords/', modesLabel: 'All chords', appLabel: 'Open the app', tag: 'Modal Runs — free guitar practice that listens.' })}
+  ${footer({ modesHref: '/chords/', modesLabel: 'All chords', appLabel: 'Open the app', tag: 'Modal Runs — learn the fretboard by playing it. Free.' })}
 </body>
 </html>
 `

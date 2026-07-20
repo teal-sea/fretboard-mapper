@@ -206,9 +206,8 @@ export const ko: Record<string, string> = {
   'Aeolian': '에올리안',
 
   // ─── Landing / intro ───
-  'It': '이 앱은',
-  'listens while you play,': '연주하는 동안 듣고,',
-  'and answers on the neck.': '지판 위에서 답해요.',
+  'Learn the fretboard': '지판은',
+  'by playing it.': '치면서 배운다.',
   'In 1959, Miles Davis walked into a studio bored of chasing chord changes and cut an album built on almost none.': '1959년, 코드 진행을 쫓는 데 지친 마일스 데이비스는 스튜디오에 들어가 코드가 거의 없는 앨범을 녹음했어요.',
   '— still the best-selling jazz record ever made — runs on scales instead of progressions. He called it modal jazz: hold one note underneath (a drone), improvise inside a single scale (a mode), and let the mode do the emotional work a wall of chords usually does.': '은(는) — 지금도 역사상 가장 많이 팔린 재즈 음반인데 — 코드 진행 대신 스케일로 굴러가요. 그는 이걸 모달 재즈라고 불렀죠: 아래에 음 하나를 깔고(드론), 하나의 스케일 안에서 즉흥연주하며(모드), 코드 벽이 하던 감정의 일을 모드가 하게 두는 거예요.',
   'That’s this app, on a fretboard. Hold a drone in any key and the neck fills with the notes that work over it. Play, and Modal Runs hears you through the mic — it lights up what you just played and tells you the moment you land the note it’s hunting for. Move the tonic and the same seven notes turn from A Aeolian into D Dorian — same frets, same notes, just a different one as home. Seven different moods out of one shape. You find them by ear, the way Miles did — not off a chart.': '그게 바로 이 앱이에요, 지판 위에서요. 아무 키에서나 드론을 깔면 그 위에서 통하는 음들로 지판이 채워져요. 연주하면 Modal Runs가 마이크로 들어요 — 방금 친 음을 밝혀주고, 사냥 중인 음에 착지하는 순간 알려주죠. 으뜸음을 옮기면 같은 일곱 음이 A 에올리안에서 D 도리안으로 변해요 — 같은 프렛, 같은 음, 집이 되는 음만 다를 뿐. 한 셰이프에서 일곱 가지 무드가 나와요. 차트가 아니라, 마일스가 그랬듯 귀로 찾는 거예요.',
