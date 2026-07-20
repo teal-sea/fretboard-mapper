@@ -90,6 +90,8 @@ type FretboardCopy = {
   nextBody: string        // may contain {modes} and {app} link slots
   modesWord: string       // the in-sentence link text the {modes} slot gets
   appWord: string         // the in-sentence link text the {app} slot gets
+  ctaMain: string         // conversion CTA into the app's Learn mode
+  ctaSub: string
   aria: string
   ariaNaturals: string
 }
@@ -117,6 +119,8 @@ const EN: FretboardCopy = {
   nextBody: 'A static chart shows you the notes; {app} listens through your mic and lights up every note you actually play on this same map, in real time. When you’re ready for what the notes mean together, {modes} map every scale onto this neck.',
   modesWord: 'the mode pages',
   appWord: 'the app',
+  ctaMain: 'Learn the notes by playing them — the app listens →',
+  ctaSub: 'Free, in your browser. Play any note and it lights up on this exact neck, in real time.',
   aria: 'Guitar fretboard chart: every note on all six strings from open to fret 12 in standard tuning',
   ariaNaturals: 'Guitar fretboard chart showing only the natural notes, open to fret 12, standard tuning',
 }
@@ -145,6 +149,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     nextBody: 'Un diagrama estático te enseña las notas; {app} te escucha por el micrófono e ilumina en tiempo real cada nota que tocas sobre este mismo mapa. Cuando quieras saber qué significan juntas, las páginas de {modes} proyectan cada escala sobre este mástil.',
     modesWord: 'los modos',
     appWord: 'la app',
+    ctaMain: 'Aprende las notas tocándolas — la app te escucha →',
+    ctaSub: 'Gratis, en tu navegador. Toca cualquier nota y se ilumina en este mismo mástil, en tiempo real.',
     aria: 'Diagrama del diapasón: todas las notas de las seis cuerdas, del aire al traste 12, afinación estándar',
     ariaNaturals: 'Diagrama del diapasón con solo las notas naturales, del aire al traste 12, afinación estándar',
   },
@@ -171,6 +177,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     nextBody: 'Un schéma statique montre les notes ; {app} t’écoute au micro et illumine en temps réel chaque note que tu joues sur cette même carte. Quand tu veux comprendre ce qu’elles signifient ensemble, les pages des {modes} projettent chaque gamme sur ce manche.',
     modesWord: 'modes',
     appWord: 'l’app',
+    ctaMain: 'Apprends les notes en les jouant — l’app t’écoute →',
+    ctaSub: 'Gratuit, dans ton navigateur. Joue une note et elle s’illumine sur ce manche, en temps réel.',
     aria: 'Schéma du manche : toutes les notes des six cordes, de la corde à vide à la case 12, accordage standard',
     ariaNaturals: 'Schéma du manche avec uniquement les notes naturelles, de la corde à vide à la case 12, accordage standard',
   },
@@ -197,6 +205,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     nextBody: 'Uno schema statico ti mostra le note; {app} ti ascolta dal microfono e illumina in tempo reale ogni nota che suoni su questa stessa mappa. Quando vuoi capire cosa significano insieme, le pagine dei {modes} proiettano ogni scala su questo manico.',
     modesWord: 'modi',
     appWord: 'l’app',
+    ctaMain: 'Impara le note suonandole — l’app ti ascolta →',
+    ctaSub: 'Gratis, nel tuo browser. Suona una nota e si illumina su questa stessa tastiera, in tempo reale.',
     aria: 'Schema della tastiera: tutte le note sulle sei corde, dalla corda a vuoto al tasto 12, accordatura standard',
     ariaNaturals: 'Schema della tastiera con solo le note naturali, dalla corda a vuoto al tasto 12, accordatura standard',
   },
@@ -223,6 +233,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     nextBody: 'Um diagrama estático mostra as notas; {app} te escuta pelo microfone e ilumina em tempo real cada nota que você toca neste mesmo mapa. Quando quiser entender o que elas significam juntas, as páginas dos {modes} projetam cada escala neste braço.',
     modesWord: 'modos',
     appWord: 'o app',
+    ctaMain: 'Aprenda as notas tocando — o app te escuta →',
+    ctaSub: 'Grátis, no seu navegador. Toque qualquer nota e ela acende neste mesmo braço, em tempo real.',
     aria: 'Diagrama do braço: todas as notas nas seis cordas, da corda solta à casa 12, afinação padrão',
     ariaNaturals: 'Diagrama do braço mostrando só as notas naturais, da corda solta à casa 12, afinação padrão',
   },
@@ -249,6 +261,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     nextBody: 'Ein statisches Diagramm zeigt dir die Töne; {app} hört dich übers Mikrofon und lässt jeden Ton, den du spielst, in Echtzeit auf genau diesem Diagramm aufleuchten. Wenn du wissen willst, was die Töne zusammen bedeuten, projizieren die {modes}-Seiten jede Skala auf dieses Griffbrett.',
     modesWord: 'Modi',
     appWord: 'die App',
+    ctaMain: 'Lern die Töne, indem du sie spielst — die App hört zu →',
+    ctaSub: 'Kostenlos, im Browser. Spiel einen Ton und er leuchtet auf genau diesem Griffbrett auf — in Echtzeit.',
     aria: 'Griffbrett-Diagramm: alle Töne auf allen sechs Saiten, von der Leersaite bis Bund 12, Standardstimmung',
     ariaNaturals: 'Griffbrett-Diagramm nur mit den Naturtönen, von der Leersaite bis Bund 12, Standardstimmung',
   },
@@ -275,6 +289,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     nextBody: 'Een statisch diagram laat je de noten zien; {app} luistert via je microfoon en laat elke noot die je speelt in realtime oplichten op precies deze kaart. Klaar voor wat de noten samen betekenen? De {modes}-pagina’s projecteren elke toonladder op deze hals.',
     modesWord: 'modi',
     appWord: 'de app',
+    ctaMain: 'Leer de noten door ze te spelen — de app luistert →',
+    ctaSub: 'Gratis, in je browser. Speel een noot en hij licht op deze zelfde hals op, in realtime.',
     aria: 'Halsdiagram: alle noten op alle zes snaren, van losse snaar tot fret 12, standaardstemming',
     ariaNaturals: 'Halsdiagram met alleen de stamtonen, van losse snaar tot fret 12, standaardstemming',
   },
@@ -301,6 +317,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     nextBody: 'Statyczny diagram pokazuje nuty; {app} słucha cię przez mikrofon i w czasie rzeczywistym podświetla na tej samej mapie każdą nutę, którą grasz. Gdy zechcesz wiedzieć, co znaczą razem, strony {modes} nakładają każdą skalę na ten gryf.',
     modesWord: 'skal modalnych',
     appWord: 'aplikacja',
+    ctaMain: 'Ucz się nut, grając je — aplikacja słucha →',
+    ctaSub: 'Za darmo, w przeglądarce. Zagraj dowolną nutę, a zaświeci się na tym samym gryfie, w czasie rzeczywistym.',
     aria: 'Diagram gryfu: wszystkie nuty na sześciu strunach, od pustej struny do 12. progu, strój standardowy',
     ariaNaturals: 'Diagram gryfu tylko z nutami naturalnymi, od pustej struny do 12. progu, strój standardowy',
   },
@@ -327,6 +345,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     nextBody: 'Статичная схема показывает ноты; {app} слушает тебя через микрофон и в реальном времени подсвечивает на этой же карте каждую ноту, которую ты играешь. А когда захочешь понять, что ноты значат вместе, страницы {modes} накладывают каждую гамму на этот гриф.',
     modesWord: 'ладов',
     appWord: 'приложение',
+    ctaMain: 'Учи ноты, играя их — приложение слушает →',
+    ctaSub: 'Бесплатно, в браузере. Сыграй любую ноту — и она загорится на этом самом грифе в реальном времени.',
     aria: 'Схема грифа: все ноты на шести струнах, от открытой струны до 12-го лада, стандартный строй',
     ariaNaturals: 'Схема грифа только с натуральными нотами, от открытой струны до 12-го лада, стандартный строй',
   },
@@ -353,6 +373,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     nextBody: 'Статична схема показує ноти; {app} слухає тебе через мікрофон і в реальному часі підсвічує на цій самій мапі кожну ноту, яку ти граєш. А коли захочеш зрозуміти, що ноти означають разом, сторінки {modes} накладають кожну гаму на цей гриф.',
     modesWord: 'ладів',
     appWord: 'застосунок',
+    ctaMain: 'Вивчай ноти, граючи їх — застосунок слухає →',
+    ctaSub: 'Безкоштовно, у браузері. Зіграй будь-яку ноту — і вона засвітиться на цьому самому грифі в реальному часі.',
     aria: 'Схема грифа: усі ноти на шести струнах, від відкритої струни до 12-го ладу, стандартний стрій',
     ariaNaturals: 'Схема грифа лише з натуральними нотами, від відкритої струни до 12-го ладу, стандартний стрій',
   },
@@ -379,6 +401,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     nextBody: 'Statik bir şema notaları gösterir; {app} seni mikrofondan dinler ve çaldığın her notayı aynı haritada gerçek zamanlı aydınlatır. Notaların birlikte ne anlama geldiğine hazır olduğunda {modes} sayfaları her gamı bu sapa yansıtır.',
     modesWord: 'mod',
     appWord: 'uygulama',
+    ctaMain: 'Notaları çalarak öğren — uygulama dinliyor →',
+    ctaSub: 'Ücretsiz, tarayıcında. Herhangi bir nota çal, aynı bu sapta gerçek zamanlı yansın.',
     aria: 'Klavye şeması: altı teldeki bütün notalar, boş telden 12. perdeye, standart akort',
     ariaNaturals: 'Yalnızca doğal notaları gösteren klavye şeması, boş telden 12. perdeye, standart akort',
   },
@@ -405,6 +429,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     nextBody: '静的なチャートは音名を教えてくれるだけ。{app}はマイクであなたの演奏を聴き取り、弾いた音をこの同じマップ上でリアルタイムに光らせます。音の意味を知りたくなったら、{modes}のページがすべてのスケールをこの指板に映します。',
     modesWord: 'モード',
     appWord: 'アプリ',
+    ctaMain: '弾いて音を覚えよう — アプリが聴いています →',
+    ctaSub: '無料、ブラウザで動きます。どの音を弾いても、この指板の上でリアルタイムに光ります。',
     aria: '指板チャート:6弦すべての全音名、開放弦から12フレットまで、レギュラーチューニング',
     ariaNaturals: 'ナチュラルのみを示した指板チャート、開放弦から12フレットまで、レギュラーチューニング',
   },
@@ -431,6 +457,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     nextBody: '정적인 차트는 음만 보여줍니다. {app}은 마이크로 연주를 듣고, 치는 모든 음을 바로 이 맵 위에 실시간으로 밝혀줘요. 음들이 함께 무엇을 뜻하는지 궁금해지면 {modes} 페이지가 모든 스케일을 이 지판에 펼쳐 보여줍니다.',
     modesWord: '모드',
     appWord: '앱',
+    ctaMain: '음을 직접 치면서 배우세요 — 앱이 듣고 있어요 →',
+    ctaSub: '무료, 브라우저에서 바로. 아무 음이나 치면 바로 이 지판 위에서 실시간으로 불이 켜져요.',
     aria: '지판 차트: 여섯 줄 전부의 모든 음, 개방현부터 12프렛까지, 표준 튜닝',
     ariaNaturals: '자연음만 표시한 지판 차트, 개방현부터 12프렛까지, 표준 튜닝',
   },
@@ -457,6 +485,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     nextBody: '静态图表只能告诉你音名;{app}会通过麦克风听你演奏,把你弹的每个音实时点亮在这张图上。想知道这些音合在一起意味着什么,{modes}页面会把每条音阶投射到这条指板上。',
     modesWord: '调式',
     appWord: '应用',
+    ctaMain: '边弹边学音名——应用在听 →',
+    ctaSub: '免费,浏览器里直接用。随便弹一个音,它就会实时点亮在这条指板上。',
     aria: '指板图:六根弦上的全部音名,从空弦到第12品,标准调弦',
     ariaNaturals: '只显示自然音的指板图,从空弦到第12品,标准调弦',
   },
@@ -483,6 +513,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     nextBody: 'Sơ đồ tĩnh chỉ cho bạn thấy các nốt; {app} nghe bạn qua micro và thắp sáng theo thời gian thực từng nốt bạn chơi trên chính sơ đồ này. Khi muốn hiểu các nốt kết hợp nghĩa là gì, các trang {modes} sẽ chiếu từng âm giai lên cần đàn này.',
     modesWord: 'mode',
     appWord: 'ứng dụng',
+    ctaMain: 'Học nốt bằng cách chơi chúng — ứng dụng đang lắng nghe →',
+    ctaSub: 'Miễn phí, ngay trong trình duyệt. Chơi bất kỳ nốt nào và nó sáng lên trên chính cần đàn này, theo thời gian thực.',
     aria: 'Sơ đồ cần đàn: mọi nốt trên sáu dây, từ dây buông đến phím 12, chỉnh dây chuẩn',
     ariaNaturals: 'Sơ đồ cần đàn chỉ với các nốt tự nhiên, từ dây buông đến phím 12, chỉnh dây chuẩn',
   },
@@ -509,6 +541,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     nextBody: 'Diagram statis hanya menunjukkan nada; {app} mendengarkanmu lewat mikrofon dan menyalakan tiap nada yang kamu mainkan di peta yang sama ini secara real time. Kalau sudah siap memahami arti nada-nada itu bersama, halaman {modes} memproyeksikan tiap tangga nada ke fretboard ini.',
     modesWord: 'mode',
     appWord: 'aplikasi',
+    ctaMain: 'Pelajari nada dengan memainkannya — aplikasi mendengarkan →',
+    ctaSub: 'Gratis, di browser. Mainkan nada apa pun dan ia menyala di fretboard yang sama ini, secara real time.',
     aria: 'Diagram fretboard: semua nada di enam senar, dari senar lepas sampai fret 12, stem standar',
     ariaNaturals: 'Diagram fretboard hanya dengan nada natural, dari senar lepas sampai fret 12, stem standar',
   },
@@ -535,6 +569,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     nextBody: 'स्टैटिक चार्ट सिर्फ नोट्स दिखाता है; {app} माइक से आपको सुनता है और आपके बजाए हर नोट को इसी मैप पर रियल टाइम में रोशन कर देता है। जब नोट्स का मिलकर मतलब समझना हो, तो {modes} के पेज हर स्केल को इसी फ्रेटबोर्ड पर उतार देते हैं।',
     modesWord: 'मोड्स',
     appWord: 'ऐप',
+    ctaMain: 'नोट्स बजाकर सीखें — ऐप सुन रहा है →',
+    ctaSub: 'मुफ्त, आपके ब्राउज़र में। कोई भी नोट बजाएँ और वह इसी फ्रेटबोर्ड पर रियल टाइम में जगमगा उठेगा।',
     aria: 'फ्रेटबोर्ड चार्ट: छहों स्ट्रिंग्स के सारे नोट्स, खुली स्ट्रिंग से 12वें फ्रेट तक, स्टैंडर्ड ट्यूनिंग',
     ariaNaturals: 'सिर्फ नैचुरल नोट्स वाला फ्रेटबोर्ड चार्ट, खुली स्ट्रिंग से 12वें फ्रेट तक, स्टैंडर्ड ट्यूनिंग',
   },
@@ -590,6 +626,11 @@ function renderPage(copy: FretboardCopy, locale?: Locale): string {
   const canonicalPath = fretboardPagePath(locale)
   const modesHref = locale ? `/${locale.code}/${locale.modesSegment}/` : '/modes/'
   const appHref = locale ? `/?lang=${locale.code}` : '/'
+  // The whole point of ranking for these queries: get the searcher onto
+  // the neck with the mic on. Deep link into Learn — the guided,
+  // game-like mode — not just the bare landing page.
+  const learnHref = locale ? `/?app=learn&lang=${locale.code}` : '/?app=learn'
+  const cta = `<a class="cta" href="${learnHref}">${copy.ctaMain}<small>${copy.ctaSub}</small></a>`
   // In-sentence link words ≠ footer labels: "the app" reads inside a
   // sentence, "Open the app" belongs in the footer.
   const nextBody = copy.nextBody
@@ -621,6 +662,7 @@ function renderPage(copy: FretboardCopy, locale?: Locale): string {
       ${chartSvg(disp, copy.aria, false, !!locale)}
       <figcaption>${copy.fullCaption}</figcaption>
     </figure>
+    ${cta}
     <button class="print" onclick="window.print()">${copy.printButton}</button>
 
     <h2>${copy.naturalsHeading}</h2>
@@ -644,6 +686,7 @@ function renderPage(copy: FretboardCopy, locale?: Locale): string {
 
     <h2>${copy.nextHeading}</h2>
     <p>${nextBody}</p>
+    ${cta}
   </main>
   ${locale
     ? footer({ modesHref, modesLabel: locale.t.footerModes, appLabel: locale.t.footerApp, tag: locale.t.footerTag, showGuides: false })
