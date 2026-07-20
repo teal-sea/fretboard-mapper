@@ -9,8 +9,10 @@
 - TypeScript throughout; prefer explicit types on exported functions and props
   interfaces. Local inference is fine.
 - Keep the **layer boundary**: theory logic in `musicTheory.ts` (pure), audio in
-  `audioEngine.ts` (side-effects), orchestration in `App.tsx`. Don't import React
-  into the utils or theory tables into the audio engine.
+  `audioEngine.ts` (side-effects), orchestration in `App.tsx`, practice-engine
+  transient state in `src/hooks/` (receives `state`/`up`, writes shared state
+  only via `up()`). Don't import React into the utils or theory tables into the
+  audio engine.
 - CSS lives entirely in `styles/index.css`, driven by CSS variables and theme
   classes (`.dark`, `.light`, `.midnight`, …). Reuse existing variables
   (`--accent`, `--accent-glow`, `--bg-raised`, `--border`, `--text*`, `--radius`,
@@ -18,9 +20,16 @@
 
 ## Testing
 
-- `npm test` runs Vitest (67 tests today, almost all covering `musicTheory.ts`).
+- `npm test` runs Vitest (381 tests / 19 files today — the whole theory layer,
+  pitch detection, persistence/url/cloud-sync, and the two tested `api/` files).
 - **Any change to the theory engine must come with tests** — it's the trust
   anchor for the whole app. Add cases to `musicTheory.test.ts`.
+- `src/testSetup.ts` stubs `localStorage`: Node ≥25's experimental built-in one
+  shadows jsdom's with a broken instance under vitest. Don't remove the stub,
+  don't trust the ambient global in new tests.
+- Still untested (know before refactoring there): `audioEngine`, `micInput`,
+  all components, `App.tsx`, the `api/` handlers (except `authHelper` +
+  `deriveSubscriptionUpdate`), and the `scripts/` SSG generators.
 - Audio and rendering aren't unit-tested (Web Audio / SVG are hard to assert
   headlessly). Verify those **by ear / by eye** in `npm run dev`. State that
   explicitly when you can't automate a check — don't imply audio was verified when

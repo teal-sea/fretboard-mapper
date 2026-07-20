@@ -23,7 +23,7 @@
 
 ```
   ┌────────────────────────── UI layer ──────────────────────────┐
-  │  App.tsx  ·  components/Fretboard.tsx  ·  styles/index.css     │
+  │  App.tsx  ·  components/*  ·  hooks/*  ·  styles/index.css    │
   │  Holds AppState, renders, wires events.                        │
   └───────────────┬───────────────────────────┬──────────────────┘
                   │ pure calls                 │ imperative calls
@@ -104,11 +104,24 @@ compute a partial and call `up()`. See [03-state](03-state.md).
 - **The theory engine decides *where the notes are*** — deterministically.
 - **The audio engine decides *what it sounds like*** — independently of both.
 
+## Security posture (audited 2026-07-19)
+
+Verified not exploitable: Clerk-token/customer-id forgery (all `api/`
+endpoints verify JWTs server-side; the Polar customer key is `claims.sub`),
+SQL injection (Neon tagged templates = bound params), webhook bypass
+(signature checked on raw bytes), a client faking `subscribed`
+(`api/webhook/polar.ts` is the only writer — grep-verified), secret leakage
+(generic errors to clients, only `.env.example` tracked). Sync payloads are
+whitelisted to `SYNCED_KEYS` + size-capped on write AND re-whitelisted on
+pull. Deliberate non-features: no CORS headers (same-origin SPA — don't add
+wildcard), no rate limiting (auth + subscriber gated, hobby scale), no
+webhook replay store (the flag is derived, not incremented).
+
 ## Non-obvious facts
 
-- **`KeyMapView.tsx` is currently dead code** — not imported anywhere. It's a
-  functional alternate "key map" view wired to real APIs but unmounted. Either
-  adopt it or delete it; don't assume it's live. See [06-components](06-components.md).
+- **`KeyMapView.tsx` was deleted** — it was never mounted. If a per-degree key
+  map returns, rebuild it against the theory engine rather than restoring the
+  file. See [06-components](06-components.md).
 - **No routing.** The Study/Flow split is `AppState.appMode`, not a route;
   "pages" are conditional panels toggled by state (`appMode`, `advancedMode`,
   `activeTab`, `settingsOpen`).

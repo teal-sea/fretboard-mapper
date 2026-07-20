@@ -1,7 +1,11 @@
 # CLAUDE.md — Fretboard Mapper
 
 Orientation for any AI agent or developer working in this repo. Read this first,
-then the deeper docs under [`docs/`](docs/README.md).
+then the deeper docs under [`docs/`](docs/README.md) — that tree IS the
+project's LLM developer wiki. **Maintenance rule:** when you ship a meaningful
+change, update the affected page(s) in the same PR; the wiki drifting is worse
+than it not existing (it has drifted badly before — 01-overview once described
+an app three modes behind reality).
 
 ## What this is
 
@@ -52,10 +56,15 @@ src/
   App.tsx                   # ALL app state + UI orchestration (see docs/03-state.md)
   types/music.ts            # AppState + domain types
   components/
-    Fretboard.tsx           # the neck renderer (docs/06-components.md)
+    Fretboard.tsx           # the neck renderer, memoized (docs/06-components.md)
     FlowCanvas.tsx          # Flow's ambient particle layer (docs/06-components.md)
-    KeyMapView.tsx          # ⚠️ dead code, not mounted anywhere (docs/06-components.md)
     AccountMenu.tsx         # login/upgrade/manage-subscription + cloud sync effect (Clerk-gated)
+    SettingsDrawer.tsx      # global prefs slide-over — pure state-in/up()-out
+    Veils.tsx               # upgrade celebration, desktop nudge, intro overlay
+    controls.tsx            # ToggleSwitch / DrawerSlider / CollapsibleSection
+  hooks/
+    useFindIt.ts / useEcho.ts   # the two Flow mic games (transient state lives here)
+    useWalk.ts / useRun.ts      # Learn's walk + run/Twist engines — shared state still moves only via up()
   utils/
     musicTheory.ts          # deterministic theory engine (docs/04-music-theory.md)
     theory.ts               # "why it works" insight text (scale/chord → prose)
@@ -74,6 +83,9 @@ src/
     defaultColors.ts           # interval -> color map
     webmcp.ts                  # origin-trial WebMCP tool registration (no-op most browsers)
   styles/index.css          # all styling (CSS variables + theme classes)
+  testSetup.ts              # vitest setup — installs a real localStorage stub
+                             # (Node 25's built-in one shadows jsdom's, broken)
+.github/workflows/ci.yml    # CI: npm run build + npm test on every PR/push to main
 scripts/                    # SSG build step: /modes/, /guides/, /chords/, /fretboard/ pages,
                              # llms.txt, sitemap — runs as part of `npm run build`
 api/                         # Vercel serverless functions — the only place secrets live

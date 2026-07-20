@@ -2,7 +2,7 @@
 
 A **pure, deterministic, tested** library. No React, no audio, no DOM. This is
 the source of truth for every note and position on the neck. Its tests live in
-`musicTheory.test.ts` (the app suite is ~305 tests across nine files) — treat
+`musicTheory.test.ts` (the app suite is 381 tests across 19 files) — treat
 them as the contract and keep them green.
 
 ## Note representation (project-wide)

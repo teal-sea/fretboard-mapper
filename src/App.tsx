@@ -17,14 +17,17 @@ import {
   getScalePositions, getChordVoicings, chordIntervalsForScale,
 } from './utils/musicTheory'
 import type { DiatonicChord, FretPosition } from './utils/musicTheory'
-import { DEFAULT_INTERVAL_COLORS, ALL_INTERVALS } from './utils/defaultColors'
+import { DEFAULT_INTERVAL_COLORS } from './utils/defaultColors'
+import SettingsDrawer from './components/SettingsDrawer'
+import Veils from './components/Veils'
+import { CollapsibleSection } from './components/controls'
 import Fretboard from './components/Fretboard'
 import { playChordPad, stopChordPad, chordToMidi, startMetronome, stopMetronome, startDrone, stopDrone, startArpeggio, stopArpeggio, setArpBpm, setDroneVolume, setDroneSpread, setDroneTone, setPadVolume, setPadSpread, setPadTone } from './utils/audioEngine'
 import { CONCEPTS, getNextConcept, markSeen, loadOwned, markOwned, type Concept } from './utils/concepts'
 import { startMic, stopMic, readPitch, recalibrateMic, getMicError, getLastRms, getRmsGate, isMicRunning } from './utils/micInput'
 import { intervalSemitones } from './utils/musicTheory'
 import { getScaleInsight, getChordInsight, chordsInScale, getObjective, getPrimer } from './utils/theory'
-import { getSameNoteModes, recontextualise, type SiblingMode } from './utils/modes'
+import { getSameNoteModes, type SiblingMode } from './utils/modes'
 import { loadPersistedState, savePersistedState } from './utils/persist'
 import { parseUrlState, syncUrl } from './utils/urlState'
 import { displayNote, LANGUAGES } from './utils/noteNames'
@@ -34,14 +37,11 @@ import { recordPractice } from './utils/streak'
 import { favoriteId, isFavorited, toggleFavorite, type FavoriteItem } from './utils/favorites'
 import { registerWebMcpTools } from './utils/webmcp'
 import FlowCanvas, { type FlowPulse } from './components/FlowCanvas'
-import { familyId, getClaims, claimMode, markCompleted, totalClaimed } from './utils/progress'
-import { getSweepShape, getArpeggioShapes, buildRun } from './utils/arpeggios'
-import {
-  getWalkPositions, currentWalkIndex, describeStep,
-  initWalk, feedWalk, enterPosition, walkProgress,
-} from './utils/walk'
-import { initRun, advanceRun, scoreRun, stepStates } from './utils/runner'
-import type { RunNoteMark } from './components/Fretboard'
+import { totalClaimed } from './utils/progress'
+import { useFindIt } from './hooks/useFindIt'
+import { useEcho } from './hooks/useEcho'
+import { useWalk } from './hooks/useWalk'
+import { useRun } from './hooks/useRun'
 
 // ─── Harmony Map row definitions ────────────────────────────
 const HARMONY_ROWS = [
@@ -103,14 +103,6 @@ function getDiatonicScaleKey(degreeIndex: number, keyQuality: string): string {
   if (idx >= 0) return MAJOR_MODES[(idx + degreeIndex) % 7]
   return keyQuality
 }
-
-const THEME_OPTIONS: { key: AppState['colorTheme']; label: string; accent: string }[] = [
-  { key: 'obsidian', label: 'Obsidian', accent: '#d4a017' },
-  { key: 'midnight', label: 'Midnight', accent: '#5b8def' },
-  { key: 'ember', label: 'Ember', accent: '#e07830' },
-  { key: 'vapor', label: 'Vapor', accent: '#d050a0' },
-  { key: 'sage', label: 'Sage', accent: '#40b870' },
-]
 
 const initialState: AppState = {
   keyRoot: 'C',
@@ -229,6 +221,8 @@ export default function App() {
     for (const n of ['C','C#','Db','D','D#','Eb','E','F','F#','Gb','G','G#','Ab','A','A#','Bb','B']) m[n] = dn(n)
     return m
   }, [state.noteStyle, dn])
+  // Stable array so a memoized Fretboard isn't defeated by a fresh .map()
+  const tuningLabels = useMemo(() => tuning.labels.map(dn), [tuning, dn])
 
   // Diatonic chords for current key
   const diatonicChords = useMemo(
@@ -325,7 +319,12 @@ export default function App() {
     }
     if (keyScale) return { activeNotes: getScaleNotes(state.keyRoot, keyScale), fretboardRoot: state.keyRoot }
     return { activeNotes: new Set<number>(), fretboardRoot: state.keyRoot }
-  }, [state, keyScale])
+    // Depend on the fields actually read — depending on `state` itself meant
+    // every volume/theme/color change rebuilt the Sets and, downstream, the
+    // whole board via computeFretboard.
+  }, [state.activeTab, state.keyRoot, state.keyQuality, state.selectedScaleKey,
+      state.selectedScaleRoot, state.viewMode, state.selectedChordKey,
+      state.selectedChordRoot, state.progressionPlaying, keyScale])
 
   const board = useMemo(
     () => computeFretboard(tuning, fretboardRoot, activeNotes, state.numFrets),
@@ -503,26 +502,6 @@ export default function App() {
     setUpgradedOpen(false)
   }, [state.keyRoot, state.keyQuality])
 
-  // ─── "Looks better on desktop" nudge ───
-  // Reddit sends a lot of phones. This never blocks the app (same rule as
-  // rotate-prompt below) — it's a once-ever aside, dismissed for good,
-  // shown only to touch-primary devices (hover:none + pointer:coarse),
-  // not merely narrow desktop windows, which a width breakpoint alone
-  // would catch.
-  const DESKTOP_NUDGE_KEY = 'fm.desktopNudgeSeen'
-  const [desktopNudgeOpen, setDesktopNudgeOpen] = useState(false)
-  useEffect(() => {
-    try {
-      if (localStorage.getItem(DESKTOP_NUDGE_KEY)) return
-    } catch { /* storage unavailable — just don't nag every load */ return }
-    if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) {
-      setDesktopNudgeOpen(true)
-    }
-  }, [])
-  const dismissDesktopNudge = useCallback(() => {
-    setDesktopNudgeOpen(false)
-    try { localStorage.setItem(DESKTOP_NUDGE_KEY, '1') } catch { /* no-op */ }
-  }, [])
 
   const chordsByCategory = useMemo(() => {
     const cats: Record<string, [string, { name: string; suffix: string }][]> = {}
@@ -833,6 +812,12 @@ export default function App() {
     up({ scalePosition: cur >= n ? 1 : cur + 1 })
   }, [scalePositions.length, state.scalePosition, up])
 
+  const chooseIntro = useCallback((dest: 'study' | 'flow' | null) => {
+    up(dest === 'study' ? { onboarded: true, appMode: 'study' } : { onboarded: true })
+    setIntroOpen(false)
+    if (dest === 'flow') goFlow()
+  }, [up, goFlow])
+
   // ─── Play: one button, not two ───
   // Drone and Listen used to be separate toggles — most people want both
   // at once (that's the whole app), and a mic-only "Listen" button playing
@@ -895,6 +880,13 @@ export default function App() {
   }, [up, togglePlay])
 
   const backingNoun = state.backingMode === 'chord' ? 'the chord' : state.backingMode === 'arp' ? 'the arpeggiator' : 'the drone'
+
+  // One clamp for every BPM stepper on the page (backing bar, jam setup,
+  // practice panel) — the 40–200 range lives in exactly one place.
+  const bumpBpm = useCallback(
+    (delta: number) => setState(s => ({ ...s, progressionBpm: Math.min(200, Math.max(40, s.progressionBpm + delta)) })),
+    []
+  )
 
   // ─── Tuner ───
   // The pitch pipe already reports cents-off-nearest-note; the tuner is just
@@ -982,13 +974,35 @@ export default function App() {
       {(state.backingMode === 'arp' || metronomeOn) && (
         <div className="backing-bpm">
           <button type="button" className="backing-bpm-btn"
-            onClick={() => up({ progressionBpm: Math.max(40, state.progressionBpm - 5) })}>&minus;</button>
+            onClick={() => bumpBpm(-5)}>&minus;</button>
           <span className="backing-bpm-val">{state.progressionBpm}</span>
           <button type="button" className="backing-bpm-btn"
-            onClick={() => up({ progressionBpm: Math.min(200, state.progressionBpm + 5) })}>+</button>
+            onClick={() => bumpBpm(5)}>+</button>
         </div>
       )}
     </div>
+  )
+
+  // Play button + heard-note readout, shared by all three stages — same
+  // markup everywhere so they can't drift apart (the renderBackingControls
+  // rule, applied to the other two transport widgets).
+  const renderPlayButton = (small = false) => (
+    <button
+      key={justTapped}
+      className={`play-btn${small ? ' small' : ''} ${isPlaying ? 'on' : ''}`}
+      onClick={togglePlay}
+      title={isPlaying ? `Stop ${backingNoun} and the mic` : `Start ${backingNoun} and let it hear you`}
+      aria-label={isPlaying ? 'Stop' : 'Play'}
+    >
+      <span className="play-icon">{isPlaying ? '⏸' : '▶'}</span>
+    </button>
+  )
+  const renderHeardNote = (cls: string) => listening && (
+    <span className={cls}>
+      {heardMidi !== null
+        ? <>{dn(noteName(heardMidi % 12, flats))}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
+        : '···'}
+    </span>
   )
 
   // BPM changes retime a running click immediately — without this the stepper
@@ -1133,206 +1147,21 @@ export default function App() {
   const flowHomesRef = useRef<Set<string>>(new Set())
   const flowPulseIdRef = useRef(0)
 
-  // ─── Find It: sound (or name) first, fretboard second ───
-  // The neck stays blank while hunting — it lights back up only to confirm
-  // a hit, so lighting up is the reward, not the instruction. Backing
-  // (Pad/Drone/Arp — whatever's already selected) keeps playing underneath;
-  // this doesn't require the drone specifically.
-  const [findItOn, setFindItOn] = useState(false)
-  const [findItTarget, setFindItTarget] = useState<{ stringIndex: number; fret: number; midi: number; note: string } | null>(null)
-  const [findItRevealed, setFindItRevealed] = useState(false)
-  const [findItScore, setFindItScore] = useState(0)
-  const [findItStreak, setFindItStreak] = useState(0)
-  const [findItLastMs, setFindItLastMs] = useState<number | null>(null)
-  const [findItStrings, setFindItStrings] = useState<number[]>([]) // empty = every string
-  const [findItFretRange, setFindItFretRange] = useState<[number, number] | null>(null) // null = full neck
-  const findItStartedAtRef = useRef<number | null>(null)
+  // ─── Find It: the name-then-locate mic game (hooks/useFindIt) ───
+  const {
+    findItTarget, findItRevealed, findItScore, findItStreak, findItLastMs,
+    findItStrings, setFindItStrings, findItFretRange, setFindItFretRange,
+    findItBoard,
+  } = useFindIt({
+    active: state.flowJam === 'findit' && isPlaying,
+    board, tuning, fretboardRoot, numFrets: state.numFrets, heardMidi,
+  })
 
-  const findItCandidates = useMemo(() => {
-    const out: ({ stringIndex: number; fret: number; midi: number; note: string })[] = []
-    for (let s = 0; s < board.length; s++) {
-      if (findItStrings.length && !findItStrings.includes(s)) continue
-      for (const fn of board[s]) {
-        if (!fn.isInScale) continue
-        if (findItFretRange && (fn.fret < findItFretRange[0] || fn.fret > findItFretRange[1])) continue
-        out.push({ stringIndex: fn.stringIndex, fret: fn.fret, midi: fn.midi, note: fn.note })
-      }
-    }
-    return out
-  }, [board, findItStrings, findItFretRange])
-
-  const pickFindItTarget = useCallback(() => {
-    if (!findItCandidates.length) { setFindItTarget(null); return }
-    const pick = findItCandidates[Math.floor(Math.random() * findItCandidates.length)]
-    setFindItTarget(pick)
-    setFindItRevealed(false)
-    findItStartedAtRef.current = Date.now()
-    playChordPad([pick.midi], false)
-  }, [findItCandidates])
-
-  // Enter/leave the game with the JAM switch + transport, same Play button
-  // as Modes/Changes — no separate start control to learn.
-  useEffect(() => {
-    const shouldRun = state.flowJam === 'findit' && isPlaying
-    if (shouldRun && !findItOn) {
-      setFindItOn(true); setFindItScore(0); setFindItStreak(0); setFindItLastMs(null)
-    } else if (!shouldRun && findItOn) {
-      setFindItOn(false); setFindItTarget(null); setFindItRevealed(false)
-    }
-  }, [state.flowJam, isPlaying, findItOn])
-
-  useEffect(() => {
-    if (findItOn && !findItTarget) pickFindItTarget()
-  }, [findItOn, findItTarget, pickFindItTarget])
-
-  // The hit: exact MIDI match, not just pitch class — "find it on this
-  // string/section" only means something if the octave has to match too.
-  useEffect(() => {
-    if (!findItOn || !findItTarget || findItRevealed || heardMidi === null) return
-    if (heardMidi !== findItTarget.midi) return
-    const elapsed = findItStartedAtRef.current ? Date.now() - findItStartedAtRef.current : 0
-    const points = Math.max(5, Math.round(200 - elapsed / 50))
-    setFindItScore(s => s + points)
-    setFindItStreak(s => s + 1)
-    setFindItLastMs(elapsed)
-    setFindItRevealed(true)
-  }, [heardMidi, findItOn, findItTarget, findItRevealed])
-
-  // Advancing after a hit is its OWN effect, deliberately not folded into
-  // the detection effect above: that one lists findItRevealed as a dep (it
-  // needs to stop reacting once revealed), so setting findItRevealed(true)
-  // inside it would re-run it immediately — whose cleanup would cancel this
-  // same setTimeout before it ever fires, freezing the game on the first
-  // hit forever. This effect's only trigger is findItRevealed itself.
-  useEffect(() => {
-    if (!findItRevealed) return
-    const t = setTimeout(() => setFindItTarget(null), 900)
-    return () => clearTimeout(t)
-  }, [findItRevealed])
-
-  // A dedicated board for the game: blank while hunting, lights up the
-  // target's pitch class (every fret it appears at) once confirmed.
-  const findItBoard = useMemo(() => {
-    if (!findItOn) return board
-    return computeFretboard(tuning, fretboardRoot, findItRevealed && findItTarget ? new Set([findItTarget.midi % 12]) : new Set(), state.numFrets)
-  }, [findItOn, findItRevealed, findItTarget, tuning, fretboardRoot, state.numFrets, board])
-
-  // ─── Echo: call and response ───
-  // App plays a short phrase over the backing, you play it back by ear.
-  // Miss the phrase and it repeats exactly — no partial credit, no new
-  // notes to confuse what you're re-attempting. Land it and the phrase
-  // grows by one note (capped) for the next round. The neck stays dark
-  // the whole time; this is ear-only, unlike Find It's name-then-locate.
-  const ECHO_MAX_LEN = 8
-  const ECHO_NOTE_MS = 550
-  const [echoOn, setEchoOn] = useState(false)
-  const [echoPhrase, setEchoPhrase] = useState<number[]>([])
-  const [echoPlayedIdx, setEchoPlayedIdx] = useState(0)
-  const [echoStatus, setEchoStatus] = useState<'playing' | 'listening' | 'success' | 'miss'>('playing')
-  const [echoScore, setEchoScore] = useState(0)
-  const [echoStreak, setEchoStreak] = useState(0)
-  const [echoLength, setEchoLength] = useState(3)
-
-  const playEchoPhrase = useCallback((phrase: number[]) => {
-    phrase.forEach((midi, i) => setTimeout(() => playChordPad([midi], false), i * ECHO_NOTE_MS))
-  }, [])
-
-  // Starts (or restarts) a round: reset progress, play the phrase, then
-  // switch to listening once it's done playing. Shared by "a fresh phrase
-  // is needed" and "the same phrase repeats after a miss".
-  const playPhraseAndListen = useCallback((phrase: number[]) => {
-    setEchoPlayedIdx(0)
-    setEchoStatus('playing')
-    playEchoPhrase(phrase)
-    setTimeout(() => setEchoStatus('listening'), phrase.length * ECHO_NOTE_MS + 300)
-  }, [playEchoPhrase])
-
-  const startNewEchoPhrase = useCallback(() => {
-    const pool = board.flat().filter(fn => fn.isInScale)
-    if (!pool.length) { setEchoPhrase([]); return }
-    const phrase: number[] = []
-    for (let i = 0; i < echoLength; i++) {
-      let pick: number
-      do { pick = pool[Math.floor(Math.random() * pool.length)].midi } while (phrase.length > 0 && pick === phrase[phrase.length - 1])
-      phrase.push(pick)
-    }
-    setEchoPhrase(phrase)
-    playPhraseAndListen(phrase)
-  }, [board, echoLength, playPhraseAndListen])
-
-  useEffect(() => {
-    const shouldRun = state.flowJam === 'echo' && isPlaying
-    if (shouldRun && !echoOn) {
-      setEchoOn(true); setEchoScore(0); setEchoStreak(0); setEchoLength(3)
-    } else if (!shouldRun && echoOn) {
-      setEchoOn(false); setEchoPhrase([]); setEchoPlayedIdx(0)
-    }
-  }, [state.flowJam, isPlaying, echoOn])
-
-  useEffect(() => {
-    if (echoOn && echoPhrase.length === 0) startNewEchoPhrase()
-  }, [echoOn, echoPhrase, startNewEchoPhrase])
-
-  // Detection: reads progress through refs, not state, and depends on
-  // ONLY [heardMidi, echoOn] — not echoPlayedIdx/echoStatus. Advancing
-  // echoPlayedIdx mid-phrase is itself a state change; if it were also a
-  // dependency here, setting it would re-run this same effect against the
-  // SAME (now stale) heardMidi value, check it against the NEXT expected
-  // note, mismatch, and immediately overwrite the correct partial match
-  // with a false "miss" — same family of bug as Find It's timeout getting
-  // cancelled by its own trigger, just one step earlier in the chain.
-  const echoPlayedIdxRef = useRef(0)
-  const echoPhraseRef = useRef<number[]>([])
-  const echoStatusRef = useRef<typeof echoStatus>('playing')
-  useEffect(() => { echoPlayedIdxRef.current = echoPlayedIdx }, [echoPlayedIdx])
-  useEffect(() => { echoPhraseRef.current = echoPhrase }, [echoPhrase])
-  useEffect(() => { echoStatusRef.current = echoStatus }, [echoStatus])
-
-  useEffect(() => {
-    if (!echoOn || heardMidi === null) return
-    if (echoStatusRef.current !== 'listening') return
-    const phrase = echoPhraseRef.current
-    if (phrase.length === 0) return
-    const idx = echoPlayedIdxRef.current
-    const expected = phrase[idx]
-    if (heardMidi === expected) {
-      const nextIdx = idx + 1
-      if (nextIdx >= phrase.length) {
-        setEchoScore(s => s + 20 * phrase.length)
-        setEchoStreak(s => s + 1)
-        setEchoLength(l => Math.min(ECHO_MAX_LEN, l + 1))
-        setEchoStatus('success')
-      } else {
-        setEchoPlayedIdx(nextIdx)
-      }
-    } else {
-      setEchoStreak(0)
-      setEchoStatus('miss')
-    }
-  }, [heardMidi, echoOn])
-
-  // Advancing after success/miss is its own effect, same reason as Find
-  // It's: the detection effect above lists echoStatus as a dep, so setting
-  // it inside that effect would re-trigger it immediately and any timer
-  // scheduled there would get cancelled by its own cleanup before firing.
-  // This effect's timeout callback moves echoStatus to 'playing', which
-  // DOES re-run this effect — but the guard below excludes 'playing', so
-  // that re-entry just no-ops instead of scheduling a second timer.
-  useEffect(() => {
-    if (echoStatus !== 'success' && echoStatus !== 'miss') return
-    const t = setTimeout(() => {
-      if (echoStatus === 'miss') playPhraseAndListen(echoPhrase)
-      else setEchoPhrase([]) // triggers the "generate a new phrase" effect above
-    }, 900)
-    return () => clearTimeout(t)
-  }, [echoStatus, echoPhrase, playPhraseAndListen])
-
-  // Echo is ear-only — the neck stays blank the whole round, no reveal even
-  // on a landed phrase (unlike Find It, which confirms visually on a hit).
-  const echoBoard = useMemo(() => {
-    if (!echoOn) return board
-    return computeFretboard(tuning, fretboardRoot, new Set(), state.numFrets)
-  }, [echoOn, tuning, fretboardRoot, state.numFrets, board])
+  // ─── Echo: the ear-only call-and-response mic game (hooks/useEcho) ───
+  const { echoPhrase, echoPlayedIdx, echoStatus, echoScore, echoStreak, echoLength, echoBoard } = useEcho({
+    active: state.flowJam === 'echo' && isPlaying,
+    board, tuning, fretboardRoot, numFrets: state.numFrets, heardMidi,
+  })
 
   // The slow drift. Re-creating the interval after every shift (sameNoteModes
   // changes) conveniently restarts the countdown, keeping the pacing even.
@@ -1458,178 +1287,18 @@ export default function App() {
     return noteName(focusPc, useFlats(currentConcept.root))
   }, [currentConcept, focusPc])
 
-  // ═══ THE WALK ═══════════════════════════════════════════════════
-  // Same seven notes, seven positions, seven modes. Move up the neck and the
-  // drone moves home with you. Claim each mode by improvising in its position
-  // and resolving to its tonic.
+  // ═══ THE WALK — hooks/useWalk owns the attempt; claims persist via utils/progress ═══
   const isWalk = Boolean(currentConcept?.walk)
+  const { walkPositions, walkIdx, walkPos, walkState, walkStory, walkProg, goToPosition, walkComplete } = useWalk({
+    active: isWalk, conceptId: currentConcept?.id, state, up, tuning,
+    listening, heardMidi, dn, setSoundsOwned, setJustLanded,
+  })
 
-  const walkPositions = useMemo(() => {
-    if (!isWalk) return []
-    return getWalkPositions(
-      state.selectedScaleRoot || state.keyRoot,
-      state.selectedScaleKey || state.keyQuality,
-      tuning,
-      state.numFrets
-    )
-  }, [isWalk, state.selectedScaleRoot, state.keyRoot, state.selectedScaleKey, state.keyQuality, tuning, state.numFrets])
-
-  const walkIdx = useMemo(
-    () => currentWalkIndex(walkPositions, state.selectedScaleRoot || state.keyRoot),
-    [walkPositions, state.selectedScaleRoot, state.keyRoot]
-  )
-  const walkPos = walkPositions[walkIdx] ?? null
-
-  const [walkState, setWalkState] = useState(initWalk)
-  const [walkStory, setWalkStory] = useState<string | null>(null)
-
-  // Which scale family are we walking? A minor and C major are the SAME walk,
-  // so a mode you claimed from one door stays claimed through the other.
-  const walkFamily = useMemo(
-    () => familyId(
-      state.selectedScaleRoot || state.keyRoot,
-      state.selectedScaleKey || state.keyQuality
-    ),
-    [state.selectedScaleRoot, state.keyRoot, state.selectedScaleKey, state.keyQuality]
-  )
-
-  // Pick up where you left off. Modes you've already earned are still yours.
-  useEffect(() => {
-    if (!isWalk) return
-    setWalkState({ ...initWalk(), claimed: getClaims(walkFamily) })
-    setWalkStory(null)
-  }, [isWalk, currentConcept?.id, walkFamily])
-
-  const scalePcs = useMemo(() => {
-    const sk = state.selectedScaleKey || state.keyQuality
-    const sr = state.selectedScaleRoot || state.keyRoot
-    const sc = SCALES[sk]
-    return sc ? getScaleNotes(sr, sc) : new Set<number>()
-  }, [state.selectedScaleKey, state.keyQuality, state.selectedScaleRoot, state.keyRoot])
-
-  // The mic drives the game.
-  useEffect(() => {
-    if (!isWalk || !walkPos || !listening || heardMidi === null) return
-    setWalkState(s => feedWalk(s, { position: walkPos, scalePcs, heardMidi }))
-  }, [heardMidi, isWalk, walkPos, listening, scalePcs])
-
-  const walkProg = useMemo(
-    () => (walkPos ? walkProgress(walkState, walkPos, state.language, dn(walkPos.tonic)) : null),
-    [walkState, walkPos, state.language, dn]
-  )
-
-  // Step to a position: the notes on the neck do NOT move. Only home does.
-  const goToPosition = useCallback((i: number) => {
-    const p = walkPositions[i]
-    if (!p) return
-    setWalkStory(describeStep(walkPos, p, state.language, { tonic: dn(p.tonic), from: walkPos ? dn(walkPos.tonic) : undefined }))
-    setWalkState(enterPosition)
-    up({
-      keyRoot: p.tonic,
-      keyQuality: p.modeKey,
-      selectedScaleRoot: p.tonic,
-      selectedScaleKey: p.modeKey,
-      viewMode: 'scales',
-      selectedChordRoot: null,
-      selectedChordKey: null,
-      scalePosition: null,
-      chordPosition: null,
-      fretRange: null,
-    })
-    // If the drone is already on it follows you home; it does not switch itself on.
-  }, [walkPositions, walkPos, up])
-
-  // Claiming a mode is owning a sound — and it is written down immediately, so
-  // closing the tab can never take it back.
-  useEffect(() => {
-    if (!walkState.justClaimed) return
-    claimMode(walkFamily, walkState.justClaimed)
-    setSoundsOwned(loadOwned().length + totalClaimed())
-    setJustLanded(true)
-    const t = setTimeout(() => setJustLanded(false), 900)
-    return () => clearTimeout(t)
-  }, [walkState.justClaimed, walkFamily])
-
-  const walkComplete = isWalk && walkPositions.length > 0 &&
-    walkState.claimed.length >= walkPositions.length
-
-  useEffect(() => {
-    if (walkComplete) markCompleted(walkFamily)
-  }, [walkComplete, walkFamily])
-
-  // ─── The run player: the app follows your hands through the arpeggio ───
-  const currentRun = useMemo(() => {
-    if (!currentConcept?.run) return null
-    const chord = CHORDS[currentConcept.run.chordKey]
-    if (!chord) return null
-
-    // Sweeps need a rakeable (one-note-per-string) shape; everything else can
-    // use a full position shape, which has more notes in it.
-    const shape =
-      currentConcept.run.kind === 'sweep'
-        ? getSweepShape(currentConcept.root, chord, tuning, currentConcept.run.shapeIndex ?? 0, state.numFrets)
-        : getArpeggioShapes(currentConcept.root, chord, tuning, state.numFrets)[
-            currentConcept.run.shapeIndex ?? 1
-          ] ?? getArpeggioShapes(currentConcept.root, chord, tuning, state.numFrets)[0]
-
-    if (!shape) return null
-    return buildRun(shape, currentConcept.run.kind)
-  }, [currentConcept, tuning, state.numFrets])
-
-  const [runState, setRunState] = useState(initRun)
-
-  // New exercise → fresh attempt.
-  useEffect(() => { setRunState(initRun()) }, [currentConcept?.id])
-
-  // The mic drives the run. One heard note = at most one advance (heardMidi only
-  // changes when the NOTE changes, so a sustained note can't run away with it).
-  useEffect(() => {
-    if (!currentRun || !listening || heardMidi === null) return
-    setRunState(s => advanceRun(currentRun, s, heardMidi, Date.now()))
-  }, [heardMidi, currentRun, listening])
-
-  const runMarks = useMemo((): RunNoteMark[] | null => {
-    if (!currentRun) return null
-    return stepStates(currentRun, runState).map(s => ({
-      stringIndex: s.step.note.stringIndex,
-      fret: s.step.note.fret,
-      order: s.order,
-      status: s.status,
-      roll: s.step.roll,
-    }))
-  }, [currentRun, runState])
-
-  const runResult = useMemo(
-    () => (currentRun ? scoreRun(currentRun, runState, state.language) : null),
-    [currentRun, runState, state.language]
-  )
-
-  // The payoff: same shape, move the drone, and it means something else entirely.
-  const [twistTonic, setTwistTonic] = useState<string | null>(null)
-
-  const twist = useMemo(() => {
-    if (!currentConcept?.run || !twistTonic) return null
-    const chord = CHORDS[currentConcept.run.chordKey]
-    if (!chord) return null
-    return recontextualise(currentConcept.root, chord.intervals, twistTonic, state.language, dn)
-  }, [currentConcept, twistTonic])
-
-  // Where can we move home to and still keep every note of the shape in key?
-  const twistOptions = useMemo(() => {
-    if (!currentConcept?.run) return []
-    return getSameNoteModes(currentConcept.root, currentConcept.mode)
-      .filter(s => !s.isCurrent)
-      .slice(0, 3)
-  }, [currentConcept])
-
-  const applyTwist = useCallback((s: SiblingMode) => {
-    setTwistTonic(s.root)
-    // Move ONLY the drone's home. The shape under the hands does not move.
-    // A running drone retunes to the new home; a silent one stays silent.
-    up({ keyRoot: s.root, keyQuality: s.scaleKey, selectedScaleRoot: s.root, selectedScaleKey: s.scaleKey })
-  }, [up])
-
-  useEffect(() => { setTwistTonic(null) }, [currentConcept?.id])
+  // ─── The run player (hooks/useRun): mic-driven arpeggio runs + the Twist ───
+  const { currentRun, runState, runMarks, runResult, twist, twistOptions, applyTwist, resetRun } = useRun({
+    concept: currentConcept, tuning, numFrets: state.numFrets,
+    listening, heardMidi, language: state.language, dn, up,
+  })
 
   // The objective, in words someone who's never heard the word "mode" can act on.
   const objective = useMemo(() => {
@@ -1653,106 +1322,13 @@ export default function App() {
         />
       )}
 
-      {/* ─── The desktop nudge — a real screenshot would go stale the next
-             time colors or layout change; a live instance of the actual
-             <Fretboard /> never can. Same board/tuning/colors the visitor
-             is already looking at, just framed like a monitor. ─── */}
-      {/* ─── They just paid. Say it back with the product: a thank-you in
-             brand voice, closed by a resolved chord in their own key. ─── */}
-      {upgradedOpen && (
-        <div className="intro-veil upgrade-veil">
-          <div className="upgrade-card">
-            <img className="upgrade-logo" src="/logo.webp" alt="Modal Runs" />
-            <h1 className="upgrade-title">{T('You’re in.')}</h1>
-            <p className="upgrade-sub">
-              {T('Your streak, favorites, and settings now follow you to every device — and you’re keeping an independent tool alive. That matters.')}
-            </p>
-            <button className="upgrade-go" onClick={dismissUpgraded}>{T('Hear it')}</button>
-          </div>
-        </div>
-      )}
-
-      {desktopNudgeOpen && (
-        <div className="intro-veil desktop-nudge-veil">
-          <div className="desktop-nudge-card">
-            <button className="desktop-nudge-close" onClick={dismissDesktopNudge} aria-label={T('Continue on mobile')} title={T('Continue on mobile')}>
-              &#10005;
-            </button>
-            <div className="desktop-nudge">
-              <img className="desktop-nudge-logo" src="/mark.webp" alt="" />
-              <h2 className="desktop-nudge-title"><span className="desktop-nudge-title-brand">modalruns</span> {T('looks best on desktop')}</h2>
-              <p className="desktop-nudge-sub">
-                {T('The whole neck, every mode, side by side — a bigger screen shows a lot more of it at once. Totally playable here too.')}
-              </p>
-              <img className="desktop-nudge-frame" src="/desktop-nudge-art.webp" alt="Modal Runs open on a desktop monitor" />
-              <button className="desktop-nudge-dismiss" onClick={dismissDesktopNudge}>{T('Continue on mobile')}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── The welcome never ambushes anyone — the domain loads straight
-             into the app. It opens on demand from the "What is this?" button
-             in Modes. (onboarded persists but no longer gates anything.) ─── */}
-      {introOpen && (
-        <div className="intro-veil in-stage">
-          <div className="intro">
-            <img className="intro-logo" src="/logo.webp" alt="Modal Runs" />
-            <h1 className="intro-title">
-              {T('It')} <em>{T('listens while you play,')}</em> {T('and answers on the neck.')}
-            </h1>
-            <p className="intro-sub">
-              {T('In 1959, Miles Davis walked into a studio bored of chasing chord changes and cut an album built on almost none.')}{' '}
-              <em>Kind of Blue</em>{' '}
-              {T('— still the best-selling jazz record ever made — runs on scales instead of progressions. He called it modal jazz: hold one note underneath (a drone), improvise inside a single scale (a mode), and let the mode do the emotional work a wall of chords usually does.')}
-            </p>
-            <p className="intro-sub">
-              {T('That’s this app, on a fretboard. Hold a drone in any key and the neck fills with the notes that work over it. Play, and Modal Runs hears you through the mic — it lights up what you just played and tells you the moment you land the note it’s hunting for. Move the tonic and the same seven notes turn from A Aeolian into D Dorian — same frets, same notes, just a different one as home. Seven different moods out of one shape. You find them by ear, the way Miles did — not off a chart.')}
-            </p>
-
-            {/* The thesis, made concrete — the thing a textbook can't do. */}
-            <div className="intro-how">
-              <div className="intro-step">
-                <span className="intro-step-n">1</span>
-                <span className="intro-step-t">{T('Set the key')}</span>
-                <span className="intro-step-d">
-                  {T('The neck fills with the notes that belong to it. Each one is coloured by its interval rather than its name, so you read what a note does against the tonic, not merely what it’s called. The root is amber.')}
-                </span>
-              </div>
-              <div className="intro-step">
-                <span className="intro-step-n">2</span>
-                <span className="intro-step-t">{T('Start the drone')}</span>
-                <span className="intro-step-d">
-                  {T('It sustains the tonic underneath you, so every note you play finally has something to lean against. The b6 aches against it; the natural 6 opens up. Intervals stop being arithmetic and start being sounds.')}
-                </span>
-              </div>
-              <div className="intro-step">
-                <span className="intro-step-n">3</span>
-                <span className="intro-step-t">{T('Move the tonic')}</span>
-                <span className="intro-step-d">
-                  {T('Tap Dorian in the same-notes strip. Same frets, same notes — the drone simply moves home to D, and the app names the one note that separates it from where you just were.')}
-                </span>
-              </div>
-            </div>
-
-            <div className="intro-modes">
-              <button className="intro-mode" onClick={() => { up({ onboarded: true, appMode: 'study' }); setIntroOpen(false) }}>
-                <span className="intro-mode-name">{T('Explore')}</span>
-                <span className="intro-mode-desc">
-                  {T('Any key, any mode. Chords laid over scales, arpeggios, positions, the whole fretboard at once — and the theory that accounts for what you’re looking at, written for someone who wants to understand it rather than recite it.')}
-                </span>
-              </button>
-              <button className="intro-mode" onClick={() => { up({ onboarded: true }); setIntroOpen(false); goFlow() }}>
-                <span className="intro-mode-name">{T('Just play')}</span>
-                <span className="intro-mode-desc">
-                  {T('One idea, chosen for you, with the shape already sitting on the neck. Start the drone and play over it; if you let it listen through your mic, it will tell you when you land the note it asked for.')}
-                </span>
-              </button>
-            </div>
-            <button className="intro-skip" onClick={() => { up({ onboarded: true }); setIntroOpen(false) }}>{T('Close')}</button>
-          </div>
-        </div>
-      )}
+      <Veils
+        upgradedOpen={upgradedOpen}
+        onDismissUpgraded={dismissUpgraded}
+        introOpen={introOpen}
+        onIntroChoose={chooseIntro}
+        T={T}
+      />
 
       {/* ─── The shell: one switch between two first-class modes ─── */}
       <header className="shell-header">
@@ -1990,7 +1566,7 @@ export default function App() {
                     {Math.min(runState.index + (runState.done ? 1 : 0), currentRun.steps.length)}
                     /{currentRun.steps.length}
                   </span>
-                  <button className="run-reset" onClick={() => setRunState(initRun())}>restart</button>
+                  <button className="run-reset" onClick={resetRun}>restart</button>
                 </div>
                 <p className="run-hint">{currentRun.hint}</p>
               </>
@@ -2067,7 +1643,7 @@ export default function App() {
               posRange={isWalk && walkPos ? walkPos.range : activePosRange}
               numFrets={state.numFrets}
               fretRange={state.fretRange}
-              tuningLabels={tuning.labels.map(dn)}
+              tuningLabels={tuningLabels}
               noteMap={noteMap}
               highlightedPositions={state.activeTab === 'technique' ? highlightedPosSet : null}
               guitarModel={state.guitarModel}
@@ -2136,22 +1712,8 @@ export default function App() {
             )}
             <button className="flow-ctl" onClick={() => up({ conceptId: null })}>‹ {T('Lessons')}</button>
             {renderBackingControls()}
-            <button
-              key={justTapped}
-              className={`play-btn ${isPlaying ? 'on' : ''}`}
-              onClick={togglePlay}
-              title={isPlaying ? `Stop ${backingNoun} and the mic` : `Start ${backingNoun} and let it hear you`}
-              aria-label={isPlaying ? 'Stop' : 'Play'}
-            >
-              <span className="play-icon">{isPlaying ? '⏸' : '▶'}</span>
-            </button>
-            {listening && (
-              <span className={`flow-readout ${hearingFocus ? 'hit' : ''}`}>
-                {heardMidi !== null
-                  ? <>{dn(noteName(heardMidi % 12, flats))}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
-                  : '···'}
-              </span>
-            )}
+            {renderPlayButton()}
+            {renderHeardNote(`flow-readout ${hearingFocus ? 'hit' : ''}`)}
             {listening && (
               <div className="mic-meter" title="Mic level — play louder if the bar isn't reaching the line">
                 <div className="mic-meter-track">
@@ -2354,10 +1916,10 @@ export default function App() {
                   <span className="study-bar-label">{T('Tempo')}</span>
                   <div className="backing-bpm">
                     <button type="button" className="backing-bpm-btn"
-                      onClick={() => up({ progressionBpm: Math.max(40, state.progressionBpm - 5) })}>&minus;</button>
+                      onClick={() => bumpBpm(-5)}>&minus;</button>
                     <span className="backing-bpm-val">{state.progressionBpm}</span>
                     <button type="button" className="backing-bpm-btn"
-                      onClick={() => up({ progressionBpm: Math.min(200, state.progressionBpm + 5) })}>+</button>
+                      onClick={() => bumpBpm(5)}>+</button>
                   </div>
                   <span className="study-bar-label">{T('Bars each')}</span>
                   <div className="backing-switch" role="group" aria-label="Bars per chord">
@@ -2420,7 +1982,7 @@ export default function App() {
               posRange={null}
               numFrets={state.numFrets}
               fretRange={null}
-              tuningLabels={tuning.labels.map(dn)}
+              tuningLabels={tuningLabels}
               noteMap={noteMap}
               guitarModel={state.guitarModel}
               chordToneNotes={flowChanges && state.progressionPlaying ? chordToneNotes : null}
@@ -2432,22 +1994,8 @@ export default function App() {
 
           <footer className="flow-controls">
             {renderBackingControls(state.flowJam === 'modes' || state.flowJam === 'findit' || state.flowJam === 'echo')}
-            <button
-              key={justTapped}
-              className={`play-btn ${isPlaying ? 'on' : ''}`}
-              onClick={togglePlay}
-              title={isPlaying ? `Stop ${backingNoun} and the mic` : `Start ${backingNoun} and let it hear you`}
-              aria-label={isPlaying ? 'Stop' : 'Play'}
-            >
-              <span className="play-icon">{isPlaying ? '⏸' : '▶'}</span>
-            </button>
-            {listening && (
-              <span className="flow-readout">
-                {heardMidi !== null
-                  ? <>{dn(noteName(heardMidi % 12, flats))}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
-                  : '···'}
-              </span>
-            )}
+            {renderPlayButton()}
+            {renderHeardNote('flow-readout')}
           </footer>
 
           {micError && <p className="flow-coach mic-error"><span className="flow-pip" />{micError}</p>}
@@ -2568,22 +2116,8 @@ export default function App() {
 
           <div className="quick-row">
             {renderBackingControls()}
-            <button
-              key={justTapped}
-              className={`play-btn small ${isPlaying ? 'on' : ''}`}
-              onClick={togglePlay}
-              title={isPlaying ? `Stop ${backingNoun} and the mic` : `Start ${backingNoun} and let it hear you`}
-              aria-label={isPlaying ? 'Stop' : 'Play'}
-            >
-              <span className="play-icon">{isPlaying ? '⏸' : '▶'}</span>
-            </button>
-            {listening && (
-              <span className="heard-readout">
-                {heardMidi !== null
-                  ? <>{dn(noteName(heardMidi % 12, flats))}<sub>{Math.floor(heardMidi / 12) - 1}</sub></>
-                  : '···'}
-              </span>
-            )}
+            {renderPlayButton(true)}
+            {renderHeardNote('heard-readout')}
           </div>
         </div>
 
@@ -2740,8 +2274,8 @@ export default function App() {
           posRange={activePosRange}
           numFrets={state.numFrets}
           fretRange={state.fretRange}
-          tuningLabels={tuning.labels.map(dn)}
-              noteMap={noteMap}
+          tuningLabels={tuningLabels}
+          noteMap={noteMap}
           chordToneNotes={state.viewMode === 'chords' && state.activeTab !== 'technique' && !chordShapeSet ? chordToneNotes : null}
           chordRootIndex={state.viewMode === 'chords' && state.activeTab !== 'technique' && !chordShapeSet ? chordRootIndex : null}
           highlightedPositions={state.activeTab === 'technique' ? highlightedPosSet : chordShapeSet}
@@ -2831,9 +2365,9 @@ export default function App() {
             <CollapsibleSection title="PRACTICE" variant="panel">
               <div className="progression-header">
                 <div className="progression-bpm">
-                  <button className="progression-bpm-btn" onClick={() => up({ progressionBpm: Math.max(40, state.progressionBpm - 5) })}>-</button>
+                  <button className="progression-bpm-btn" onClick={() => bumpBpm(-5)}>-</button>
                   <span className="progression-bpm-val">{state.progressionBpm} BPM</span>
-                  <button className="progression-bpm-btn" onClick={() => up({ progressionBpm: Math.min(200, state.progressionBpm + 5) })}>+</button>
+                  <button className="progression-bpm-btn" onClick={() => bumpBpm(5)}>+</button>
                 </div>
                 <div className="progression-bars-row">
                   <span className="progression-bars-label">Bars/chord</span>
@@ -3004,181 +2538,8 @@ export default function App() {
       )}
 
       {/* Settings Drawer */}
-      <div className={`settings-drawer ${settingsOpen ? 'open' : ''}`}>
-        <div className="drawer-header">
-          <span className="drawer-title">{T('Settings')}</span>
-          <button className="drawer-close" onClick={() => setSettingsOpen(false)} aria-label="Close settings">&times;</button>
-        </div>
-        <div className="drawer-body">
-          <div className="drawer-section">
-            <span className="drawer-label">THEME</span>
-            <select className="type-select" value={state.colorTheme} aria-label="Color theme"
-              onChange={e => up({ colorTheme: e.target.value as AppState['colorTheme'] })}>
-              {THEME_OPTIONS.map(t => (
-                <option key={t.key} value={t.key}>{t.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="drawer-section">
-            <div className="drawer-row">
-              {/* Guitar-model choice retired — the Les Paul render wasn't
-                  earning its select. guitarModel stays in AppState pinned to
-                  'strat'; the renderer still supports both if it returns. */}
-              <div className="drawer-half">
-                <span className="drawer-label">{T('TUNING')}</span>
-                <select className="type-select" value={state.tuningKey} aria-label="Tuning"
-                  onChange={e => up({ tuningKey: e.target.value })}>
-                  {Object.entries(TUNINGS).map(([key, t]) => (
-                    <option key={key} value={key}>{t.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div className="drawer-section">
-            <div className="drawer-row">
-              <div className="drawer-half">
-                <span className="drawer-label">FRETS</span>
-                <select className="type-select" value={state.numFrets} aria-label="Number of frets"
-                  onChange={e => up({ numFrets: Number(e.target.value) })}>
-                  {[12, 15, 17, 19, 21, 24].map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
-              </div>
-              <div className="drawer-half">
-                <span className="drawer-label">INLAYS</span>
-                <select className="type-select" value={state.inlayStyle} aria-label="Fretboard inlay style"
-                  onChange={e => up({ inlayStyle: e.target.value as any })}>
-                  <option value="dots">Dots</option>
-                  <option value="blocks">Blocks</option>
-                  <option value="none">None</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div className="drawer-section">
-            <span className="drawer-label">DISPLAY</span>
-            <ToggleSwitch label="Note Names" on={state.showNoteNames} toggle={() => up({ showNoteNames: !state.showNoteNames })} />
-            <ToggleSwitch label="Intervals" on={state.showIntervals} toggle={() => up({ showIntervals: !state.showIntervals })} />
-            <ToggleSwitch label="Highlight Root" on={state.highlightRoot} toggle={() => up({ highlightRoot: !state.highlightRoot })} />
-            <ToggleSwitch label="Left-Handed" on={state.showLeftHanded} toggle={() => up({ showLeftHanded: !state.showLeftHanded })} />
-          </div>
-
-          <div className="drawer-section">
-            <span className="drawer-label">{T('MICROPHONE')}</span>
-            <ToggleSwitch label={T('Echo Cancellation')} on={state.micEchoCancellation} toggle={() => up({ micEchoCancellation: !state.micEchoCancellation })} />
-            <p className="drawer-hint">
-              {T('On by default for laptop mic + laptop speakers, to cancel the backing sound bleeding back in. Turn this OFF if you’re on an audio interface or a mic’d amp — echo cancellation has nothing real to cancel there and can make notes cut in and out. Stop and restart Listen/Play after changing this.')}
-            </p>
-          </div>
-
-          <div className="drawer-section">
-            <span className="drawer-label">{T('DRONE')}</span>
-            <DrawerSlider
-              label={T('Volume')} value={state.droneVolume} max={3}
-              onChange={v => up({ droneVolume: v })}
-            />
-            <DrawerSlider
-              label={T('Spread')} value={state.droneSpread} max={1.5}
-              onChange={v => up({ droneSpread: v })}
-            />
-            <DrawerSlider
-              label={T('Tone')} value={state.droneTone} max={1}
-              onChange={v => up({ droneTone: v })}
-            />
-          </div>
-
-          <div className="drawer-section">
-            <span className="drawer-label">PAD</span>
-            <DrawerSlider
-              label={T('Volume')} value={state.padVolume} max={3}
-              onChange={v => up({ padVolume: v })}
-            />
-            <DrawerSlider
-              label={T('Spread')} value={state.padSpread} max={1.5}
-              onChange={v => up({ padSpread: v })}
-            />
-            <DrawerSlider
-              label={T('Tone')} value={state.padTone} max={1}
-              onChange={v => up({ padTone: v })}
-            />
-          </div>
-
-          <CollapsibleSection title="COLORS">
-            <div className="drawer-section">
-              <div className="color-header">
-                <button className="reset-btn" onClick={() => up({ intervalColors: { ...DEFAULT_INTERVAL_COLORS } })}>&#8634; Reset</button>
-              </div>
-              <div className="color-grid">
-                {ALL_INTERVALS.map(iv => (
-                  <label key={iv} className="color-swatch" title={iv}>
-                    <input type="color" value={state.intervalColors[iv] || '#888'}
-                      onChange={e => up({ intervalColors: { ...state.intervalColors, [iv]: e.target.value } })} />
-                    <span className="swatch-fill" style={{ background: state.intervalColors[iv] || '#888' }} />
-                  </label>
-                ))}
-              </div>
-            </div>
-          </CollapsibleSection>
-        </div>
-      </div>
-      <div
-        className={`drawer-overlay ${settingsOpen ? 'open' : ''}`}
-        onClick={() => setSettingsOpen(false)}
-      />
+      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} state={state} up={up} T={T} />
     </div>
   )
 }
 
-function ToggleSwitch({ label, on, toggle }: { label: string; on: boolean; toggle: () => void }) {
-  return (
-    <div className="switch-row" onClick={toggle}>
-      <span>{label}</span>
-      <div className={`switch-track ${on ? 'on' : ''}`}>
-        <div className="switch-thumb" />
-      </div>
-    </div>
-  )
-}
-
-function DrawerSlider({ label, value, max, onChange }: {
-  label: string; value: number; max: number; onChange: (v: number) => void
-}) {
-  return (
-    <div className="slider-row">
-      <span className="slider-row-label">{label}</span>
-      <input
-        className="slider"
-        type="range"
-        min={0}
-        max={max}
-        step={0.01}
-        value={value}
-        aria-label={label}
-        onChange={e => onChange(Number(e.target.value))}
-      />
-      <span className="slider-row-value">{Math.round((value / max) * 100)}%</span>
-    </div>
-  )
-}
-
-function CollapsibleSection({ title, children, variant = 'default' }: {
-  title: string; children: React.ReactNode; variant?: 'default' | 'panel'
-}) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className={`collapsible ${open ? 'open' : ''} collapsible-${variant}`}>
-      <button className="collapsible-header" onClick={() => setOpen(!open)}>
-        <span className="collapsible-arrow">{open ? '\u25BE' : '\u25B8'}</span>
-        <span className="collapsible-title">{title}</span>
-      </button>
-      <div className="collapsible-body">
-        <div className="collapsible-inner">
-          {children}
-        </div>
-      </div>
-    </div>
-  )
-}

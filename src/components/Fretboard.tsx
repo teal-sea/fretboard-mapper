@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect, useState } from 'react'
+import { memo, useMemo, useRef, useEffect, useState } from 'react'
 import type { FretNote, DisplayMode, InlayStyle, GuitarModel } from '../types/music'
 import { intervalName } from '../utils/musicTheory'
 
@@ -72,7 +72,10 @@ const SINGLE_DOTS = [3, 5, 7, 9, 15, 17, 19, 21]
 const DOUBLE_DOTS = [12, 24]
 const BLOCK_FRETS = [3, 5, 7, 9, 12, 15, 17, 19, 21, 24]
 
-export default function Fretboard({
+// Memoized: App re-renders on every transient flag (mic poll, tuner poll,
+// pulse), and rebuilding hundreds of SVG nodes each time is the app's single
+// biggest render cost. All props are stable references between board changes.
+function Fretboard({
   board, displayMode, inlayStyle, intervalColors,
   highlightRoot, showLeftHanded, posRange, numFrets = 15, fretRange = null, tuningLabels,
   noteMap = null,
@@ -668,3 +671,5 @@ export default function Fretboard({
     </div>
   )
 }
+
+export default memo(Fretboard)

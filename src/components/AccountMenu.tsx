@@ -3,9 +3,9 @@
 // VITE_CLERK_PUBLISHABLE_KEY is set (see main.tsx) — every hook here
 // assumes a ClerkProvider ancestor exists.
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { SignedIn, SignedOut, SignInButton, UserButton, useAuth, useUser } from '@clerk/clerk-react'
+import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton, useAuth, useUser } from '@clerk/clerk-react'
 import type { AppState } from '../types/music'
-import { pickSyncedState, type SyncedState } from '../utils/cloudSync'
+import { pickSyncedState, pickSyncedPartial } from '../utils/cloudSync'
 import { t, tf } from '../utils/i18n'
 
 async function callApi(path: string, token: string | null): Promise<{ url?: string; error?: string }> {
@@ -22,10 +22,12 @@ export default function AccountMenu({ state, up }: { state: AppState; up: (parti
   const [loading, setLoading] = useState(false)
   const subscribed = user?.publicMetadata?.subscribed === true
 
-  // Pull once per subscribed session, then push on every change after
-  // that — guarded by justPulled so the pull's own up() call doesn't
-  // immediately bounce back out as a push.
-  const justPulled = useRef(false)
+  // Pull once per subscribed session, then push on every change after that.
+  // serverState remembers (serialized) what the server already has, so the
+  // pull's own up() call doesn't bounce back out as a push — and, unlike a
+  // consumed-once boolean, it can never swallow a real edit when the pulled
+  // state happens to equal local state.
+  const serverState = useRef<string | null>(null)
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -34,12 +36,17 @@ export default function AccountMenu({ state, up }: { state: AppState; up: (parti
     ;(async () => {
       const token = await getToken()
       if (!token || cancelled) return
-      const res = await fetch('/api/sync', { headers: { Authorization: `Bearer ${token}` } })
-      const { appState } = (await res.json()) as { appState: SyncedState | null }
-      if (appState && !cancelled) {
-        justPulled.current = true
-        up(appState)
-      }
+      try {
+        const res = await fetch('/api/sync', { headers: { Authorization: `Bearer ${token}` } })
+        if (!res.ok) return
+        const { appState } = (await res.json()) as { appState: unknown }
+        // Never trust the wire: re-whitelist before merging into AppState.
+        const pulled = pickSyncedPartial(appState)
+        if (Object.keys(pulled).length && !cancelled) {
+          serverState.current = JSON.stringify(pulled)
+          up(pulled)
+        }
+      } catch { /* offline or API down — keep local state, push will retry */ }
     })()
     return () => { cancelled = true }
     // Only re-pull when the subscribed flag itself flips (login/upgrade),
@@ -63,16 +70,21 @@ export default function AccountMenu({ state, up }: { state: AppState; up: (parti
   const synced = pickSyncedState(state)
   useEffect(() => {
     if (!subscribed) return
-    if (justPulled.current) { justPulled.current = false; return }
+    const serialized = JSON.stringify(synced)
+    // Don't push what the server already has (including what we just pulled)
+    if (serialized === serverState.current) return
     if (pushTimer.current) clearTimeout(pushTimer.current)
     pushTimer.current = setTimeout(async () => {
       const token = await getToken()
       if (!token) return
-      await fetch('/api/sync', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(synced),
-      })
+      try {
+        const res = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: serialized,
+        })
+        if (res.ok) serverState.current = serialized
+      } catch { /* offline — the next state change retries */ }
     }, 1500)
     return () => { if (pushTimer.current) clearTimeout(pushTimer.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -109,11 +121,11 @@ export default function AccountMenu({ state, up }: { state: AppState; up: (parti
   return (
     <div className="account-menu">
       <SignedOut>
-        <SignInButton mode="modal">
-          <button className="upgrade-btn" title="Create a free account, then keep your streak, favorites, and settings on every device">
+        <SignUpButton mode="modal">
+          <button className="upgrade-btn" title="Sign up free — then $5/mo syncs your streak, favorites, and settings to every device">
             {ctaLabel}
           </button>
-        </SignInButton>
+        </SignUpButton>
         <SignInButton mode="modal">
           <button className="icon-btn" title="Log in" aria-label="Log in">&#128100;</button>
         </SignInButton>
