@@ -2,17 +2,24 @@
 
 ## What the app is today
 
-**Modal Runs** (modalruns.com): a client-side guitar practice tool that
-*listens*. Hold a drone in any key, improvise, and the app hears you through
-the mic (McLeod pitch detection, in-browser) — lighting up what you played on
-the neck and confirming when you land the note it asked for. Three faces, one
+**Modal Runs** (modalruns.com): **learn the fretboard by playing it** — the
+outcome-first tagline used everywhere (root HTML, static pages, in-app intro;
+the old mechanism-first "it listens while you play" was retired 2026-07-19).
+The mechanism is the proof: play any note and the app hears you through the
+mic (McLeod pitch detection, in-browser), lights it up on the neck, and
+confirms when you land the note it asked for. Three faces, one
 `appMode` switch:
 
-- **Modes (Learn)** — the landing. Lesson 1 is **the Walk**: seven positions,
+- **Modes (Learn)** — the guided track. Lesson 1 is **the Walk**: seven positions,
   seven modes, same notes — move up the neck, the drone moves home with you,
   claim each mode by ear (claims persist). Plus one-sound drills and
   mic-driven **arpeggio runs** with the Twist (same shape, new home).
-- **Flow** — the endless jam. Drone/pad/arp backing, slow modal drift through
+- **Flow** — the endless jam, and **the landing for a true first visit**: no
+  saved state + no URL params ⇒ `appMode` is forced to `'flow'` and a one-shot
+  hero (`.first-hero` in `App.tsx`) replaces the jam panel — tagline, proof
+  line, one gradient Start-playing CTA (`togglePlay`: drone + mic), a quiet
+  lessons link. It retires permanently on play or navigation; returning
+  visitors resume their persisted state as before. Drone/pad/arp backing, slow modal drift through
   same-note siblings, an ambient particle canvas that answers your notes, and
   two ear games: **Find It** (locate the note it plays — exact octave) and
   **Echo** (repeat a growing phrase by ear).

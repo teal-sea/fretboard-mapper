@@ -23,7 +23,7 @@ Most of this exists. The frontier is the **concept** step.
 | Concept "brain" — Path A curated catalog (`utils/concepts.ts`, Learn mode, `getNextConcept`) | ✅ shipped; adaptive Path B is the new frontier |
 | One-tap "start session" entry | ✅ shipped (`startSession`, Lesson 1 Start) |
 | The Walk / Find It / Echo / run player | ✅ shipped, engines extracted to `src/hooks/` (2026-07-19) |
-| SSG/SEO surface (1,428 mode + 300 chord pages, 9 guides, 16 locales, llms.txt) | ✅ shipped — untested generators, inspect `dist/` after touching `scripts/` |
+| SSG/SEO surface (1,428 mode + 300 chord + 17 fretboard pages, 9 guides, 16 locales, llms.txt) | ✅ shipped — untested generators, inspect `dist/` after touching `scripts/`. `/fretboard/` (scripts/fretboardPage.ts) SSRs the real `Fretboard.tsx` via `renderToStaticMarkup`; titles across the cluster are aligned to GSC query intent (mode/scale/chords/formula) |
 | Session persistence (localStorage) | ✅ shipped (`utils/persist.ts`) |
 | Vercel Git integration / PR previews | ✅ connected — main auto-deploys to production on merge, pushes get preview URLs |
 | Resolve `KeyMapView` dead code (adopt or delete) | ✅ deleted |
