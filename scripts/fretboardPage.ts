@@ -7,8 +7,9 @@
 // engine (golden rule 2 — no hardcoded frets, noteIndex/noteName
 // compute every label).
 import {
-  noteIndex, noteName, TUNINGS,
+  noteIndex, noteName, TUNINGS, SCALES, getScaleNotes, computeFretboard,
 } from '../src/utils/musicTheory'
+import { DEFAULT_INTERVAL_COLORS } from '../src/utils/defaultColors'
 import { displayNote, LANGUAGES } from '../src/utils/noteNames'
 import {
   ORIGIN, head, siteHeader, SITE_HEADER, footer,
@@ -19,10 +20,17 @@ import { LOCALES, type Locale } from './locales'
 const NUM_FRETS = 12
 
 // ─── Chromatic neck chart ────────────────────────────────────────────
-// Same geometry as the mode pages' fretboardSvg, but keyless: every
-// fret is labelled. Naturals get bright dots (they're the skeleton
-// people memorise first), accidentals dim ones. No halos (flat dots).
+// The actual fretboard the site already renders — same geometry, same
+// computeFretboard positions, same interval palette as the app and the
+// mode pages, anchored on C: the naturals chart IS C major on the neck
+// (gold root, colour per interval), and the full chart adds the five
+// in-between notes in their chromatic interval colours. Flat dots, no
+// halos.
 function chartSvg(disp: (n: string) => string, ariaLabel: string, naturalsOnly: boolean): string {
+  const activeNotes = naturalsOnly
+    ? getScaleNotes('C', SCALES['ionian'])
+    : new Set(Array.from({ length: 12 }, (_, pc) => pc))
+  const board = computeFretboard(TUNINGS['standard'], 'C', activeNotes, NUM_FRETS)
   const FRET_W = 60, STR_GAP = 30, LEFT = 46, TOP = 26
   const width = LEFT + (NUM_FRETS + 1) * FRET_W + 14
   const height = TOP + 5 * STR_GAP + 40
@@ -53,24 +61,19 @@ function chartSvg(disp: (n: string) => string, ariaLabel: string, naturalsOnly: 
   for (let s = 0; s < 6; s++) {
     parts.push(`<text x="16" y="${stringY(s) + 4}" fill="#6a6486" font-size="12" font-family="sans-serif">${disp(labels[s])}</text>`)
   }
-  for (let s = 0; s < 6; s++) {
-    const openPc = noteIndex(labels[s])
-    for (let f = 0; f <= NUM_FRETS; f++) {
-      const pc = (openPc + f) % 12
-      const sharpName = noteName(pc, false)
-      const natural = !sharpName.includes('#')
-      if (naturalsOnly && !natural) continue
-      const cx = f === 0 ? LEFT + 1 : noteX(f)
-      const y = stringY(s)
-      const label = natural ? disp(sharpName) : disp(sharpName)
+  // Note dots — exactly how the mode pages draw them: interval palette,
+  // gold ringed root (C), dark bold labels on flat saturated dots.
+  for (const string of board) {
+    for (const fn of string) {
+      if (!fn.isInScale) continue
+      const cx = fn.fret === 0 ? LEFT + 1 : noteX(fn.fret)
+      const y = stringY(fn.stringIndex)
+      const fill = DEFAULT_INTERVAL_COLORS[fn.intervalName] ?? '#888'
+      const label = disp(noteName(fn.degree, false))
+      const r = fn.isRoot ? 12.5 : 11
       const fontSize = label.length > 3 ? 8 : 10
-      if (natural) {
-        parts.push(`<circle cx="${cx}" cy="${y}" r="11.5" fill="#e8e6f0"/>`)
-        parts.push(`<text x="${cx}" y="${y + 3.5}" fill="#0a0a0f" font-size="${fontSize}" font-weight="700" text-anchor="middle" font-family="sans-serif">${label}</text>`)
-      } else {
-        parts.push(`<circle cx="${cx}" cy="${y}" r="10" fill="#241f38"/>`)
-        parts.push(`<text x="${cx}" y="${y + 3.5}" fill="#a49dc0" font-size="${fontSize}" font-weight="600" text-anchor="middle" font-family="sans-serif">${label}</text>`)
-      }
+      parts.push(`<circle cx="${cx}" cy="${y}" r="${r}" fill="${fill}"${fn.isRoot ? ' stroke="#fff" stroke-width="2"' : ''}/>`)
+      parts.push(`<text x="${cx}" y="${y + 3.5}" fill="#0a0a0f" font-size="${fontSize}" font-weight="700" text-anchor="middle" font-family="sans-serif">${label}</text>`)
     }
   }
   parts.push('</svg>')
@@ -120,7 +123,7 @@ const EN: FretboardCopy = {
   title: 'Guitar Fretboard Map — Every Note on the Neck (Chart & Diagram) | Modal Runs',
   description: 'A complete guitar fretboard map: every note on all six strings, frets 0–12, in standard tuning. Naturals and sharps charted, per-string note runs, a printable chart, and an app that lights the map up while you play.',
   h1: 'The guitar fretboard, mapped',
-  lead: 'Every note on the neck in standard tuning ({tuning}), from the open strings to the 12th fret — after fret 12 the whole map repeats an octave higher. Bright dots are the natural notes; dim ones are the sharps and flats between them.',
+  lead: 'Every note on the neck in standard tuning ({tuning}), from the open strings to the 12th fret — after fret 12 the whole map repeats an octave higher. Every note wears the colour the app gives it — its sound relative to C — and the gold dots are C itself.',
   fullHeading: 'The full fretboard chart',
   fullCaption: 'All 12 notes on every string, frets 0–12, standard tuning. Sharps are shown; each sharp is the same fret as its flat name (F# = Gb).',
   naturalsHeading: 'Start with the naturals',
@@ -146,7 +149,7 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     title: 'Mapa del diapasón de la guitarra — Todas las notas del mástil (diagrama) | Modal Runs',
     description: 'Mapa completo del diapasón: todas las notas de las seis cuerdas, trastes 0–12, en afinación estándar. Notas naturales y alteraciones, las notas cuerda por cuerda, un diagrama imprimible y una app que ilumina el mapa mientras tocas.',
     h1: 'El diapasón de la guitarra, mapeado',
-    lead: 'Todas las notas del mástil en afinación estándar ({tuning}), desde las cuerdas al aire hasta el traste 12 — después del traste 12 todo el mapa se repite una octava más arriba. Los puntos brillantes son las notas naturales; los tenues, los sostenidos y bemoles entre ellas.',
+    lead: 'Todas las notas del mástil en afinación estándar ({tuning}), desde las cuerdas al aire hasta el traste 12 — después del traste 12 todo el mapa se repite una octava más arriba. Cada nota lleva el color que le da la app — su sonido respecto a Do — y los puntos dorados son el propio Do.',
     fullHeading: 'El diagrama completo del diapasón',
     fullCaption: 'Las 12 notas en cada cuerda, trastes 0–12, afinación estándar. Se muestran los sostenidos; cada sostenido ocupa el mismo traste que su nombre en bemol.',
     naturalsHeading: 'Empieza por las naturales',
@@ -170,7 +173,7 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     title: 'Carte du manche de la guitare — Toutes les notes du manche (schéma) | Modal Runs',
     description: 'La carte complète du manche : toutes les notes des six cordes, cases 0 à 12, en accordage standard. Notes naturelles et altérations, les notes corde par corde, un schéma imprimable et une app qui illumine la carte pendant que tu joues.',
     h1: 'Le manche de la guitare, cartographié',
-    lead: 'Toutes les notes du manche en accordage standard ({tuning}), des cordes à vide à la 12e case — après la case 12, toute la carte se répète une octave plus haut. Les points lumineux sont les notes naturelles ; les points sombres, les dièses et bémols entre elles.',
+    lead: 'Toutes les notes du manche en accordage standard ({tuning}), des cordes à vide à la 12e case — après la case 12, toute la carte se répète une octave plus haut. Chaque note porte la couleur que l’app lui donne — sa sonorité par rapport à Do — et les points dorés sont Do lui-même.',
     fullHeading: 'Le schéma complet du manche',
     fullCaption: 'Les 12 notes sur chaque corde, cases 0–12, accordage standard. Les dièses sont affichés ; chaque dièse occupe la même case que son nom en bémol.',
     naturalsHeading: 'Commence par les notes naturelles',
@@ -194,7 +197,7 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     title: 'Mappa della tastiera della chitarra — Tutte le note sul manico (schema) | Modal Runs',
     description: 'La mappa completa della tastiera: tutte le note sulle sei corde, tasti 0–12, in accordatura standard. Note naturali e alterazioni, le note corda per corda, uno schema stampabile e un’app che illumina la mappa mentre suoni.',
     h1: 'La tastiera della chitarra, mappata',
-    lead: 'Tutte le note sul manico in accordatura standard ({tuning}), dalle corde a vuoto al 12º tasto — dopo il tasto 12 l’intera mappa si ripete un’ottava sopra. I punti luminosi sono le note naturali; quelli scuri, i diesis e i bemolli tra di esse.',
+    lead: 'Tutte le note sul manico in accordatura standard ({tuning}), dalle corde a vuoto al 12º tasto — dopo il tasto 12 l’intera mappa si ripete un’ottava sopra. Ogni nota indossa il colore che le dà l’app — il suo suono rispetto a Do — e i punti dorati sono il Do stesso.',
     fullHeading: 'Lo schema completo della tastiera',
     fullCaption: 'Le 12 note su ogni corda, tasti 0–12, accordatura standard. Sono mostrati i diesis; ogni diesis occupa lo stesso tasto del suo nome in bemolle.',
     naturalsHeading: 'Parti dalle note naturali',
@@ -218,7 +221,7 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     title: 'Mapa do braço da guitarra — Todas as notas no braço (diagrama) | Modal Runs',
     description: 'O mapa completo do braço: todas as notas nas seis cordas, casas 0–12, em afinação padrão. Notas naturais e acidentes, as notas corda por corda, um diagrama para imprimir e um app que ilumina o mapa enquanto você toca.',
     h1: 'O braço da guitarra, mapeado',
-    lead: 'Todas as notas do braço em afinação padrão ({tuning}), das cordas soltas até a casa 12 — depois da casa 12 o mapa inteiro se repete uma oitava acima. Os pontos brilhantes são as notas naturais; os escuros, os sustenidos e bemóis entre elas.',
+    lead: 'Todas as notas do braço em afinação padrão ({tuning}), das cordas soltas até a casa 12 — depois da casa 12 o mapa inteiro se repete uma oitava acima. Cada nota carrega a cor que o app lhe dá — o seu som em relação ao Dó — e os pontos dourados são o próprio Dó.',
     fullHeading: 'O diagrama completo do braço',
     fullCaption: 'As 12 notas em cada corda, casas 0–12, afinação padrão. Os sustenidos aparecem no mapa; cada sustenido fica na mesma casa que o seu nome em bemol.',
     naturalsHeading: 'Comece pelas naturais',
@@ -242,7 +245,7 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     title: 'Griffbrett-Diagramm der Gitarre — Alle Töne auf dem Griffbrett | Modal Runs',
     description: 'Das komplette Griffbrett der Gitarre: alle Töne auf allen sechs Saiten, Bund 0–12, in Standardstimmung. Naturtöne und Vorzeichen im Diagramm, die Töne Saite für Saite, ein druckbares Diagramm und eine App, die das Griffbrett beim Spielen aufleuchten lässt.',
     h1: 'Das Griffbrett der Gitarre, kartiert',
-    lead: 'Alle Töne auf dem Griffbrett in Standardstimmung ({tuning}), von den Leersaiten bis zum 12. Bund — ab Bund 12 wiederholt sich das ganze Diagramm eine Oktave höher. Helle Punkte sind die Naturtöne; dunkle die Halbtöne dazwischen.',
+    lead: 'Alle Töne auf dem Griffbrett in Standardstimmung ({tuning}), von den Leersaiten bis zum 12. Bund — ab Bund 12 wiederholt sich das ganze Diagramm eine Oktave höher. Jeder Ton trägt die Farbe, die ihm die App gibt — seinen Klang relativ zu C — und die goldenen Punkte sind das C selbst.',
     fullHeading: 'Das komplette Griffbrett-Diagramm',
     fullCaption: 'Alle 12 Töne auf jeder Saite, Bund 0–12, Standardstimmung. Angezeigt werden die Kreuz-Namen; jeder Ton liegt auf demselben Bund wie sein B-Name.',
     naturalsHeading: 'Fang mit den Naturtönen an',
@@ -266,7 +269,7 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     title: 'Halsdiagram van de gitaar — Alle noten op de hals (kaart) | Modal Runs',
     description: 'De complete kaart van de gitaarhals: alle noten op alle zes snaren, fret 0–12, in standaardstemming. Stamtonen en voortekens in beeld, de noten snaar voor snaar, een printbaar diagram en een app die de kaart laat oplichten terwijl je speelt.',
     h1: 'De gitaarhals, in kaart gebracht',
-    lead: 'Alle noten op de hals in standaardstemming ({tuning}), van de losse snaren tot fret 12 — na fret 12 herhaalt de hele kaart zich een octaaf hoger. Lichte stippen zijn de stamtonen; donkere de kruizen en mollen ertussen.',
+    lead: 'Alle noten op de hals in standaardstemming ({tuning}), van de losse snaren tot fret 12 — na fret 12 herhaalt de hele kaart zich een octaaf hoger. Elke noot draagt de kleur die de app hem geeft — zijn klank ten opzichte van C — en de gouden stippen zijn de C zelf.',
     fullHeading: 'Het complete halsdiagram',
     fullCaption: 'Alle 12 noten op elke snaar, fret 0–12, standaardstemming. Kruizen worden getoond; elk kruis zit op dezelfde fret als zijn mol-naam.',
     naturalsHeading: 'Begin met de stamtonen',
@@ -290,7 +293,7 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     title: 'Mapa gryfu gitary — Wszystkie nuty na gryfie (diagram) | Modal Runs',
     description: 'Kompletna mapa gryfu: wszystkie nuty na sześciu strunach, progi 0–12, w stroju standardowym. Nuty naturalne i alterowane, przebiegi struna po strunie, diagram do druku i aplikacja, która podświetla mapę, gdy grasz.',
     h1: 'Gryf gitary, zmapowany',
-    lead: 'Wszystkie nuty na gryfie w stroju standardowym ({tuning}), od pustych strun do 12. progu — za 12. progiem cała mapa powtarza się oktawę wyżej. Jasne kropki to nuty naturalne; ciemne to krzyżyki i bemole między nimi.',
+    lead: 'Wszystkie nuty na gryfie w stroju standardowym ({tuning}), od pustych strun do 12. progu — za 12. progiem cała mapa powtarza się oktawę wyżej. Każda nuta nosi kolor, który nadaje jej aplikacja — jej brzmienie względem C — a złote kropki to samo C.',
     fullHeading: 'Pełny diagram gryfu',
     fullCaption: 'Wszystkie 12 nut na każdej strunie, progi 0–12, strój standardowy. Pokazane są krzyżyki; każdy krzyżyk leży na tym samym progu co jego bemolowa nazwa.',
     naturalsHeading: 'Zacznij od nut naturalnych',
@@ -314,7 +317,7 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     title: 'Карта грифа гитары — Все ноты на грифе (схема) | Modal Runs',
     description: 'Полная карта грифа: все ноты на шести струнах, лады 0–12, в стандартном строе. Натуральные ноты и знаки альтерации, ноты по каждой струне, схема для печати и приложение, которое подсвечивает карту, пока ты играешь.',
     h1: 'Гриф гитары — на карте',
-    lead: 'Все ноты на грифе в стандартном строе ({tuning}), от открытых струн до 12-го лада — после 12-го лада вся карта повторяется октавой выше. Яркие точки — натуральные ноты; тусклые — диезы и бемоли между ними.',
+    lead: 'Все ноты на грифе в стандартном строе ({tuning}), от открытых струн до 12-го лада — после 12-го лада вся карта повторяется октавой выше. Каждая нота носит цвет, который даёт ей приложение — её звучание относительно До, — а золотые точки — это само До.',
     fullHeading: 'Полная схема грифа',
     fullCaption: 'Все 12 нот на каждой струне, лады 0–12, стандартный строй. Показаны диезы; каждый диез стоит на том же ладу, что и его бемольное имя.',
     naturalsHeading: 'Начни с натуральных нот',
@@ -338,7 +341,7 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     title: 'Мапа грифа гітари — Усі ноти на грифі (схема) | Modal Runs',
     description: 'Повна мапа грифа: усі ноти на шести струнах, лади 0–12, у стандартному строї. Натуральні ноти і знаки альтерації, ноти по кожній струні, схема для друку і застосунок, що підсвічує мапу, поки ти граєш.',
     h1: 'Гриф гітари — на мапі',
-    lead: 'Усі ноти на грифі в стандартному строї ({tuning}), від відкритих струн до 12-го ладу — після 12-го ладу вся мапа повторюється октавою вище. Яскраві точки — натуральні ноти; тьмяні — дієзи й бемолі між ними.',
+    lead: 'Усі ноти на грифі в стандартному строї ({tuning}), від відкритих струн до 12-го ладу — після 12-го ладу вся мапа повторюється октавою вище. Кожна нота носить колір, який дає їй застосунок — її звучання відносно До, — а золоті точки — це саме До.',
     fullHeading: 'Повна схема грифа',
     fullCaption: 'Усі 12 нот на кожній струні, лади 0–12, стандартний стрій. Показано дієзи; кожен дієз стоїть на тому самому ладу, що і його бемольна назва.',
     naturalsHeading: 'Почни з натуральних нот',
@@ -362,7 +365,7 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     title: 'Gitar klavye haritası — Saptaki bütün notalar (şema) | Modal Runs',
     description: 'Klavyenin eksiksiz haritası: altı telin tamamındaki bütün notalar, perde 0–12, standart akortta. Doğal notalar ve arızalar şemada, tel tel nota dizileri, yazdırılabilir bir şema ve sen çalarken haritayı aydınlatan bir uygulama.',
     h1: 'Gitar klavyesi, haritalandı',
-    lead: 'Standart akortta ({tuning}) saptaki bütün notalar, boş tellerden 12. perdeye — 12. perdeden sonra bütün harita bir oktav yukarıda tekrarlanır. Parlak noktalar doğal notalar; soluk olanlar aralarındaki diyez ve bemoller.',
+    lead: 'Standart akortta ({tuning}) saptaki bütün notalar, boş tellerden 12. perdeye — 12. perdeden sonra bütün harita bir oktav yukarıda tekrarlanır. Her nota, uygulamanın ona verdiği rengi taşır — Do’ya göre tınısını — altın noktalar ise Do’nun kendisidir.',
     fullHeading: 'Eksiksiz klavye şeması',
     fullCaption: 'Her teldeki 12 nota, perde 0–12, standart akort. Diyezler gösterilir; her diyez, bemol adıyla aynı perdededir.',
     naturalsHeading: 'Doğal notalarla başla',
@@ -386,7 +389,7 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     title: 'ギター指板マップ — 指板上の全音名(チャート) | Modal Runs',
     description: 'ギター指板の完全マップ:レギュラーチューニングの6弦すべて、0〜12フレットの全音名。ナチュラルと臨時記号のチャート、弦ごとの音名一覧、印刷用チャート、そして演奏をマイクで聴き取ってマップを光らせるアプリ。',
     h1: 'ギターの指板を、マップに',
-    lead: 'レギュラーチューニング({tuning})の指板上の全音名を、開放弦から12フレットまで。12フレットから先は同じマップが1オクターブ上で繰り返されます。明るいドットはナチュラル、暗いドットはその間のシャープとフラットです。',
+    lead: 'レギュラーチューニング({tuning})の指板上の全音名を、開放弦から12フレットまで。12フレットから先は同じマップが1オクターブ上で繰り返されます。各音はアプリと同じ色 — ドを基準にした響きの色 — をまとい、金色のドットがドそのものです。',
     fullHeading: '指板の完全チャート',
     fullCaption: '各弦の12音すべて、0〜12フレット、レギュラーチューニング。シャープ表記で示していますが、各シャープはフラット名と同じフレットです。',
     naturalsHeading: 'まずはナチュラルから',
@@ -410,7 +413,7 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     title: '기타 지판 맵 — 지판 위의 모든 음(차트) | Modal Runs',
     description: '기타 지판의 완전한 맵: 표준 튜닝 여섯 줄 전부, 0–12프렛의 모든 음. 자연음과 임시표 차트, 줄별 음 목록, 인쇄용 차트, 그리고 연주를 마이크로 들으며 맵을 밝혀주는 앱.',
     h1: '기타 지판, 맵으로',
-    lead: '표준 튜닝({tuning})에서 지판 위의 모든 음을 개방현부터 12프렛까지. 12프렛 뒤로는 같은 맵이 한 옥타브 위에서 반복됩니다. 밝은 점은 자연음, 어두운 점은 그 사이의 샤프와 플랫이에요.',
+    lead: '표준 튜닝({tuning})에서 지판 위의 모든 음을 개방현부터 12프렛까지. 12프렛 뒤로는 같은 맵이 한 옥타브 위에서 반복됩니다. 모든 음은 앱이 주는 색 — 도를 기준으로 한 울림의 색 — 을 입고 있고, 금색 점이 바로 도예요.',
     fullHeading: '지판 전체 차트',
     fullCaption: '각 줄의 12음 전부, 0–12프렛, 표준 튜닝. 샤프로 표기했지만 각 샤프는 플랫 이름과 같은 프렛입니다.',
     naturalsHeading: '자연음부터 시작하세요',
@@ -434,7 +437,7 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     title: '吉他指板图——指板上的全部音名(图表) | Modal Runs',
     description: '完整的吉他指板图:标准调弦下六根弦、0–12品的全部音名。自然音与升降音一目了然,逐弦音名列表,可打印图表,还有一个在你弹奏时点亮指板图的应用。',
     h1: '吉他指板,一张图',
-    lead: '标准调弦({tuning})下指板上的全部音名,从空弦到第12品——过了12品,整张图会在高一个八度处重复。亮点是自然音,暗点是它们之间的升降音。',
+    lead: '标准调弦({tuning})下指板上的全部音名,从空弦到第12品——过了12品,整张图会在高一个八度处重复。每个音都带着应用赋予它的颜色——它相对于C的声音——金色圆点就是C本身。',
     fullHeading: '完整指板图',
     fullCaption: '每根弦上的12个音,0–12品,标准调弦。图中标升号;每个升号与它的降号名在同一品。',
     naturalsHeading: '从自然音开始',
@@ -458,7 +461,7 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     title: 'Sơ đồ cần đàn guitar — Tất cả các nốt trên cần đàn | Modal Runs',
     description: 'Sơ đồ cần đàn đầy đủ: mọi nốt trên cả sáu dây, phím 0–12, ở hệ chỉnh dây chuẩn. Nốt tự nhiên và dấu hóa, danh sách nốt từng dây, sơ đồ in được, và một ứng dụng thắp sáng sơ đồ trong lúc bạn chơi.',
     h1: 'Cần đàn guitar, vẽ thành sơ đồ',
-    lead: 'Tất cả các nốt trên cần đàn ở hệ chỉnh dây chuẩn ({tuning}), từ dây buông đến phím 12 — qua phím 12, cả sơ đồ lặp lại cao hơn một quãng tám. Chấm sáng là nốt tự nhiên; chấm mờ là thăng giáng nằm giữa chúng.',
+    lead: 'Tất cả các nốt trên cần đàn ở hệ chỉnh dây chuẩn ({tuning}), từ dây buông đến phím 12 — qua phím 12, cả sơ đồ lặp lại cao hơn một quãng tám. Mỗi nốt mang màu mà ứng dụng gán cho nó — âm thanh của nó so với Đô — và những chấm vàng chính là nốt Đô.',
     fullHeading: 'Sơ đồ cần đàn đầy đủ',
     fullCaption: 'Đủ 12 nốt trên mỗi dây, phím 0–12, chỉnh dây chuẩn. Hiển thị theo dấu thăng; mỗi dấu thăng nằm cùng phím với tên giáng của nó.',
     naturalsHeading: 'Bắt đầu từ nốt tự nhiên',
@@ -482,7 +485,7 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     title: 'Peta fretboard gitar — Semua nada di fretboard (diagram) | Modal Runs',
     description: 'Peta fretboard lengkap: semua nada di keenam senar, fret 0–12, dalam stem standar. Nada natural dan aksidental, daftar nada per senar, diagram siap cetak, dan aplikasi yang menyalakan peta selagi kamu bermain.',
     h1: 'Fretboard gitar, dipetakan',
-    lead: 'Semua nada di fretboard dalam stem standar ({tuning}), dari senar lepas sampai fret 12 — setelah fret 12, seluruh peta berulang satu oktaf lebih tinggi. Titik terang adalah nada natural; yang redup adalah kres dan mol di antaranya.',
+    lead: 'Semua nada di fretboard dalam stem standar ({tuning}), dari senar lepas sampai fret 12 — setelah fret 12, seluruh peta berulang satu oktaf lebih tinggi. Tiap nada memakai warna yang diberikan aplikasi — bunyinya relatif terhadap C — dan titik emas adalah C itu sendiri.',
     fullHeading: 'Diagram fretboard lengkap',
     fullCaption: 'Semua 12 nada di tiap senar, fret 0–12, stem standar. Ditampilkan dengan kres; tiap kres berada di fret yang sama dengan nama molnya.',
     naturalsHeading: 'Mulai dari nada natural',
@@ -506,7 +509,7 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     title: 'गिटार फ्रेटबोर्ड मैप — फ्रेटबोर्ड के सारे नोट्स (चार्ट) | Modal Runs',
     description: 'पूरा फ्रेटबोर्ड मैप: स्टैंडर्ड ट्यूनिंग में छहों स्ट्रिंग्स के सारे नोट्स, फ्रेट 0–12। नैचुरल नोट्स और शार्प/फ्लैट का चार्ट, हर स्ट्रिंग के नोट्स की सूची, प्रिंट करने लायक चार्ट, और एक ऐप जो बजाते समय मैप को रोशन कर देता है।',
     h1: 'गिटार का फ्रेटबोर्ड, मैप पर',
-    lead: 'स्टैंडर्ड ट्यूनिंग ({tuning}) में फ्रेटबोर्ड के सारे नोट्स, खुली स्ट्रिंग्स से 12वें फ्रेट तक — 12वें फ्रेट के बाद पूरा मैप एक ऑक्टेव ऊपर दोहराता है। चमकीले बिंदु नैचुरल नोट्स हैं; धुंधले बिंदु उनके बीच के शार्प और फ्लैट।',
+    lead: 'स्टैंडर्ड ट्यूनिंग ({tuning}) में फ्रेटबोर्ड के सारे नोट्स, खुली स्ट्रिंग्स से 12वें फ्रेट तक — 12वें फ्रेट के बाद पूरा मैप एक ऑक्टेव ऊपर दोहराता है। हर नोट वही रंग पहनता है जो ऐप उसे देता है — C के सापेक्ष उसकी आवाज़ — और सुनहरे बिंदु खुद C हैं।',
     fullHeading: 'पूरा फ्रेटबोर्ड चार्ट',
     fullCaption: 'हर स्ट्रिंग के 12 नोट्स, फ्रेट 0–12, स्टैंडर्ड ट्यूनिंग। शार्प दिखाए गए हैं; हर शार्प उसी फ्रेट पर है जहाँ उसका फ्लैट नाम होता है।',
     naturalsHeading: 'नैचुरल नोट्स से शुरू करें',
