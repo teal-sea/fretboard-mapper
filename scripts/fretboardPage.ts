@@ -6,11 +6,14 @@
 // does exactly that, in every language, from the same deterministic
 // engine (golden rule 2 — no hardcoded frets, noteIndex/noteName
 // compute every label).
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import {
   noteIndex, noteName, TUNINGS, SCALES, getScaleNotes, computeFretboard,
 } from '../src/utils/musicTheory'
 import { DEFAULT_INTERVAL_COLORS } from '../src/utils/defaultColors'
 import { displayNote, LANGUAGES } from '../src/utils/noteNames'
+import Fretboard from '../src/components/Fretboard'
 import {
   ORIGIN, head, siteHeader, SITE_HEADER, footer,
   breadcrumbList, articleSchema,
@@ -19,65 +22,36 @@ import { LOCALES, type Locale } from './locales'
 
 const NUM_FRETS = 12
 
-// ─── Chromatic neck chart ────────────────────────────────────────────
-// The actual fretboard the site already renders — same geometry, same
-// computeFretboard positions, same interval palette as the app and the
-// mode pages, anchored on C: the naturals chart IS C major on the neck
-// (gold root, colour per interval), and the full chart adds the five
-// in-between notes in their chromatic interval colours. Flat dots, no
-// halos.
-function chartSvg(disp: (n: string) => string, ariaLabel: string, naturalsOnly: boolean): string {
+// ─── The actual fretboard ────────────────────────────────────────────
+// Not a lookalike: the app's own Fretboard component (ebony board, bone
+// nut, fret wires, wound strings, interval palette), server-rendered
+// with renderToStaticMarkup. Anchored on C: the naturals chart IS C
+// major on the neck; the full chart adds the chromatic notes.
+function chartSvg(disp: (n: string) => string, ariaLabel: string, naturalsOnly: boolean, localized: boolean): string {
   const activeNotes = naturalsOnly
     ? getScaleNotes('C', SCALES['ionian'])
     : new Set(Array.from({ length: 12 }, (_, pc) => pc))
   const board = computeFretboard(TUNINGS['standard'], 'C', activeNotes, NUM_FRETS)
-  const FRET_W = 60, STR_GAP = 30, LEFT = 46, TOP = 26
-  const width = LEFT + (NUM_FRETS + 1) * FRET_W + 14
-  const height = TOP + 5 * STR_GAP + 40
-  const stringY = (s: number) => TOP + (5 - s) * STR_GAP // low E at the bottom
-  const noteX = (f: number) => LEFT + f * FRET_W + FRET_W / 2
-
-  const parts: string[] = []
-  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${ariaLabel}">`)
-  parts.push(`<rect width="${width}" height="${height}" fill="#0a0912" rx="10"/>`)
-  for (let f = 0; f <= NUM_FRETS; f++) {
-    const x = LEFT + f * FRET_W
-    const isNut = f === 0
-    parts.push(`<line x1="${x}" y1="${TOP - 8}" x2="${x}" y2="${TOP + 5 * STR_GAP + 8}" stroke="${isNut ? '#5a5470' : '#241f38'}" stroke-width="${isNut ? 4 : 2}"/>`)
-    if (f > 0) parts.push(`<text x="${noteX(f)}" y="${height - 10}" fill="#6a6486" font-size="11" text-anchor="middle" font-family="sans-serif">${f}</text>`)
+  // Same lookup table App.tsx hands the component — every engine
+  // spelling mapped to this page's language (solfège, German H, …).
+  let noteMap: Record<string, string> | null = null
+  if (localized) {
+    noteMap = {}
+    for (const n of ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B']) noteMap[n] = disp(n)
   }
-  for (const f of [3, 5, 7, 9, 12]) {
-    const cy = TOP + 2.5 * STR_GAP
-    if (f === 12) {
-      parts.push(`<circle cx="${noteX(f)}" cy="${cy - STR_GAP}" r="4" fill="#1d1a2a"/><circle cx="${noteX(f)}" cy="${cy + STR_GAP}" r="4" fill="#1d1a2a"/>`)
-    } else {
-      parts.push(`<circle cx="${noteX(f)}" cy="${cy}" r="4" fill="#1d1a2a"/>`)
-    }
-  }
-  for (let s = 0; s < 6; s++) {
-    parts.push(`<line x1="${LEFT}" y1="${stringY(s)}" x2="${width - 14}" y2="${stringY(s)}" stroke="#3a3450" stroke-width="${1 + (5 - s) * 0.3}"/>`)
-  }
-  const labels = TUNINGS['standard'].labels
-  for (let s = 0; s < 6; s++) {
-    parts.push(`<text x="16" y="${stringY(s) + 4}" fill="#6a6486" font-size="12" font-family="sans-serif">${disp(labels[s])}</text>`)
-  }
-  // Note dots — exactly how the mode pages draw them: interval palette,
-  // gold ringed root (C), dark bold labels on flat saturated dots.
-  for (const string of board) {
-    for (const fn of string) {
-      if (!fn.isInScale) continue
-      const cx = fn.fret === 0 ? LEFT + 1 : noteX(fn.fret)
-      const y = stringY(fn.stringIndex)
-      const fill = DEFAULT_INTERVAL_COLORS[fn.intervalName] ?? '#888'
-      const label = disp(noteName(fn.degree, false))
-      const r = fn.isRoot ? 12.5 : 11
-      const fontSize = label.length > 3 ? 8 : 10
-      parts.push(`<circle cx="${cx}" cy="${y}" r="${r}" fill="${fill}"${fn.isRoot ? ' stroke="#fff" stroke-width="2"' : ''}/>`)
-      parts.push(`<text x="${cx}" y="${y + 3.5}" fill="#0a0a0f" font-size="${fontSize}" font-weight="700" text-anchor="middle" font-family="sans-serif">${label}</text>`)
-    }
-  }
-  parts.push('</svg>')
-  return parts.join('\n')
+  const svg = renderToStaticMarkup(createElement(Fretboard, {
+    board,
+    displayMode: 'notes',
+    inlayStyle: 'dots',
+    intervalColors: DEFAULT_INTERVAL_COLORS,
+    highlightRoot: true,
+    showLeftHanded: false,
+    posRange: null,
+    numFrets: NUM_FRETS,
+    tuningLabels: TUNINGS['standard'].labels.map(disp),
+    noteMap,
+  }))
+  return `<div role="img" aria-label="${ariaLabel}">${svg}</div>`
 }
 
 // Per-string note run, fret 0 → 12, as prose ("E string: E, F, F# …") —
@@ -114,6 +88,8 @@ type FretboardCopy = {
   printButton: string
   nextHeading: string
   nextBody: string        // may contain {modes} and {app} link slots
+  modesWord: string       // the in-sentence link text the {modes} slot gets
+  appWord: string         // the in-sentence link text the {app} slot gets
   aria: string
   ariaNaturals: string
 }
@@ -138,7 +114,9 @@ const EN: FretboardCopy = {
   printBody: 'This page prints as a clean one-sheet chart — use your browser’s print dialog and choose "Save as PDF" to keep it on your music stand or tablet.',
   printButton: 'Print this chart / Save as PDF',
   nextHeading: 'Make the map light up',
-  nextBody: 'A static chart shows you the notes; {app} listens through your mic and lights up every note you actually play on this same map, in real time. When you’re ready for what the notes mean together, the {modes} pages map every scale onto this neck.',
+  nextBody: 'A static chart shows you the notes; {app} listens through your mic and lights up every note you actually play on this same map, in real time. When you’re ready for what the notes mean together, {modes} map every scale onto this neck.',
+  modesWord: 'the mode pages',
+  appWord: 'the app',
   aria: 'Guitar fretboard chart: every note on all six strings from open to fret 12 in standard tuning',
   ariaNaturals: 'Guitar fretboard chart showing only the natural notes, open to fret 12, standard tuning',
 }
@@ -165,6 +143,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     printButton: 'Imprimir el diagrama / Guardar como PDF',
     nextHeading: 'Haz que el mapa se ilumine',
     nextBody: 'Un diagrama estático te enseña las notas; {app} te escucha por el micrófono e ilumina en tiempo real cada nota que tocas sobre este mismo mapa. Cuando quieras saber qué significan juntas, las páginas de {modes} proyectan cada escala sobre este mástil.',
+    modesWord: 'los modos',
+    appWord: 'la app',
     aria: 'Diagrama del diapasón: todas las notas de las seis cuerdas, del aire al traste 12, afinación estándar',
     ariaNaturals: 'Diagrama del diapasón con solo las notas naturales, del aire al traste 12, afinación estándar',
   },
@@ -189,6 +169,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     printButton: 'Imprimer le schéma / Enregistrer en PDF',
     nextHeading: 'Fais s’illuminer la carte',
     nextBody: 'Un schéma statique montre les notes ; {app} t’écoute au micro et illumine en temps réel chaque note que tu joues sur cette même carte. Quand tu veux comprendre ce qu’elles signifient ensemble, les pages des {modes} projettent chaque gamme sur ce manche.',
+    modesWord: 'modes',
+    appWord: 'l’app',
     aria: 'Schéma du manche : toutes les notes des six cordes, de la corde à vide à la case 12, accordage standard',
     ariaNaturals: 'Schéma du manche avec uniquement les notes naturelles, de la corde à vide à la case 12, accordage standard',
   },
@@ -213,6 +195,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     printButton: 'Stampa lo schema / Salva in PDF',
     nextHeading: 'Fai illuminare la mappa',
     nextBody: 'Uno schema statico ti mostra le note; {app} ti ascolta dal microfono e illumina in tempo reale ogni nota che suoni su questa stessa mappa. Quando vuoi capire cosa significano insieme, le pagine dei {modes} proiettano ogni scala su questo manico.',
+    modesWord: 'modi',
+    appWord: 'l’app',
     aria: 'Schema della tastiera: tutte le note sulle sei corde, dalla corda a vuoto al tasto 12, accordatura standard',
     ariaNaturals: 'Schema della tastiera con solo le note naturali, dalla corda a vuoto al tasto 12, accordatura standard',
   },
@@ -237,6 +221,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     printButton: 'Imprimir o diagrama / Salvar em PDF',
     nextHeading: 'Faça o mapa acender',
     nextBody: 'Um diagrama estático mostra as notas; {app} te escuta pelo microfone e ilumina em tempo real cada nota que você toca neste mesmo mapa. Quando quiser entender o que elas significam juntas, as páginas dos {modes} projetam cada escala neste braço.',
+    modesWord: 'modos',
+    appWord: 'o app',
     aria: 'Diagrama do braço: todas as notas nas seis cordas, da corda solta à casa 12, afinação padrão',
     ariaNaturals: 'Diagrama do braço mostrando só as notas naturais, da corda solta à casa 12, afinação padrão',
   },
@@ -261,6 +247,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     printButton: 'Diagramm drucken / Als PDF speichern',
     nextHeading: 'Lass das Diagramm aufleuchten',
     nextBody: 'Ein statisches Diagramm zeigt dir die Töne; {app} hört dich übers Mikrofon und lässt jeden Ton, den du spielst, in Echtzeit auf genau diesem Diagramm aufleuchten. Wenn du wissen willst, was die Töne zusammen bedeuten, projizieren die {modes}-Seiten jede Skala auf dieses Griffbrett.',
+    modesWord: 'Modi',
+    appWord: 'die App',
     aria: 'Griffbrett-Diagramm: alle Töne auf allen sechs Saiten, von der Leersaite bis Bund 12, Standardstimmung',
     ariaNaturals: 'Griffbrett-Diagramm nur mit den Naturtönen, von der Leersaite bis Bund 12, Standardstimmung',
   },
@@ -285,6 +273,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     printButton: 'Diagram printen / Opslaan als PDF',
     nextHeading: 'Laat de kaart oplichten',
     nextBody: 'Een statisch diagram laat je de noten zien; {app} luistert via je microfoon en laat elke noot die je speelt in realtime oplichten op precies deze kaart. Klaar voor wat de noten samen betekenen? De {modes}-pagina’s projecteren elke toonladder op deze hals.',
+    modesWord: 'modi',
+    appWord: 'de app',
     aria: 'Halsdiagram: alle noten op alle zes snaren, van losse snaar tot fret 12, standaardstemming',
     ariaNaturals: 'Halsdiagram met alleen de stamtonen, van losse snaar tot fret 12, standaardstemming',
   },
@@ -309,6 +299,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     printButton: 'Wydrukuj diagram / Zapisz jako PDF',
     nextHeading: 'Niech mapa się zaświeci',
     nextBody: 'Statyczny diagram pokazuje nuty; {app} słucha cię przez mikrofon i w czasie rzeczywistym podświetla na tej samej mapie każdą nutę, którą grasz. Gdy zechcesz wiedzieć, co znaczą razem, strony {modes} nakładają każdą skalę na ten gryf.',
+    modesWord: 'skal modalnych',
+    appWord: 'aplikacja',
     aria: 'Diagram gryfu: wszystkie nuty na sześciu strunach, od pustej struny do 12. progu, strój standardowy',
     ariaNaturals: 'Diagram gryfu tylko z nutami naturalnymi, od pustej struny do 12. progu, strój standardowy',
   },
@@ -333,6 +325,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     printButton: 'Распечатать схему / Сохранить в PDF',
     nextHeading: 'Пусть карта загорится',
     nextBody: 'Статичная схема показывает ноты; {app} слушает тебя через микрофон и в реальном времени подсвечивает на этой же карте каждую ноту, которую ты играешь. А когда захочешь понять, что ноты значат вместе, страницы {modes} накладывают каждую гамму на этот гриф.',
+    modesWord: 'ладов',
+    appWord: 'приложение',
     aria: 'Схема грифа: все ноты на шести струнах, от открытой струны до 12-го лада, стандартный строй',
     ariaNaturals: 'Схема грифа только с натуральными нотами, от открытой струны до 12-го лада, стандартный строй',
   },
@@ -357,6 +351,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     printButton: 'Роздрукувати схему / Зберегти в PDF',
     nextHeading: 'Нехай мапа засвітиться',
     nextBody: 'Статична схема показує ноти; {app} слухає тебе через мікрофон і в реальному часі підсвічує на цій самій мапі кожну ноту, яку ти граєш. А коли захочеш зрозуміти, що ноти означають разом, сторінки {modes} накладають кожну гаму на цей гриф.',
+    modesWord: 'ладів',
+    appWord: 'застосунок',
     aria: 'Схема грифа: усі ноти на шести струнах, від відкритої струни до 12-го ладу, стандартний стрій',
     ariaNaturals: 'Схема грифа лише з натуральними нотами, від відкритої струни до 12-го ладу, стандартний стрій',
   },
@@ -381,6 +377,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     printButton: 'Şemayı yazdır / PDF olarak kaydet',
     nextHeading: 'Haritayı aydınlat',
     nextBody: 'Statik bir şema notaları gösterir; {app} seni mikrofondan dinler ve çaldığın her notayı aynı haritada gerçek zamanlı aydınlatır. Notaların birlikte ne anlama geldiğine hazır olduğunda {modes} sayfaları her gamı bu sapa yansıtır.',
+    modesWord: 'mod',
+    appWord: 'uygulama',
     aria: 'Klavye şeması: altı teldeki bütün notalar, boş telden 12. perdeye, standart akort',
     ariaNaturals: 'Yalnızca doğal notaları gösteren klavye şeması, boş telden 12. perdeye, standart akort',
   },
@@ -405,6 +403,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     printButton: 'チャートを印刷 / PDFで保存',
     nextHeading: 'マップを光らせよう',
     nextBody: '静的なチャートは音名を教えてくれるだけ。{app}はマイクであなたの演奏を聴き取り、弾いた音をこの同じマップ上でリアルタイムに光らせます。音の意味を知りたくなったら、{modes}のページがすべてのスケールをこの指板に映します。',
+    modesWord: 'モード',
+    appWord: 'アプリ',
     aria: '指板チャート:6弦すべての全音名、開放弦から12フレットまで、レギュラーチューニング',
     ariaNaturals: 'ナチュラルのみを示した指板チャート、開放弦から12フレットまで、レギュラーチューニング',
   },
@@ -429,6 +429,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     printButton: '차트 인쇄 / PDF로 저장',
     nextHeading: '맵에 불을 켜세요',
     nextBody: '정적인 차트는 음만 보여줍니다. {app}은 마이크로 연주를 듣고, 치는 모든 음을 바로 이 맵 위에 실시간으로 밝혀줘요. 음들이 함께 무엇을 뜻하는지 궁금해지면 {modes} 페이지가 모든 스케일을 이 지판에 펼쳐 보여줍니다.',
+    modesWord: '모드',
+    appWord: '앱',
     aria: '지판 차트: 여섯 줄 전부의 모든 음, 개방현부터 12프렛까지, 표준 튜닝',
     ariaNaturals: '자연음만 표시한 지판 차트, 개방현부터 12프렛까지, 표준 튜닝',
   },
@@ -453,6 +455,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     printButton: '打印图表 / 存为PDF',
     nextHeading: '让指板图亮起来',
     nextBody: '静态图表只能告诉你音名;{app}会通过麦克风听你演奏,把你弹的每个音实时点亮在这张图上。想知道这些音合在一起意味着什么,{modes}页面会把每条音阶投射到这条指板上。',
+    modesWord: '调式',
+    appWord: '应用',
     aria: '指板图:六根弦上的全部音名,从空弦到第12品,标准调弦',
     ariaNaturals: '只显示自然音的指板图,从空弦到第12品,标准调弦',
   },
@@ -477,6 +481,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     printButton: 'In sơ đồ / Lưu thành PDF',
     nextHeading: 'Thắp sáng sơ đồ',
     nextBody: 'Sơ đồ tĩnh chỉ cho bạn thấy các nốt; {app} nghe bạn qua micro và thắp sáng theo thời gian thực từng nốt bạn chơi trên chính sơ đồ này. Khi muốn hiểu các nốt kết hợp nghĩa là gì, các trang {modes} sẽ chiếu từng âm giai lên cần đàn này.',
+    modesWord: 'mode',
+    appWord: 'ứng dụng',
     aria: 'Sơ đồ cần đàn: mọi nốt trên sáu dây, từ dây buông đến phím 12, chỉnh dây chuẩn',
     ariaNaturals: 'Sơ đồ cần đàn chỉ với các nốt tự nhiên, từ dây buông đến phím 12, chỉnh dây chuẩn',
   },
@@ -501,6 +507,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     printButton: 'Cetak diagram / Simpan sebagai PDF',
     nextHeading: 'Nyalakan petanya',
     nextBody: 'Diagram statis hanya menunjukkan nada; {app} mendengarkanmu lewat mikrofon dan menyalakan tiap nada yang kamu mainkan di peta yang sama ini secara real time. Kalau sudah siap memahami arti nada-nada itu bersama, halaman {modes} memproyeksikan tiap tangga nada ke fretboard ini.',
+    modesWord: 'mode',
+    appWord: 'aplikasi',
     aria: 'Diagram fretboard: semua nada di enam senar, dari senar lepas sampai fret 12, stem standar',
     ariaNaturals: 'Diagram fretboard hanya dengan nada natural, dari senar lepas sampai fret 12, stem standar',
   },
@@ -525,6 +533,8 @@ const LOCALIZED: Record<string, FretboardCopy> = {
     printButton: 'चार्ट प्रिंट करें / PDF सेव करें',
     nextHeading: 'मैप को रोशन करें',
     nextBody: 'स्टैटिक चार्ट सिर्फ नोट्स दिखाता है; {app} माइक से आपको सुनता है और आपके बजाए हर नोट को इसी मैप पर रियल टाइम में रोशन कर देता है। जब नोट्स का मिलकर मतलब समझना हो, तो {modes} के पेज हर स्केल को इसी फ्रेटबोर्ड पर उतार देते हैं।',
+    modesWord: 'मोड्स',
+    appWord: 'ऐप',
     aria: 'फ्रेटबोर्ड चार्ट: छहों स्ट्रिंग्स के सारे नोट्स, खुली स्ट्रिंग से 12वें फ्रेट तक, स्टैंडर्ड ट्यूनिंग',
     ariaNaturals: 'सिर्फ नैचुरल नोट्स वाला फ्रेटबोर्ड चार्ट, खुली स्ट्रिंग से 12वें फ्रेट तक, स्टैंडर्ड ट्यूनिंग',
   },
@@ -545,7 +555,19 @@ function alternates(): { hreflang: string; href: string }[] {
 
 // A print stylesheet the shared CSS doesn't need: white page, dark ink,
 // hide the chrome, keep both charts and the string runs.
-const PRINT_CSS = `<style>@media print {
+// The component's own styling — the same rules index.css gives it, with
+// the dark-theme variable values baked in (these pages ship no app CSS).
+const FRETBOARD_CSS = `
+  .fretboard-container { width: 100%; border-radius: 16px; overflow: hidden; background: #101216; border: 1px solid #171a20; box-shadow: 0 2px 12px rgba(0,0,0,0.3), 0 0 60px rgba(0,0,0,0.15) }
+  .fretboard-viewport { overflow-x: auto; overflow-y: hidden; padding: 8px 0 }
+  .fretboard-svg { display: block; width: 100%; min-width: 640px; min-height: 200px; max-height: min(52vh, 430px) }
+  .open-string-label { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; fill: #79818c }
+  .note-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; fill: #000 }
+  .interval-label { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; font-weight: 700; fill: rgba(0,0,0,0.7) }
+  .fret-number { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; fill: #3a4049 }
+`
+
+const PRINT_CSS = `<style>${FRETBOARD_CSS}@media print {
   body { background: #fff; color: #111 }
   header.site, .cta, button.print, footer, .no-print { display: none !important }
   h1 { color: #111; background: none; -webkit-text-fill-color: initial }
@@ -568,11 +590,11 @@ function renderPage(copy: FretboardCopy, locale?: Locale): string {
   const canonicalPath = fretboardPagePath(locale)
   const modesHref = locale ? `/${locale.code}/${locale.modesSegment}/` : '/modes/'
   const appHref = locale ? `/?lang=${locale.code}` : '/'
-  const modesLabel = locale ? locale.t.footerModes : 'the modes'
-  const appLabel = locale ? locale.t.footerApp : 'the app'
+  // In-sentence link words ≠ footer labels: "the app" reads inside a
+  // sentence, "Open the app" belongs in the footer.
   const nextBody = copy.nextBody
-    .replace('{app}', `<a href="${appHref}">${appLabel}</a>`)
-    .replace('{modes}', `<a href="${modesHref}">${modesLabel}</a>`)
+    .replace('{app}', `<a href="${appHref}">${copy.appWord}</a>`)
+    .replace('{modes}', `<a href="${modesHref}">${copy.modesWord}</a>`)
   const runs = stringRuns(disp)
   const runRows = runs.map(r =>
     `<tr><td><strong>${copy.stringLabel.replace('{open}', r.open)}</strong></td><td>${r.run}</td></tr>`
@@ -596,7 +618,7 @@ function renderPage(copy: FretboardCopy, locale?: Locale): string {
 
     <h2>${copy.fullHeading}</h2>
     <figure>
-      ${chartSvg(disp, copy.aria, false)}
+      ${chartSvg(disp, copy.aria, false, !!locale)}
       <figcaption>${copy.fullCaption}</figcaption>
     </figure>
     <button class="print" onclick="window.print()">${copy.printButton}</button>
@@ -604,7 +626,7 @@ function renderPage(copy: FretboardCopy, locale?: Locale): string {
     <h2>${copy.naturalsHeading}</h2>
     <p>${sub(copy.naturalsBody)}</p>
     <figure>
-      ${chartSvg(disp, copy.ariaNaturals, true)}
+      ${chartSvg(disp, copy.ariaNaturals, true, !!locale)}
       <figcaption>${copy.naturalsCaption}</figcaption>
     </figure>
 
@@ -624,7 +646,7 @@ function renderPage(copy: FretboardCopy, locale?: Locale): string {
     <p>${nextBody}</p>
   </main>
   ${locale
-    ? footer({ modesHref, modesLabel, appLabel, tag: locale.t.footerTag, showGuides: false })
+    ? footer({ modesHref, modesLabel: locale.t.footerModes, appLabel: locale.t.footerApp, tag: locale.t.footerTag, showGuides: false })
     : footer()}
 </body>
 </html>
