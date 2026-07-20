@@ -444,6 +444,19 @@ export const CONTENT: Record<string, Entry> = {
   // ═══ The welcome (opens from "What is this?") ═══
   'Learn the fretboard': { es: 'Aprende el diapasón', fr: 'Apprends le manche', it: 'Impara la tastiera', pt: 'Aprenda o braço' },
   'by playing it.': { es: 'tocándolo.', fr: 'en le jouant.', it: 'suonandola.', pt: 'tocando.' },
+  'Play any note — it lights up on the neck, in real time.': {
+    es: 'Toca cualquier nota — se ilumina en el mástil, en tiempo real.', fr: 'Joue une note — elle s’illumine sur le manche, en temps réel.',
+    it: 'Suona una nota — si illumina sulla tastiera, in tempo reale.', pt: 'Toque qualquer nota — ela acende no braço, em tempo real.',
+  },
+  'Start playing': { es: 'Empieza a tocar', fr: 'Commence à jouer', it: 'Inizia a suonare', pt: 'Comece a tocar' },
+  'Free · no signup · just your guitar and a mic': {
+    es: 'Gratis · sin registro · solo tu guitarra y un micrófono', fr: 'Gratuit · sans inscription · juste ta guitare et un micro',
+    it: 'Gratis · senza registrazione · solo la tua chitarra e un microfono', pt: 'Grátis · sem cadastro · só sua guitarra e um microfone',
+  },
+  'Or start with the lessons': {
+    es: 'O empieza por las lecciones', fr: 'Ou commence par les leçons',
+    it: 'Oppure parti dalle lezioni', pt: 'Ou comece pelas lições',
+  },
   'In 1959, Miles Davis walked into a studio bored of chasing chord changes and cut an album built on almost none.': {
     es: 'En 1959, Miles Davis entró a un estudio aburrido de perseguir cambios de acordes y grabó un disco construido casi sin ninguno.',
     fr: 'En 1959, Miles Davis est entré en studio, lassé de courir après les changements d’accords, et a gravé un album qui n’en contient presque aucun.',
