@@ -203,9 +203,8 @@ export const ru: Record<string, string> = {
   'Aeolian': 'Эолийский',
 
   // ─── Landing ───
-  'It': 'Оно',
-  'listens while you play,': 'слушает, пока ты играешь,',
-  'and answers on the neck.': 'и отвечает на грифе.',
+  'Learn the fretboard': 'Выучи гриф',
+  'by playing it.': 'играя на нём.',
   'In 1959, Miles Davis walked into a studio bored of chasing chord changes and cut an album built on almost none.': 'В 1959 году Майлз Дэвис вошёл в студию, устав гоняться за сменами аккордов, и записал альбом, построенный почти без них.',
   '— still the best-selling jazz record ever made — runs on scales instead of progressions. He called it modal jazz: hold one note underneath (a drone), improvise inside a single scale (a mode), and let the mode do the emotional work a wall of chords usually does.': '— до сих пор самая продаваемая джазовая пластинка в истории — работает на гаммах вместо прогрессий. Он назвал это модальным джазом: держи одну ноту внизу (дрон), импровизируй внутри одной гаммы (лада) и позволь ладу делать ту эмоциональную работу, которую обычно делает стена аккордов.',
   'That’s this app, on a fretboard. Hold a drone in any key and the neck fills with the notes that work over it. Play, and Modal Runs hears you through the mic — it lights up what you just played and tells you the moment you land the note it’s hunting for. Move the tonic and the same seven notes turn from A Aeolian into D Dorian — same frets, same notes, just a different one as home. Seven different moods out of one shape. You find them by ear, the way Miles did — not off a chart.': 'Это и есть наше приложение, только на грифе. Держи дрон в любой тональности — и гриф заполнится нотами, которые над ним работают. Играй, и Modal Runs услышит тебя через микрофон: подсветит то, что ты только что сыграл, и скажет в тот момент, когда ты попадёшь в ноту, за которой оно охотится. Сдвинь тонику — и те же семь нот превратятся из ля-эолийского в ре-дорийский: те же лады, те же ноты, просто дом теперь другой. Семь разных настроений из одной аппликатуры. Ты находишь их на слух, как Майлз — а не по таблице.',

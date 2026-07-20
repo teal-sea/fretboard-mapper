@@ -205,9 +205,8 @@ export const nl: Record<string, string> = {
   // ─── Welcome / intro ───
   'Ionian': 'Ionisch',
   'Aeolian': 'Aeolisch',
-  'It': 'Hij',
-  'listens while you play,': 'luistert terwijl je speelt,',
-  'and answers on the neck.': 'en antwoordt op de hals.',
+  'Learn the fretboard': 'Leer de hals',
+  'by playing it.': 'door te spelen.',
   'In 1959, Miles Davis walked into a studio bored of chasing chord changes and cut an album built on almost none.': 'In 1959 liep Miles Davis een studio binnen, het najagen van akkoordwisselingen beu, en nam een album op dat op bijna geen enkele draait.',
   '— still the best-selling jazz record ever made — runs on scales instead of progressions. He called it modal jazz: hold one note underneath (a drone), improvise inside a single scale (a mode), and let the mode do the emotional work a wall of chords usually does.': '— nog altijd de bestverkochte jazzplaat ooit — draait op toonladders in plaats van progressies. Hij noemde het modale jazz: houd één noot eronder vast (een drone), improviseer binnen één toonladder (een modus), en laat de modus het emotionele werk doen dat normaal een muur van akkoorden doet.',
   'That’s this app, on a fretboard. Hold a drone in any key and the neck fills with the notes that work over it. Play, and Modal Runs hears you through the mic — it lights up what you just played and tells you the moment you land the note it’s hunting for. Move the tonic and the same seven notes turn from A Aeolian into D Dorian — same frets, same notes, just a different one as home. Seven different moods out of one shape. You find them by ear, the way Miles did — not off a chart.': 'Dat is deze app, op een fretboard. Houd een drone aan in welke toonsoort dan ook en de hals vult zich met de noten die erover werken. Speel, en Modal Runs hoort je door de mic — hij licht op wat je net speelde en zegt het op het moment dat je de noot raakt waar hij op jaagt. Verplaats de tonica en dezelfde zeven noten veranderen van A Aeolisch in D Dorisch — zelfde frets, zelfde noten, alleen een andere als thuis. Zeven verschillende stemmingen uit één vorm. Je vindt ze op het gehoor, zoals Miles — niet van een schema.',

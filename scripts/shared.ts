@@ -289,7 +289,7 @@ export function footer(opts?: {
 }): string {
   const o = opts ?? {
     modesHref: '/modes/', modesLabel: 'All modes, all keys',
-    appLabel: 'Open the app', tag: 'Modal Runs — free guitar practice that listens.',
+    appLabel: 'Open the app', tag: 'Modal Runs — learn the fretboard by playing it. Free.',
     showGuides: true,
   }
   const guides = o.showGuides !== false ? `<a href="/guides/">Guides</a>` : ''

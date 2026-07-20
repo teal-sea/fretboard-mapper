@@ -442,15 +442,8 @@ export const CONTENT: Record<string, Entry> = {
   'Aeolian': { es: 'Eólico', fr: 'Éolien', it: 'Eolio', pt: 'Eólio' },
 
   // ═══ The welcome (opens from "What is this?") ═══
-  'It': { es: 'Te', fr: 'Il', it: 'Ti', pt: 'Ele' },
-  'listens while you play,': {
-    es: 'escucha mientras tocas,', fr: 't’écoute pendant que tu joues,',
-    it: 'ascolta mentre suoni,', pt: 'escuta enquanto você toca,',
-  },
-  'and answers on the neck.': {
-    es: 'y te responde en el mástil.', fr: 'et répond sur le manche.',
-    it: 'e risponde sul manico.', pt: 'e responde no braço.',
-  },
+  'Learn the fretboard': { es: 'Aprende el diapasón', fr: 'Apprends le manche', it: 'Impara la tastiera', pt: 'Aprenda o braço' },
+  'by playing it.': { es: 'tocándolo.', fr: 'en le jouant.', it: 'suonandola.', pt: 'tocando.' },
   'In 1959, Miles Davis walked into a studio bored of chasing chord changes and cut an album built on almost none.': {
     es: 'En 1959, Miles Davis entró a un estudio aburrido de perseguir cambios de acordes y grabó un disco construido casi sin ninguno.',
     fr: 'En 1959, Miles Davis est entré en studio, lassé de courir après les changements d’accords, et a gravé un album qui n’en contient presque aucun.',

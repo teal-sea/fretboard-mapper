@@ -78,7 +78,7 @@ export default function Veils({ upgradedOpen, onDismissUpgraded, introOpen, onIn
           <div className="intro">
             <img className="intro-logo" src="/logo.webp" alt="Modal Runs" />
             <h1 className="intro-title">
-              {T('It')} <em>{T('listens while you play,')}</em> {T('and answers on the neck.')}
+              {T('Learn the fretboard')} <em>{T('by playing it.')}</em>
             </h1>
             <p className="intro-sub">
               {T('In 1959, Miles Davis walked into a studio bored of chasing chord changes and cut an album built on almost none.')}{' '}
