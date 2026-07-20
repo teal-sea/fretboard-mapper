@@ -8,7 +8,12 @@ UI is a pure function of this one object.
 
 ```ts
 // App.tsx
-const [state, setState] = useState<AppState>(() => ({ ...initialState, ...loadPersistedState() }))
+const [state, setState] = useState<AppState>(() => ({
+  ...initialState,
+  ...loadPersistedState(),
+  ...parseUrlState(window.location.search),   // shared links beat saved state
+  ...(firstVisit.current ? { appMode: 'flow' as const } : {}),  // landing hero
+}))
 const up = useCallback((p: Partial<AppState>) => setState(s => ({ ...s, ...p })), [])
 ```
 
@@ -137,7 +142,10 @@ greets a first-timer with a chord — the thing a guitarist recognizes — Scale
 is one flip away), standard tuning, 15 frets, dark theme, backing mode
 `'drone'`, progression `[0,3,4]` (i–iv–v) at 80 BPM.
 Full literal at the top of `App.tsx` — but remember the *effective* initial
-state is `{ ...initialState, ...loadPersistedState() }`.
+state is `{ ...initialState, ...loadPersistedState(), ...parseUrlState(...) }`,
+and a **true first visit** (no saved state, no URL params — `firstVisit` ref in
+`App.tsx`) additionally forces `appMode: 'flow'` so the landing shows the neck
+plus the one-shot `.first-hero` panel instead of the Lessons list.
 
 ## Recipes for driving the app
 
