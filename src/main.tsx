@@ -18,6 +18,22 @@ if (savedLang) ensureExtra(savedLang).catch(() => {})
 // rather than crashing. Login/subscribe UI hides itself the same way.
 const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined
 
+// Carry the CTA's promise into the modal. Clerk's default sign-up copy is a
+// cold "Create your account / Please fill in the details" — the momentum from
+// clicking "Make practice stick · $5/mo" dies there. Override the two start-
+// screen strings with the value (why sign up) and the reassurance (it's free
+// to create the account; $5/mo is the later sync upsell, not a charge now).
+// English-only for now; Clerk showed English to every locale before this, so
+// it's a strict improvement — localizing these is an easy follow-up.
+const clerkLocalization = {
+  signUp: {
+    start: {
+      title: 'Save your progress',
+      subtitle: 'Keep your streak, favorites, and settings synced to every device. Free to create your account.',
+    },
+  },
+}
+
 const app = (
   <React.StrictMode>
     <App />
@@ -25,7 +41,9 @@ const app = (
 )
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  clerkKey ? <ClerkProvider publishableKey={clerkKey}>{app}</ClerkProvider> : app,
+  clerkKey
+    ? <ClerkProvider publishableKey={clerkKey} localization={clerkLocalization}>{app}</ClerkProvider>
+    : app,
 )
 
 // The brand splash (inline in index.html) fades once React has painted.
