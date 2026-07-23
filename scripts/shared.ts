@@ -248,11 +248,13 @@ export function head(opts: {
   canonicalPath: string
   alternates?: { hreflang: string; href: string }[]
   jsonLd?: object[]
+  ogImage?: string
 }): string {
   const alternates = (opts.alternates ?? [])
     .map(a => `<link rel="alternate" hreflang="${a.hreflang}" href="${a.href}" />`)
     .join('\n    ')
   const structuredData = opts.jsonLd?.length ? jsonLd(opts.jsonLd) : ''
+  const ogImage = opts.ogImage ?? `${ORIGIN}/og.jpg`
   return `<meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${opts.title}</title>
@@ -269,7 +271,7 @@ export function head(opts: {
     <meta property="og:site_name" content="Modal Runs" />
     <meta property="og:title" content="${opts.title}" />
     <meta property="og:description" content="${opts.description}" />
-    <meta property="og:image" content="${ORIGIN}/og.jpg" />
+    <meta property="og:image" content="${ogImage}" />
     <meta name="twitter:card" content="summary_large_image" />
     <style>${CSS}</style>
     <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments) }</script>
