@@ -1,0 +1,13 @@
+{
+  "name": "Modal Runs",
+  "short_name": "Modal Runs",
+  "description": "Learn the fretboard by playing it — hold a drone in any key, improvise, and Modal Runs hears you through your mic and lights up the notes on the neck in real time.",
+  "start_url": "/?source=pwa",
+  "display": "standalone",
+  "background_color": "#050507",
+  "theme_color": "#050507",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
