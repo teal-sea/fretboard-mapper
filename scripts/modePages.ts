@@ -233,7 +233,7 @@ function modePage(rootPc: number, mode: ModeKey): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-    ${head({ title, description, canonicalPath, alternates: alternatesFor(rootPc, mode), jsonLd: structuredData })}
+    ${head({ title, description, canonicalPath, alternates: alternatesFor(rootPc, mode), jsonLd: structuredData, ogImage: `${ORIGIN}/api/og?key=${rootPc}&mode=${mode}` })}
 </head>
 <body>
   ${SITE_HEADER}
@@ -342,6 +342,7 @@ function localizedModePage(rootPc: number, mode: ModeKey, locale: Locale): strin
       canonicalPath,
       alternates: alternatesFor(rootPc, mode),
       jsonLd: structuredData,
+      ogImage: `${ORIGIN}/api/og?key=${rootPc}&mode=${mode}`,
     })}
 </head>
 <body>
